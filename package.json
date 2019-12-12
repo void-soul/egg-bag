@@ -1,0 +1,92 @@
+{
+  "name": "egg-bag",
+  "version": "1.23.0",
+  "description": "egg-bag framework beta",
+  "keywords": [
+    "egg",
+    "egg-framework"
+  ],
+  "homepage": "https://github.com/void-soul/egg-bag",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "license": "MIT",
+  "author": "dedede",
+  "files": [
+    "index.js",
+    "lib",
+    "app",
+    "config",
+    "app.js",
+    "index.d.ts",
+    "yarn.lock"
+  ],
+  "types": "index.d.ts",
+  "bin": {
+    "egg-bag": "./bin/generator-nuxt.js"
+  },
+  "scripts": {
+    "dist": "node ci.js",
+    "lint": "tslint --project . -c tslint.json"
+  },
+  "dependencies": {
+    "@alicloud/pop-core": "1.7.7",
+    "body-parser": "1.19.0",
+    "core-js": "2.6.10",
+    "dayjs": "1.8.17",
+    "debug": "4.1.1",
+    "decimal.js": "10.2.0",
+    "egg": "2.25.0",
+    "egg-alinode": "2.0.1",
+    "egg-mysql-ex": "3.0.0-RC9",
+    "egg-redis": "2.4.0",
+    "egg-socket.io": "4.1.6",
+    "egg-view-nunjucks": "2.2.0",
+    "es6-error": "4.1.1",
+    "eslint-plugin-nuxt": "0.5.0",
+    "fast-json-stringify": "1.15.6",
+    "lodash": "4.17.15",
+    "md5": "2.2.1",
+    "mongodb": "3.3.4",
+    "mustache": "3.1.0",
+    "mysql2": "2.0.0",
+    "nanoid": "2.1.7",
+    "nuxt": "2.10.2",
+    "reflect-metadata": "0.1.13",
+    "request": "2.88.0",
+    "request-promise": "4.2.5",
+    "shelljs": "0.8.3",
+    "sqlstring": "2.3.1",
+    "svg-captcha": "1.4.0",
+    "vue-meta": "2.3.1",
+    "xml2js": "0.4.22",
+    "crypto": "1.0.1"
+  },
+  "devDependencies": {
+    "@types/lodash": "4.14.149",
+    "@types/mongodb": "3.3.11",
+    "@types/node": "12.12.9",
+    "@types/request": "2.48.3",
+    "@types/request-promise": "4.1.45",
+    "@types/shelljs": "0.8.6",
+    "@types/socket.io": "2.1.4",
+    "@types/body-parser": "1.17.1",
+    "@types/xml2js": "0.4.5",
+    "autod": "3.1.0",
+    "autod-egg": "1.1.0",
+    "cross-env": "6.0.3",
+    "egg-bin": "4.14.0",
+    "egg-ci": "1.13.1",
+    "egg-mock": "3.24.2",
+    "egg-scripts": "2.11.1",
+    "egg-ts-helper": "1.25.6",
+    "tslib": "1.10.0",
+    "tslint": "5.20.1",
+    "typescript": "3.7.3"
+  },
+  "engines": {},
+  "ci": {
+    "version": "8"
+  }
+}

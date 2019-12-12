@@ -1,0 +1,163 @@
+import {Controller} from 'egg';
+import ILogin from '../middleware/ILogin';
+import * as dayjs from 'dayjs';
+import {dateTime, date} from '../util/now';
+import lodash = require('lodash');
+const query = {
+  path: '/query.json',
+  method: 'get',
+  before: [ILogin],
+  async handel(this: Controller, {
+    query: {sqlCode, currentPage, pageSize, sortName, sortType, limitSelf},
+    queries
+  }) {
+    this.app.throwIf(!sqlCode, '没有指定sql语句编码!');
+    const params: {
+      [key: string]: any;
+    } = {};
+    if (this.app.config.queryDefaultParam) {
+      for (const [name, key] of Object.entries(this.app.config.queryDefaultParam)) {
+        params[name] = lodash.get(
+          this.ctx.me,
+          key
+        );
+      }
+    }
+    Object.keys(queries).forEach((item) => {
+      if (queries[item].length > 1) {
+        params[item] = queries[item];
+      } else {
+        params[item] = queries[item][0];
+      }
+    });
+    const page = this.service.paasService
+      .pageQueryMe(sqlCode)
+      .pageNumber(currentPage)
+      .pageSize(pageSize)
+      .params(params)
+      .limitSelf(limitSelf);
+    if (sortName && sortType) {
+      page.orderBy(`${ sortName } ${ sortType }`);
+    }
+    return await page.select();
+  }
+};
+
+const queryMongo = {
+  path: '/query-mongo.json',
+  before: [ILogin],
+  method: 'get',
+  async handel(this: Controller, {
+    query: {sqlCode, currentPage, pageSize, sortName, sortType, limitSelf},
+    queries
+  }) {
+    this.app.throwIf(!sqlCode, '没有指定sql语句编码!');
+    const params: {
+      [key: string]: any;
+    } = {};
+    if (this.app.config.queryDefaultParam) {
+      for (const [name, key] of Object.entries(this.app.config.queryDefaultParam)) {
+        params[name] = this.ctx.me[key];
+      }
+    }
+    Object.keys(queries).forEach((item) => {
+      if (queries[item].length > 1) {
+        params[item] = queries[item];
+      } else {
+        params[item] = queries[item][0];
+      }
+    });
+    const page = this.service.paasMongoService
+      .pageQueryMe(sqlCode)
+      .pageNumber(currentPage)
+      .pageSize(pageSize)
+      .params(params)
+      .limitSelf(limitSelf);
+    if (sortName && sortType) {
+      page.orderByMongo(sortName, sortType === 'asc' ? 1 : -1);
+    }
+    return await page.select();
+  }
+};
+
+const now = {
+  path: '/now.json',
+  method: 'get',
+  async handel({query: {minute, hour, day, week, month, year, format}}) {
+    return dayjs()
+      .add(minute || 0, 'minute')
+      .add(hour || 0, 'hour')
+      .add(day || 0, 'day')
+      .add(week || 0, 'week')
+      .add(month || 0, 'month')
+      .add(year || 0, 'year').format(format || dateTime);
+  }
+};
+const today = {
+  path: '/today.json',
+  method: 'get',
+  async handel({query: {minute, hour, day, week, month, year, format}}) {
+    return dayjs()
+      .add(minute || 0, 'minute')
+      .add(hour || 0, 'hour')
+      .add(day || 0, 'day')
+      .add(week || 0, 'week')
+      .add(month || 0, 'month')
+      .add(year || 0, 'year').format(format || date);
+  }
+};
+const phoneCode = {
+  path: '/code.json',
+  method: 'get',
+  async handel(this: Controller, {query: {phone}}: any) {
+    return await this.service.paasService.sendCode(phone);
+  }
+};
+const picCode = {
+  path: '/pic-code.json',
+  method: 'get',
+  type: 'image/svg+xml',
+  async handel(this: Controller, {query: {key}}) {
+    return await this.service.paasService.picCode(key);
+  }
+};
+const getConfigJson = {
+  path: '/GlobalValues.json',
+  method: 'get',
+  async handel(this: Controller) {
+    return this.app._globalValues;
+  }
+};
+const getWxIds = {
+  path: '/wx-mini-ms-id.json',
+  method: 'get',
+  async handel(this: Controller, {query: {code}}) {
+    return this.app.getWxMini(code).getTemplIds();
+  }
+};
+const getWxQr = {
+  path: '/wx-mini-qr.png',
+  method: 'get',
+  type: 'image/png',
+  async handel(this: Controller, {query: {model, page, fullpath, scene, png, code}}) {
+    return this.app.getWxMini(code).getUnlimited({model, page, fullpath, scene, png});
+  }
+};
+const wxDecrypt = {
+  path: '/wx-decrypt',
+  method: 'get',
+  before: [ILogin],
+  async handel(this: Controller, {query: {encryptedData, iv, code}}) {
+    return this.app.getWxMini(code).decrypt({
+      sessionKey: this.ctx.me.wx_mini_session_key!,
+      iv,
+      encryptedData
+    });
+  }
+};
+export const routes = [
+  now, phoneCode, picCode, getConfigJson, today, getWxIds, getWxQr, wxDecrypt
+];
+export const querys = [
+  query, queryMongo
+];

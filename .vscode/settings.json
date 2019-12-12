@@ -1,0 +1,32 @@
+{
+  "prettier.printWidth": 800,
+  "files.exclude": {
+    ".autod.conf.js": true,
+    ".bashrc": true,
+    ".eslintignore": true,
+    ".eslintrc.js": true,
+    ".github": true,
+    ".gitignore": true,
+    ".npmrc": true,
+    ".nuxt": true,
+    ".travis.yml": true,
+    ".vscode": true,
+    ".yarnclean": true,
+    "**/.classpath": true,
+    "**/.factorypath": true,
+    "**/.project": true,
+    "**/.settings": true,
+    "appveyor.yml": true,
+    "babel.config.js": true,
+    "dev.config.json": true,
+    "dist_electron": true,
+    "jsconfig.json": true,
+    "logs": true,
+    "node_modules": false,
+    "pm2.json": true,
+    "run": true,
+    "tslint.json": true,
+    "vue-dev-tools": true,
+    "yarn.lock": true
+  }
+}

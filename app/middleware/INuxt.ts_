@@ -1,0 +1,24 @@
+import {Context} from 'egg';
+export default (): (ctx: Context, next: () => Promise<any>) => Promise<void> => {
+  return async (ctx: Context, next: () => {}) => {
+    await next();
+    if (ctx.method !== 'GET') {
+      return;
+    }
+    const path = ctx.path;
+    // webpack hot reload
+    // egg will set 'content-length' with value, it will disable the hot middleware keep alive.
+    // egg 默认设置了 'content-length' 值，导致热更新失败，建议去掉该值保持活跃
+    if (path.includes('__webpack_hmr') || path.includes('_nuxt')) {
+      ctx.response.remove('Content-Length');
+      if (path.endsWith('.js')) {
+        ctx.set('Content-Type', 'application/javascript');
+      }
+      if (path.endsWith('.css')) {
+        ctx.set('Content-Type', 'text/css');
+      }
+      ctx.status = 200;
+      await ctx.nuxt();
+    }
+  };
+};
