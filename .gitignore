@@ -30,3 +30,5 @@ config/**/*.map
 !ci.js
 !yarn.lock
 .launch.json
+dist
+/dist
