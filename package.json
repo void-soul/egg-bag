@@ -9,7 +9,7 @@
   "homepage": "https://github.com/void-soul/egg-bag",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "git+https://github.com/void-soul/egg-bag.git"
   },
   "license": "MIT",
   "author": "dedede",
@@ -23,9 +23,6 @@
     "yarn.lock"
   ],
   "types": "index.d.ts",
-  "bin": {
-    "egg-bag": "./bin/generator-nuxt.js"
-  },
   "scripts": {
     "dist": "node ci.js",
     "lint": "tslint --project . -c tslint.json"
@@ -63,6 +60,7 @@
     "xml2js": "0.4.22"
   },
   "devDependencies": {
+    "@types/body-parser": "1.17.1",
     "@types/lodash": "4.14.149",
     "@types/mongodb": "3.3.12",
     "@types/node": "12.12.17",
@@ -70,7 +68,6 @@
     "@types/request-promise": "4.1.45",
     "@types/shelljs": "0.8.6",
     "@types/socket.io": "2.1.4",
-    "@types/body-parser": "1.17.1",
     "@types/xml2js": "0.4.5",
     "autod": "3.1.0",
     "autod-egg": "1.1.0",
