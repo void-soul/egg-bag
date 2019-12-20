@@ -40,6 +40,8 @@ export class WxOrgan extends BaseWx {
         });
       }
     }
+
+    this.mock = this.config.mock === true;
   }
   async createDepartment(param: WxDepartment): Promise<number> {
     const data = await this.fetch(

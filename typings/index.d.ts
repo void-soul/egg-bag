@@ -268,7 +268,16 @@ export interface WxOrganConfig {
     name: string;
     msgtype: 'text' | 'image' | 'voice' | 'video' | 'file' | 'textcard' | 'news' | 'mpnews' | 'markdown' | 'taskcard';
     safe?: 0 | 1;
-  }>
+  }>;
+
+  /**
+   *
+   * 接口模拟调用?
+   * 默认false
+   * @type {boolean}
+   * @memberof WxOrganConfig
+   */
+  mock?: boolean;
 }
 export interface WxOrganMini {
   title: string;

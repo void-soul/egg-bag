@@ -6,6 +6,7 @@ export abstract class BaseWx {
   protected authErrorCodes = [40001, 40014, 41001, 42001];
   protected name: string;
   protected tokenUrl: string;
+  protected mock = false;
   constructor (app: Application, appCode: string) {
     this.app = app;
     this.appCode = appCode;
@@ -37,7 +38,7 @@ export abstract class BaseWx {
   }
   protected async fetch(uri: (token: string) => string, method: 'get' | 'post', data: {[key: string]: any}, needToken: boolean = true, buffer: boolean = false) {
     let token = needToken ? await this.getToken() : '';
-    if (!needToken || token) {
+    if (this.mock !== true && (!needToken || token)) {
       const start = +new Date();
       let url = uri(token);
       const param = method === 'get' ? {
