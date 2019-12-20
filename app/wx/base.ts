@@ -37,8 +37,11 @@ export abstract class BaseWx {
     return token;
   }
   protected async fetch(uri: (token: string) => string, method: 'get' | 'post', data: {[key: string]: any}, needToken: boolean = true, buffer: boolean = false) {
+    if (this.mock === true) {
+      return {};
+    }
     let token = needToken ? await this.getToken() : '';
-    if (this.mock !== true && (!needToken || token)) {
+    if (!needToken || token) {
       const start = +new Date();
       let url = uri(token);
       const param = method === 'get' ? {
