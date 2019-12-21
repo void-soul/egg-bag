@@ -583,7 +583,6 @@ export interface WxCreatedorder {
   device_info?: string;
   body: string;
   detail?: string;
-  attach?: string;
   out_trade_no: string;
   total_fee: number;
   spbill_create_ip: string;
@@ -766,6 +765,16 @@ export interface WxPay {
    * @memberof WxPay
    */
   closeorder(out_trade_no: string): Promise<void>;
+  /**
+   * 取消订单
+   * 用于用户取消支付导致的取消订单场景
+   * 此方法会清除调起支付时缓存的dataCache
+   * 同时会向微信提交关闭订单的申请
+   * @param {string} out_trade_no
+   * @returns {Promise<void>}
+   * @memberof WxPay
+   */
+  cancelorder(out_trade_no: string): Promise<void>;
   /**
    *
    * https://pay.weixin.qq.com/wiki/doc/api/jsapi.php?chapter=9_4

@@ -56,16 +56,16 @@ export class WxPay {
     this.installRoute(app, appCode);
   }
   async unifiedorder(wxOrderOption: WxCreatedorder, dataCache?: {[key: string]: any}): Promise<WxCreateOrderResult> {
-    this.app.throwIf(!!dataCache && !wxOrderOption.attach, '有缓存数据时,必须传递attach参数。因为需要把dataCache放入redis缓存,key为attach。方便在回调时使用');
     const params = this.buildParam({
       ...wxOrderOption,
       fee_type: 'CNY',
       notify_url: `${ this.app.config.baseUri }pay-hook/wx/${ this.appCode }.html`,
       scene_info: wxOrderOption.scene_info ? JSON.stringify(wxOrderOption.scene_info) : '',
-      trade_type: this.option.trade_type
+      trade_type: this.option.trade_type,
+      attach: dataCache ? wxOrderOption.out_trade_no : undefined
     });
     if (dataCache) {
-      await this.app.setCache(wxOrderOption.attach!, JSON.stringify(dataCache), 'other');
+      await this.app.setCache(`${ wxOrderOption.out_trade_no }-wx-pay-${ this.appCode }`, JSON.stringify(dataCache), 'other');
     }
 
     const response = await this.request('unifiedorder', params);
@@ -115,6 +115,10 @@ export class WxPay {
       out_trade_no
     });
     await this.request('closeorder', params);
+  }
+  async cancelorder(out_trade_no: string) {
+    await this.app.delCache(`${ out_trade_no }-wx-pay-${ this.appCode }`, 'other');
+    await this.closeorder(out_trade_no);
   }
   async refund(option: WxCreateRefundOrder) {
     const params = this.buildParam({
@@ -247,10 +251,10 @@ export class WxPay {
               this.app.coreLogger.error(`wx-pay-hook(${ data.transaction_id })locked-${ lock }`);
               return builder.buildObject({return_code: 'FAIL', return_msg: `locked-${ lock }`});
             }
-            await this.app.setCache(`${ data.transaction_id }-wx-pay-hook`, nowTime(), 'other');
+            await this.app.setCache(`${ data.transaction_id }-wx-pay-hook`, `${ appCode }-${ nowTime() }`, 'other');
             let dataCache: any;
             if (data.attach) {
-              const dataCacheStr = await this.app.getCache(data.attach, 'other');
+              const dataCacheStr = await this.app.getCache(`${ data.attach }-wx-pay-${ appCode }`, 'other');
               if (dataCacheStr) {
                 dataCache = JSON.parse(dataCacheStr);
               }
@@ -287,7 +291,7 @@ export class WxPay {
               this.app.coreLogger.error(`wx-ref-hook(${ data.refund_id })locked-${ lock }`);
               return builder.buildObject({return_code: 'FAIL', return_msg: `locked-${ lock }`});
             }
-            await this.app.setCache(`${ data.refund_id }-wx-ref-hook`, nowTime(), 'other');
+            await this.app.setCache(`${ data.refund_id }-wx-ref-hook`, `${ appCode }-${ nowTime() }`, 'other');
             await this.app.emitASync(`${ appCode }-ref-hook`, data as WxRefHook);
             return builder.buildObject({return_code: 'SUCCESS', return_msg: 'OK'});
           } catch (error) {
