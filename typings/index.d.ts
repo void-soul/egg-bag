@@ -963,7 +963,7 @@ export class BaseMongoService<T> extends Service {
   querySingelRowSingelColumnBySqlId<M>(sqlid: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<M | null>;
   pageQuery<L>(sqlid: string, transaction?: any | true): PageQuery<L>;
   pageQueryMe(sqlid: string, transaction?: any | true): PageQuery<T>;
-  protected transction(fn: (transaction: any) => Promise<any>, transaction?: any | true): Promise<any>;
+  transction(fn: (transaction: any) => Promise<any>, transaction?: any | true): Promise<any>;
 }
 export class BaseService<T> extends Service {
   insert(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;

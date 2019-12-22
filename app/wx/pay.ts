@@ -118,7 +118,11 @@ export class WxPay {
   }
   async cancelorder(out_trade_no: string) {
     await this.app.delCache(`${ out_trade_no }-wx-pay-${ this.appCode }`, 'other');
-    await this.closeorder(out_trade_no);
+    try {
+      await this.closeorder(out_trade_no);
+    } catch (error) {
+      this.app.coreLogger.error(error);
+    }
   }
   async refund(option: WxCreateRefundOrder) {
     const params = this.buildParam({
@@ -155,7 +159,7 @@ export class WxPay {
     let response = await parser.parseStringPromise(data);
     if (option.strict === true) {
       this.app.throwIf(response.return_code === 'FAIL', `${ this.appCode }-${ name }-${ response.return_code }-${ response.return_msg }`);
-      this.app.throwIf(response.result_code === 'FAIL', `${ this.appCode }-${ name }-${ response.result_code }`);
+      this.app.throwIf(response.result_code === 'FAIL', `${ this.appCode }-${ name }-${ response.result_code }-${ response.err_code_des }`);
       this.app.throwIf(response.errcode, `${ this.appCode }-${ name }-${ response.errcode }-${ response.err_code_des }`);
       this.app.throwIf(response.appid !== undefined && response.appid !== this.option.appid, `${ this.appCode }-${ name }-提交(${ this.option.appid })、返回(${ response.appid })的appid不符`);
       this.app.throwIf(response.mch_id !== undefined && response.mch_id !== this.option.mch_id, `${ this.appCode }-${ name }-提交(${ this.option.mch_id })、返回(${ response.mch_id })的mch_id不符`);

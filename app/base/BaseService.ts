@@ -2121,7 +2121,7 @@ export default abstract class <T> extends Service {
    * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @returns
    */
-  protected async transction(
+  public async transction(
     fn: (conn: any) => Promise<any>,
     transaction: any = true
   ): Promise<any> {
