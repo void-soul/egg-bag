@@ -1,6 +1,6 @@
 {
   "name": "egg-bag",
-  "version": "1.23.7",
+  "version": "1.23.8",
   "description": "egg-bag framework beta",
   "keywords": [
     "egg",
@@ -19,6 +19,7 @@
     "app",
     "config",
     "app.js",
+    "agent.js",
     "index.d.ts",
     "yarn.lock"
   ],
