@@ -857,7 +857,26 @@ export interface WxDepartment {
   id: number;
 }
 export class SetEx<T> extends Set {
-  constructor (key: keyof T, onExist?: (oldData: T, newData: T) => void, replaceWhenExits?, values?: ReadonlyArray<T> | null);
+  /**
+   *
+   * @param {keyof T} key 识别是否存在的对象的属性名
+   * @param {(oldData: T, newData: T) => void} [onExist] 当存在时作何操作? oldData/newData 哪个将添加到set,由replaceItemWhenExits决定,默认是oldData生效
+   * @param {boolean} [replaceWhenExits] 当存在时是否覆盖？
+   * @param {(ReadonlyArray<T> | null)} [values] 初始数组
+   * @param {(newData: T) => void} [onNotExist] 当不存在时作何操作?
+   * @memberof SetEx
+   */
+  constructor (key: keyof T, onExist?: (oldData: T, newData: T) => void, replaceWhenExits?: boolean, values?: ReadonlyArray<T> | null, onNotExist?: (newData: T) => void);
+  /**
+   * key: 识别是否存在的对象的属性名
+   * onExist: 当存在时作何操作? oldData/newData 哪个将添加到set,由replaceItemWhenExits决定,默认是oldData生效
+   * replaceWhenExits: 当存在时是否覆盖？
+   * values 初始数组
+   * onNotExist 当不存在时作何操作?
+   * @param {({key: keyof T, onExist?: (oldData: T, newData: T) => void, onNotExist?: (newData: T) => void, replaceWhenExits: boolean, values?: ReadonlyArray<T> | null})} param
+   * @memberof SetEx
+   */
+  constructor (param: {key: keyof T, onExist?: (oldData: T, newData: T) => void, onNotExist?: (newData: T) => void, replaceWhenExits?: boolean, values?: ReadonlyArray<T> | null});
   add(value: T): this;
   addAll(value: T): this;
   add2(value: T): T;
@@ -963,7 +982,7 @@ export class BaseMongoService<T> extends Service {
   querySingelRowSingelColumnBySqlId<M>(sqlid: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<M | null>;
   pageQuery<L>(sqlid: string, transaction?: any | true): PageQuery<L>;
   pageQueryMe(sqlid: string, transaction?: any | true): PageQuery<T>;
-  transction(fn: (transaction: any) => Promise<any>, transaction?: any | true): Promise<any>;
+  protected transction(fn: (transaction: any) => Promise<any>, transaction?: any | true): Promise<any>;
 }
 export class BaseService<T> extends Service {
   insert(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;

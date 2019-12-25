@@ -74,7 +74,7 @@ export class WxMini extends BaseWx {
             touser,
             data: dataSend,
             template_id: temp.tmplId,
-            page: `${ temp.page }${ screen }`
+            page: `${ temp.page }${ scene }`
           }
         );
       }

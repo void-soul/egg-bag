@@ -1,24 +1,43 @@
 export default class <T> extends Set {
   private uniqueKey: keyof T;
-  private whenOnExist?: (oldData: T, newData: T) => void;
+  private whenOnExist?: (oldData: T, newData: T) => void | null;
+  private whenOnNotExist?: (newData: T) => void | null;
   private replaceItemWhenExits: boolean;
   /**
    * @param key 识别是否存在的对象的属性名
-   * @param onExist 当存在时作何操作?
+   * @param onExist 当存在时作何操作? oldData/newData 哪个将添加到set,由replaceItemWhenExits决定,默认是oldData生效
+   * @param onNotExist 当不存在时作何操作?
    * @param replaceWhenExits 当存在时是否覆盖？
    * @param values 初始数组
    */
   constructor (
-    key: keyof T,
+    key: keyof T | {
+      key: keyof T,
+      onExist?: (oldData: T, newData: T) => void,
+      onNotExist?: (newData: T) => void,
+      replaceWhenExits?: boolean,
+      values?: ReadonlyArray<T> | null
+    },
     onExist?: (oldData: T, newData: T) => void,
     replaceWhenExits = false,
-    values?: ReadonlyArray<T> | null
+    values?: ReadonlyArray<T> | null,
+    onNotExist?: (newData: T) => void
   ) {
-    super(values);
-    this.whenOnExist = onExist;
-    this.uniqueKey = key;
-    this.replaceItemWhenExits = replaceWhenExits;
+    if (typeof key === 'object') {
+      super(key.values);
+      this.whenOnExist = key.onExist;
+      this.uniqueKey = key.key;
+      this.replaceItemWhenExits = key.replaceWhenExits === true;
+      this.whenOnNotExist = key.onNotExist;
+    } else {
+      super(values);
+      this.whenOnExist = onExist;
+      this.uniqueKey = key;
+      this.replaceItemWhenExits = replaceWhenExits;
+      this.whenOnNotExist = onNotExist;
+    }
   }
+
   /**
    *
    * 添加返回 当前对象
@@ -42,6 +61,9 @@ export default class <T> extends Set {
     });
     if (flag === false) {
       super.add(value);
+      if (this.whenOnNotExist) {
+        this.whenOnNotExist(value);
+      }
     }
     return this;
   }
@@ -69,13 +91,17 @@ export default class <T> extends Set {
         if (this.replaceItemWhenExits === true) {
           super.delete(item);
           flag = false;
+        } else {
+          tmp = item;
         }
-        tmp = item;
         return false;
       }
     });
     if (flag === false) {
       super.add(value);
+      if (this.whenOnNotExist) {
+        this.whenOnNotExist(value);
+      }
     }
     return tmp;
   }
@@ -187,12 +213,18 @@ export default class <T> extends Set {
    * @param {(oldData: T, newData: T) => void} [onExist]
    * @param {boolean} [replaceWhenExits=false]
    */
-  reset({key, onExist, replaceWhenExits}: {
+  reset({key, onExist, onNotExist, replaceWhenExits}: {
     key?: keyof T,
-    onExist?: (oldData: T, newData: T) => void,
+    onExist?: (oldData: T, newData: T) => void | null,
+    onNotExist?: (newData: T) => void | null,
     replaceWhenExits?: boolean
   }): this {
-    this.whenOnExist = onExist;
+    if (onExist !== undefined) {
+      this.whenOnExist = onExist;
+    }
+    if (onNotExist !== undefined) {
+      this.whenOnNotExist = onNotExist;
+    }
     if (key) {
       this.uniqueKey = key;
     }

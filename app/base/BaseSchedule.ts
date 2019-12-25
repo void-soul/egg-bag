@@ -9,7 +9,13 @@ const scheduleName = '/__schedule?path';
  * redis = true : 执行锁不在线程内存中，而是在redis中[默认=true]
  * key : 执行锁名称，若不指定，则使用文件名
  * 注: 若自己指定了key,请在app.ts中的启动事件中清空 `schedule-${key}`
- *
+ * cron: 从左往右,共6位,*=每, *\/n = 每n
+ * second (0 - 59, optional)
+ * minute (0 - 59)
+ * hour (0 - 23)
+ * day of month (1 - 31)
+ * month (1 - 12)
+ * day of week (0 - 7) (0 or 7 is Sun)
  * @export
  * @abstract
  * @class BaseSchedule
