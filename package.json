@@ -1,6 +1,6 @@
 {
   "name": "egg-bag",
-  "version": "1.23.12",
+  "version": "1.23.13",
   "description": "egg-bag framework beta",
   "keywords": [
     "egg",
@@ -29,10 +29,10 @@
     "lint": "tslint --project . -c tslint.json"
   },
   "dependencies": {
-    "@alicloud/pop-core": "1.7.7",
+    "@alicloud/pop-core": "1.7.9",
     "body-parser": "1.19.0",
     "core-js": "2.6.10",
-    "dayjs": "1.8.17",
+    "dayjs": "1.8.18",
     "debug": "4.1.1",
     "decimal.js": "10.2.0",
     "egg": "2.26.0",
@@ -43,14 +43,14 @@
     "egg-view-nunjucks": "2.2.0",
     "es6-error": "4.1.1",
     "eslint-plugin-nuxt": "0.5.0",
-    "fast-json-stringify": "1.15.7",
+    "fast-json-stringify": "1.16.0",
     "lodash": "4.17.15",
     "md5": "2.2.1",
-    "mongodb": "3.4.0",
-    "mustache": "3.1.0",
-    "mysql2": "2.0.2",
-    "nanoid": "2.1.7",
-    "nuxt": "2.10.2",
+    "mongodb": "3.4.1",
+    "mustache": "3.2.1",
+    "mysql2": "2.1.0",
+    "nanoid": "2.1.8",
+    "nuxt": "2.11.0",
     "reflect-metadata": "0.1.13",
     "request": "2.88.0",
     "request-promise": "4.2.5",
@@ -58,14 +58,14 @@
     "sqlstring": "2.3.1",
     "svg-captcha": "1.4.0",
     "vue-meta": "2.3.1",
-    "xml2js": "0.4.22"
+    "xml2js": "0.4.23"
   },
   "devDependencies": {
     "@types/body-parser": "1.17.1",
     "@types/lodash": "4.14.149",
-    "@types/mongodb": "3.3.12",
-    "@types/node": "12.12.17",
-    "@types/request": "2.48.3",
+    "@types/mongodb": "3.3.14",
+    "@types/node": "13.1.2",
+    "@types/request": "2.48.4",
     "@types/request-promise": "4.1.45",
     "@types/shelljs": "0.8.6",
     "@types/socket.io": "2.1.4",
@@ -73,14 +73,14 @@
     "autod": "3.1.0",
     "autod-egg": "1.1.0",
     "cross-env": "6.0.3",
-    "egg-bin": "4.14.0",
+    "egg-bin": "4.14.1",
     "egg-ci": "1.13.1",
     "egg-mock": "3.25.0",
-    "egg-scripts": "2.11.1",
+    "egg-scripts": "2.12.0",
     "egg-ts-helper": "1.25.6",
     "tslib": "1.10.0",
     "tslint": "5.20.1",
-    "typescript": "3.7.3"
+    "typescript": "3.7.4"
   },
   "engines": {},
   "ci": {

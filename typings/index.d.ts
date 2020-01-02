@@ -889,9 +889,9 @@ export class SetEx<T> extends Set {
   toArray(): T[];
   delete(value: T[keyof T]): boolean;
   reset(param: {key?: keyof T, onExist?: (oldData: T, newData: T) => void, replaceWhenExits?, values?: ReadonlyArray<T> | null}): this;
-  set onExist(onExist: ((oldData: T, newData: T) => void) | undefined): void;
-  set key(key: keyof T): void;
-  set replaceWhenExits(replaceWhenExits: boolean): void;
+  set onExist(onExist: ((oldData: T, newData: T) => void) | undefined);
+  set key(key: keyof T);
+  set replaceWhenExits(replaceWhenExits: boolean);
 }
 
 export interface BaseMongoModel {
