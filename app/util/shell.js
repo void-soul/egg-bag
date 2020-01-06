@@ -96,20 +96,21 @@ const EggShell = (app, options = {}) => {
               // 异步操作改装
               const uri = ctx.body._router || ctx.query._router;
               const message = ctx.body._msg || ctx.query._msg;
+              const title = ctx.body._title || ctx.query._title;
               const event = ctx.body._event || ctx.query._event;
               if (uri && message) {
                 result = 1;
                 instance[pName](ctx)
                   .then(_data => {
                     ctx.app.emitTo('USER-', ctx.me.userid, event, {
-                      message: `${ message }成功了!`,
+                      message: `${ title || message }处理完毕,${ message.replace('{{.}}', _data) }`,
                       uri
                     });
                   })
                   .catch(error => {
                     app.coreLogger.error(error);
                     ctx.app.emitTo('USER-', ctx.me.userid, event, {
-                      message: `${ message }失败了!(${ error && error.message })`,
+                      message: `${ title || message }失败了!(${ error && error.message })`,
                       uri
                     });
                   });
