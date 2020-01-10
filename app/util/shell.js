@@ -55,7 +55,7 @@ const EggShell = (app, options = {}) => {
         reqMethod = 'get';
       }
       if (reqMethod && router[reqMethod]) {
-        app.coreLogger.info(`[egg-bag] found router: ${ path }.`);
+        app.coreLogger.info(`[egg-bag] found router: ${ prefix + path }.`);
         const befores = [...options.before, ...beforeAll, ...before];
         const afters = [...options.after, ...afterAll, ...after];
         router[reqMethod](prefix + path, async (ctx, next) => {
@@ -163,7 +163,7 @@ const EggShell = (app, options = {}) => {
           }
         });
       } else if (reqMethod === 'io') {
-        app.coreLogger.info(`[egg-bag] found io-router: ${ path }.`);
+        app.coreLogger.info(`[egg-bag] found io-router: ${ prefix + path }.`);
         const befores = [...options.before, ...beforeAll, ...before];
         const afters = [...options.after, ...afterAll, ...after];
         io.of('/').route(prefix + path, async function () {
@@ -203,7 +203,7 @@ const EggShell = (app, options = {}) => {
 const EggInstall = (target, app, options = {}) => {
   const { router } = app;
   if (router[target.method]) {
-    app.coreLogger.info(`[egg-bag] found io-router: ${ target.path }.`);
+    app.coreLogger.info(`[egg-bag] found inner-router: ${ target.path }.`);
     router[target.method](target.path, async (ctx, next) => {
       const start = +new Date();
       try {

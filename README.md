@@ -164,3 +164,7 @@ export default function (this: Context, order: WxRefHook) {
   this.logger.error(order);
 }
 ```
+
+# 1.23.16
+
+1. 修复一处打印日志错误
