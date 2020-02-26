@@ -7,8 +7,8 @@ import {notEmptyString} from '../util/string';
 export default abstract class <T> extends Service {
   private max = 500;
   private tableName: string;
-  private idNames: Array<keyof T>;
-  private keys: Array<keyof T>;
+  private idNames: (keyof T)[];
+  private keys: (keyof T)[];
   private stateFileName: string;
   private deleteState: string;
 
@@ -49,7 +49,7 @@ export default abstract class <T> extends Service {
    */
   async insertIfNotExists(
     data: {[P in keyof T]?: T[P]},
-    columns: Array<keyof T>,
+    columns: (keyof T)[],
     transaction: any = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
@@ -163,7 +163,7 @@ export default abstract class <T> extends Service {
    */
   async insertTemplateIfNotExists(
     data: {[P in keyof T]?: T[P]},
-    columns: Array<keyof T>,
+    columns: (keyof T)[],
     transaction: any = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
@@ -199,7 +199,7 @@ export default abstract class <T> extends Service {
  */
   async insertTemplateLooseIfNotExists(
     data: {[P in keyof T]?: T[P]},
-    columns: Array<keyof T>,
+    columns: (keyof T)[],
     transaction: any = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
@@ -267,7 +267,7 @@ export default abstract class <T> extends Service {
    * @returns
    */
   async insertBatch(
-    datas: Array<{[P in keyof T]?: T[P]}>,
+    datas: {[P in keyof T]?: T[P]}[],
     transaction: any = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
@@ -300,8 +300,8 @@ export default abstract class <T> extends Service {
    * @returns
    */
   async insertBatchIfNotExists(
-    datas: Array<{[P in keyof T]?: T[P]}>,
-    columns: Array<keyof T>,
+    datas: {[P in keyof T]?: T[P]}[],
+    columns: (keyof T)[],
     transaction: any = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
@@ -350,7 +350,7 @@ export default abstract class <T> extends Service {
    * @returns
    */
   async replaceBatch(
-    datas: Array<{[P in keyof T]?: T[P]}>,
+    datas: {[P in keyof T]?: T[P]}[],
     transaction: any = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
@@ -389,7 +389,7 @@ export default abstract class <T> extends Service {
    * @returns
    */
   async insertBatchTemplate(
-    datas: Array<{[P in keyof T]?: T[P]}>,
+    datas: {[P in keyof T]?: T[P]}[],
     transaction: any = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
@@ -428,7 +428,7 @@ export default abstract class <T> extends Service {
    * @returns
    */
   async insertBatchTemplateLoose(
-    datas: Array<{[P in keyof T]?: T[P]}>,
+    datas: {[P in keyof T]?: T[P]}[],
     transaction: any = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
@@ -447,8 +447,8 @@ export default abstract class <T> extends Service {
    * @returns
    */
   async insertBatchTemplateIfNotExists(
-    datas: Array<{[P in keyof T]?: T[P]}>,
-    columns: Array<keyof T>,
+    datas: {[P in keyof T]?: T[P]}[],
+    columns: (keyof T)[],
     transaction: any = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
@@ -499,8 +499,8 @@ export default abstract class <T> extends Service {
     * @returns
     */
   async insertBatchTemplateLooseIfNotExists(
-    datas: Array<{[P in keyof T]?: T[P]}>,
-    columns: Array<keyof T>,
+    datas: {[P in keyof T]?: T[P]}[],
+    columns: (keyof T)[],
     transaction: any = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
@@ -522,7 +522,7 @@ export default abstract class <T> extends Service {
    * @returns
    */
   async replaceBatchTemplate(
-    datas: Array<{[P in keyof T]?: T[P]}>,
+    datas: {[P in keyof T]?: T[P]}[],
     transaction: any = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
@@ -564,7 +564,7 @@ export default abstract class <T> extends Service {
    * @returns
    */
   async replaceBatchTemplateLoose(
-    datas: Array<{[P in keyof T]?: T[P]}>,
+    datas: {[P in keyof T]?: T[P]}[],
     transaction: any = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
@@ -584,7 +584,7 @@ export default abstract class <T> extends Service {
    * @returns
    */
   async replaceBatchTemplateSafe(
-    datas: Array<{[P in keyof T]?: T[P]}>,
+    datas: {[P in keyof T]?: T[P]}[],
     transaction: any = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
@@ -619,7 +619,7 @@ export default abstract class <T> extends Service {
    * @returns
    */
   async replaceBatchTemplateLooseSafe(
-    datas: Array<{[P in keyof T]?: T[P]}>,
+    datas: {[P in keyof T]?: T[P]}[],
     transaction: any = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
@@ -721,7 +721,7 @@ export default abstract class <T> extends Service {
    * @returns
    */
   async updateBatchById(
-    datas: Array<{[P in keyof T]?: T[P]}>,
+    datas: {[P in keyof T]?: T[P]}[],
     transaction: any = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
@@ -770,7 +770,7 @@ export default abstract class <T> extends Service {
    * @returns
    */
   async updateBatchTemplateById(
-    datas: Array<{[P in keyof T]?: T[P]}>,
+    datas: {[P in keyof T]?: T[P]}[],
     transaction: any = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
@@ -824,7 +824,7 @@ export default abstract class <T> extends Service {
    * @returns
    */
   async updateBatchTemplateLooseById(
-    datas: Array<{[P in keyof T]?: T[P]}>,
+    datas: {[P in keyof T]?: T[P]}[],
     transaction: any = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
@@ -842,7 +842,7 @@ export default abstract class <T> extends Service {
    * @returns
    */
   async updateBatchTemplateByIdSafe(
-    datas: Array<{[P in keyof T]?: T[P]}>,
+    datas: {[P in keyof T]?: T[P]}[],
     transaction: any = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
@@ -880,7 +880,7 @@ export default abstract class <T> extends Service {
    * @returns
    */
   async updateBatchTemplateLooseByIdSafe(
-    datas: Array<{[P in keyof T]?: T[P]}>,
+    datas: {[P in keyof T]?: T[P]}[],
     transaction: any = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
@@ -2049,10 +2049,10 @@ export default abstract class <T> extends Service {
   async customQuery<L>(
     x: {
       where?: {[P in keyof L]?: L[P]};
-      columns?: Array<keyof L>;
+      columns?: (keyof L)[];
       startRow?: number;
       pageSize?: number;
-      orders?: Array<[keyof L, 'asc' | 'desc']>;
+      orders?: [keyof L, 'asc' | 'desc'][];
     },
     transaction: any = true,
     tableName: (serviceTableName: string) => string = (
@@ -2101,10 +2101,10 @@ export default abstract class <T> extends Service {
   async customQueryMe(
     x: {
       where?: {[P in keyof T]?: T[P]};
-      columns?: Array<keyof T>;
+      columns?: (keyof T)[];
       startRow?: number;
       pageSize?: number;
-      orders?: Array<[keyof T, 'asc' | 'desc']>;
+      orders?: [keyof T, 'asc' | 'desc'][];
     },
     transaction: any = true,
     tableName: (serviceTableName: string) => string = (
@@ -2163,7 +2163,7 @@ export default abstract class <T> extends Service {
    * @param {*} source
    * @returns {T}
    */
-  private filterEmptyAndTransients(source: any[], skipEmpty = true, dealEmptyString = true): Array<{[P in keyof T]?: T[P]}> {
+  private filterEmptyAndTransients(source: any[], skipEmpty = true, dealEmptyString = true): {[P in keyof T]?: T[P]}[] {
     const result = new Array<{[P in keyof T]?: T[P]}>();
     source.forEach((item) => {
       result.push(this.filterEmptyAndTransient(item, skipEmpty, dealEmptyString));

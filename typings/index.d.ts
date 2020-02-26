@@ -919,7 +919,7 @@ export class Empty {
   [propName: string]: string | number | boolean | null;
 }
 
-export class BaseMongoService<T> extends Service {
+export abstract class BaseMongoService<T> extends Service {
   insert(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
   insertIfNotExists(data: {[P in keyof T]?: T[P]}, columns: Array<keyof T>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
   replace(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
@@ -984,7 +984,7 @@ export class BaseMongoService<T> extends Service {
   pageQueryMe(sqlid: string, transaction?: any | true): PageQuery<T>;
   protected transction(fn: (transaction: any) => Promise<any>, transaction?: any | true): Promise<any>;
 }
-export class BaseService<T> extends Service {
+export abstract class BaseService<T> extends Service {
   insert(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
   insertIfNotExists(data: {[P in keyof T]?: T[P]}, columns: Array<keyof T>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
   replace(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
@@ -1658,8 +1658,4 @@ export function wxDecrypt<T>({appId, sessionKey, encryptedData, iv}: {appId: str
  */
 export function ci(serviceDistDir: string, resources?: string[], dirs?: string[]): Promise<void>;
 
-export const SocketRoom: {
-  SOCKET_ALL: string;
-  SOCKET_USER: string;
-  SOCKET_DEV: string;
-};
+export const SocketRoom: {SOCKET_ALL: string; SOCKET_USER: string; SOCKET_DEV: string;};
