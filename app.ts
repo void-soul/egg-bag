@@ -166,7 +166,7 @@ export default class {
     }
   }
 
-  async didLoad() {
+  didLoad() {
     // 所有的配置已经加载完毕
     // 可以用来加载应用自定义的文件，启动自定义的服务
     this.app._cacheIO = (this.app.config.cacheIO) || 'redis';
@@ -221,7 +221,7 @@ export default class {
     // #endregion
   }
 
-  async didReady() {
+  didReady() {
     // 应用已经启动完毕
     // 路由配置
     EggShell(this.app, {

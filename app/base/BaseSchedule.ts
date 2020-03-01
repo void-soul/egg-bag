@@ -22,8 +22,8 @@ const scheduleName = '/__schedule?path';
  * @extends {Subscription}
  */
 export default abstract class BaseSchedule extends Subscription {
-  singel: boolean = true;
-  redis: boolean = true;
+  singel = true;
+  redis = true;
   key: string;
   abstract async excute(): Promise<string>;
   async subscribe() {

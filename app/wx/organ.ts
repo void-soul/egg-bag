@@ -148,7 +148,7 @@ export class WxOrgan extends BaseWx {
       {userid}
     );
   }
-  async inviteUsers({user, party, tag}: {user?: Array<number | string>, party?: number[], tag?: number[]}): Promise<{invaliduser?: Array<number | string>, invalidparty?: number[], invalidtag?: number[]}> {
+  async inviteUsers({user, party, tag}: {user?: Array<number | string>; party?: number[]; tag?: number[]}): Promise<{invaliduser?: Array<number | string>; invalidparty?: number[]; invalidtag?: number[]}> {
     const data = await this.fetch(
       (token: string) => `https://qyapi.weixin.qq.com/cgi-bin/batch/invite?access_token=${ token }`,
       'post',
@@ -226,7 +226,7 @@ export class WxOrgan extends BaseWx {
       totag?: number[];
       name: string;
       scene?: string;
-      ms: WxOrganMini
+      ms: WxOrganMini;
     }): Promise<void> {
     const touser_ = touser ? touser.join('|') : undefined;
     const toparty_ = toparty ? toparty.join('|') : undefined;
@@ -236,7 +236,7 @@ export class WxOrgan extends BaseWx {
     } else {
       scene = '';
     }
-    const temps = this.miniMessCache![name];
+    const temps = this.miniMessCache[name];
     for (const item of temps) {
       await this.fetch(
         (token: string) => `https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=${ token }`,
@@ -262,12 +262,12 @@ export class WxOrgan extends BaseWx {
       toparty?: number[];
       totag?: number[];
       name: string;
-      ms: WxOrganText | WxOrganImage | WxOrganVoice | WxOrganVideo | WxOrganFile | WxOrganTextCard | WxOrganNews | WxOrganMpNews | WxOrganMarkDown | WxOrganTaskCard
+      ms: WxOrganText | WxOrganImage | WxOrganVoice | WxOrganVideo | WxOrganFile | WxOrganTextCard | WxOrganNews | WxOrganMpNews | WxOrganMarkDown | WxOrganTaskCard;
     }): Promise<void> {
     const touser_ = touser ? touser.join('|') : undefined;
     const toparty_ = toparty ? toparty.join('|') : undefined;
     const totag_ = totag ? totag.join('|') : undefined;
-    const temps = this.messCache![name];
+    const temps = this.messCache[name];
     for (const item of temps) {
       await this.fetch(
         (token: string) => `https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=${ token }`,

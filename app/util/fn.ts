@@ -13,7 +13,7 @@
  */
 export const promise = function <T>(
   this: any,
-  {fn, target, last = true}: {fn: (...args: any[]) => any, target?: any, last?: boolean}
+  {fn, target, last = true}: {fn: (...args: any[]) => any; target?: any; last?: boolean}
 ): (...args: any[]) => Promise<T> {
   return (...args: any[]): Promise<T> => {
     return new Promise((resolve, reject) => {
@@ -34,7 +34,7 @@ export const promise = function <T>(
       if (target) {
         fn.apply(target, args);
       } else {
-        fn.apply(null, args);
+        fn.apply({}, args);
       }
     });
   };

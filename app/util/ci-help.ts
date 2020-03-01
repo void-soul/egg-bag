@@ -55,14 +55,14 @@ export const nuxtDefaultConfig = (srcDir: string, rootDir: string, dev: boolean)
     }
   };
 };
-const cp = async (resources: Resource[]) => {
+const cp = (resources: Resource[]) => {
   for (const res of resources) {
     // tslint:disable-next-line: no-console
     console.log(`[egg-bag] copy resource: ${ res.from } -> ${ res.to }`);
     if (res.isDir) {
-      await shell.cp('-R', res.from, res.to);
+      shell.cp('-R', res.from, res.to);
     } else {
-      await shell.cp(res.from, res.to);
+      shell.cp(res.from, res.to);
     }
   }
 };
@@ -92,10 +92,10 @@ export const ci = async (serviceDistDir: string, resources?: string[], dirs?: st
   const dir = process.cwd();
   // tslint:disable-next-line: no-console
   console.log('[egg-bag] clear temp history');
-  await shell.rm('-rf', `./${ serviceDistDir }`);
+  shell.rm('-rf', `./${ serviceDistDir }`);
   // tslint:disable-next-line: no-console
   console.log('[egg-bag] typescipt compile start');
-  await shell.exec('yarn tsc');
+  shell.exec('yarn tsc');
   // tslint:disable-next-line: no-console
   console.log('[egg-bag] typescipt compile finished');
   const configDefault = require(join(dir, `./${ serviceDistDir }/config/config.default.js`)).default({}).nuxt;
@@ -109,7 +109,7 @@ export const ci = async (serviceDistDir: string, resources?: string[], dirs?: st
       await nuxt.ready();
       const generator = new Generator(nuxt, builder);
       await generator.generate();
-      await shell.mkdir(`./${ serviceDistDir }/.nuxt/`);
+      shell.mkdir(`./${ serviceDistDir }/.nuxt/`);
       // nuxt输出
       tasks.unshift(new Resource('./.nuxt/dist/', `./${ serviceDistDir }/.nuxt/dist/`, true));
       // tslint:disable-next-line: no-console
@@ -123,16 +123,16 @@ export const ci = async (serviceDistDir: string, resources?: string[], dirs?: st
   // tslint:disable-next-line: no-console
   console.log('[egg-bag] clear history');
   // 删除旧文件
-  await shell.rm('-rf', `../${ serviceDistDir }`);
+  shell.rm('-rf', `../${ serviceDistDir }`);
   // 执行复制任务
-  await cp(tasks);
+  cp(tasks);
   // 生成gitignore
   writeFileSync(`../${ serviceDistDir }/.gitignore`, `
 node_modules/
 run/
   `);
   // 删除临时目录
-  await shell.rm('-rf', `./${ serviceDistDir }/`);
+  shell.rm('-rf', `./${ serviceDistDir }/`);
   // tslint:disable-next-line: no-console
   console.log('[egg-bag] finish');
 };

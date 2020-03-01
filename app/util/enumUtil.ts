@@ -10,7 +10,7 @@ export const enumToJson = (GlobalValues: any): EnmuJson => {
     GlobalMap: {}
   };
   Object.keys(GlobalValues).forEach((item) => {
-    const guess = item.match(/([\w\W]+)_([^_]+)$/);
+    const guess = /([\w\W]+)_([^_]+)$/.exec(item);
     if (
       guess &&
       guess.length === 3 &&

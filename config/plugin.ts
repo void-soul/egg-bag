@@ -18,7 +18,7 @@ const plugin: EggPlugin = {
     package: 'egg-socket.io'
   },
   alinode: {
-    enable: process.env.NODE_ENV === 'production' && process.platform.indexOf('win') !== 0,
+    enable: process.env.NODE_ENV === 'production' && !process.platform.startsWith('win'),
     package: 'egg-alinode'
   },
   nunjucks: {

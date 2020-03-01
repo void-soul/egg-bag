@@ -63,10 +63,10 @@ export default {
     }
   },
   emitTo(this: Application, roomType: string, roomId: string, event: string, {message, uri, params, id}: {
-    message?: string,
-    uri?: string,
-    params?: any,
-    id?: string
+    message?: string;
+    uri?: string;
+    params?: any;
+    id?: string;
   }) {
     this.io.of('/').to(`${ roomType }-${ roomId }`).emit('event', {
       event, message, uri, params, id
@@ -83,7 +83,7 @@ export default {
           break;
         case 'redis':
           if (redisName) {
-            meString = await this.redis.get(redisName!).get(key);
+            meString = await this.redis.get(redisName).get(key);
           }
           break;
         case 'memory':
@@ -100,9 +100,9 @@ export default {
       case 'redis':
         if (redisName) {
           if (minutes) {
-            this.redis.get(redisName).set(key, value, 'EX', minutes * 60);
+            await this.redis.get(redisName).set(key, value, 'EX', minutes * 60);
           } else {
-            this.redis.get(redisName).set(key, value);
+            await this.redis.get(redisName).set(key, value);
           }
         }
         break;
@@ -120,7 +120,9 @@ export default {
         if (redisName) {
           if (minutes) {
             const old = await this.redis.get(redisName).get(key);
-            this.redis.get(redisName).set(key, old, 'EX', minutes * 60);
+            if (old) {
+              this.redis.get(redisName).set(key, old, 'EX', minutes * 60);
+            }
           } else {
             this.redis.get(redisName).del(key);
           }

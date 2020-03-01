@@ -1,4 +1,4 @@
-import egg, {Application, Service, Request, Response, Subscription, Context} from 'egg';
+import {Application, Service, Subscription, Context} from 'egg';
 import {MongoClient, MongoClientOptions, FilterQuery} from 'mongodb';
 // tslint:disable-next-line:no-implicit-dependencies
 import {Redis} from 'ioredis';
@@ -126,12 +126,12 @@ declare class PageQuery<T> {
 }
 export interface EnmuJson {
   GlobalArray: {
-    [key: string]: string[]
+    [key: string]: string[];
   };
   GlobalMap: {
     [key: string]: {
-      [key: string]: string
-    }
+      [key: string]: string;
+    };
   };
 }
 export interface Point {
@@ -178,11 +178,11 @@ export interface WxMini {
    * @returns {Promise<Buffer>}
    * @memberof WxMini
    */
-  getUnlimited(param: {scene: string, model?: string, page?: string, fullpath?: string, png?: boolean, width?: number, lineColor?: {r: number; g: number; b: number}}): Promise<Buffer>;
+  getUnlimited(param: {scene: string; model?: string; page?: string; fullpath?: string; png?: boolean; width?: number; lineColor?: {r: number; g: number; b: number}}): Promise<Buffer>;
   sendMs(param: {openids: string[]; name: string; data: {[key: string]: string | number}; scene: string}): Promise<void>;
   code2session(code: string): Promise<{openid: string; session_key: string; unionid?: string}>;
   getTemplIds(): {[key: string]: string[]};
-  decrypt<T>({sessionKey, encryptedData, iv}: {iv: string; sessionKey: string; encryptedData: string}): Promise<T | undefined>;
+  decrypt<T>({sessionKey, encryptedData, iv}: {iv: string; sessionKey: string; encryptedData: string}): T | undefined;
 }
 export interface WxOrganConfig {
   /**
@@ -314,7 +314,7 @@ export interface WxOrganNews {
     description?: string;
     url: string;
     picurl?: string;
-  }>
+  }>;
 }
 export interface WxOrganMpNews {
   articles: Array<{
@@ -324,7 +324,7 @@ export interface WxOrganMpNews {
     content_source_url?: string;
     content: string;
     digest?: string;
-  }>
+  }>;
 }
 export interface WxOrganMarkDown {
   content: string;
@@ -340,7 +340,7 @@ export interface WxOrganTaskCard {
     replace_name?: string;
     color?: 'red' | 'blue';
     is_bold?: boolean;
-  }>
+  }>;
 }
 
 export interface WxOrgan {
@@ -437,7 +437,7 @@ export interface WxOrgan {
    * @returns {(Promise<{invaliduser?: Array<number | string>, invalidparty?: number[], invalidtag?: number[]}>)}
    * @memberof WxOrgan
    */
-  inviteUsers({user, party, tag}: {user?: Array<number | string>, party?: number[], tag?: number[]}): Promise<{invaliduser?: Array<number | string>, invalidparty?: number[], invalidtag?: number[]}>;
+  inviteUsers({user, party, tag}: {user?: Array<number | string>; party?: number[]; tag?: number[]}): Promise<{invaliduser?: Array<number | string>; invalidparty?: number[]; invalidtag?: number[]}>;
   /**
    *
    * https://work.weixin.qq.com/api/doc#90000/90135/90202
@@ -545,7 +545,7 @@ export interface WxOrgan {
     totag?: number[];
     name: string;
     scene?: string;
-    ms: WxOrganMini
+    ms: WxOrganMini;
   }): Promise<void>;
 
   /**
@@ -559,7 +559,7 @@ export interface WxOrgan {
     toparty?: number[];
     totag?: number[];
     name: string;
-    ms: WxOrganText | WxOrganImage | WxOrganVoice | WxOrganVideo | WxOrganFile | WxOrganTextCard | WxOrganNews | WxOrganMpNews | WxOrganMarkDown | WxOrganTaskCard
+    ms: WxOrganText | WxOrganImage | WxOrganVoice | WxOrganVideo | WxOrganFile | WxOrganTextCard | WxOrganNews | WxOrganMpNews | WxOrganMarkDown | WxOrganTaskCard;
   }): Promise<void>;
 }
 export interface WxConfig {
@@ -599,8 +599,8 @@ export interface WxCreatedorder {
       name: string;
       area_code: string;
       address: string;
-    }
-  }
+    };
+  };
 }
 export interface WxCreateOrderResult {
   jsapi?: {
@@ -610,7 +610,7 @@ export interface WxCreateOrderResult {
     package: string;
     signType: string;
     paySign: string;
-  },
+  };
   app?: {
     appid: string;
     partnerid: string;
@@ -619,14 +619,14 @@ export interface WxCreateOrderResult {
     noncestr: string;
     timestamp: string;
     sign: string;
-  },
+  };
   prepay_id: string;
   code_url?: string;
   mweb_url?: string;
 }
 export interface WxOrderQuery {
   transaction_id?: string;
-  out_trade_no?: string
+  out_trade_no?: string;
 }
 export interface WxOrder {
   device_info?: string;
@@ -694,7 +694,7 @@ export interface WxRefundOrder {
       coupon_type: string;
       coupon_refund_id: string;
       coupon_refund_fee: number;
-    }>
+    }>;
   }>;
 }
 export interface WxPayHook {
@@ -794,7 +794,7 @@ export interface WxPay {
 }
 interface EggSocketNameSpace extends SocketNameSpace {
   // Forward the event to the Controller
-  route(event: string, handler: Function): any
+  route(event: string, handler: Function): any;
 }
 interface EggIOServer extends SocketServer {
   of(nsp: string): EggSocketNameSpace;
@@ -876,7 +876,7 @@ export class SetEx<T> extends Set {
    * @param {({key: keyof T, onExist?: (oldData: T, newData: T) => void, onNotExist?: (newData: T) => void, replaceWhenExits: boolean, values?: ReadonlyArray<T> | null})} param
    * @memberof SetEx
    */
-  constructor (param: {key: keyof T, onExist?: (oldData: T, newData: T) => void, onNotExist?: (newData: T) => void, replaceWhenExits?: boolean, values?: ReadonlyArray<T> | null});
+  constructor (param: {key: keyof T; onExist?: (oldData: T, newData: T) => void; onNotExist?: (newData: T) => void; replaceWhenExits?: boolean; values?: ReadonlyArray<T> | null});
   add(value: T): this;
   addAll(value: T): this;
   add2(value: T): T;
@@ -888,7 +888,7 @@ export class SetEx<T> extends Set {
   has(value: T[keyof T]): boolean;
   toArray(): T[];
   delete(value: T[keyof T]): boolean;
-  reset(param: {key?: keyof T, onExist?: (oldData: T, newData: T) => void, replaceWhenExits?, values?: ReadonlyArray<T> | null}): this;
+  reset(param: {key?: keyof T; onExist?: (oldData: T, newData: T) => void; replaceWhenExits?; values?: ReadonlyArray<T> | null}): this;
   set onExist(onExist: ((oldData: T, newData: T) => void) | undefined);
   set key(key: keyof T);
   set replaceWhenExits(replaceWhenExits: boolean);
@@ -973,10 +973,10 @@ export abstract class BaseMongoService<T> extends Service {
   countBySqlId(sqlid: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<number>;
   queryMutiRowMutiColumnBySqlId<L>(sqlid: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<L[]>;
   countBySql<L>(item: {query: {[P in keyof L]?: L[P] | FilterQuery<L>}; tableName?: string}, transaction?: any | true): Promise<number>;
-  queryMutiRowMutiColumnBySql<L>(item: {query: {[P in keyof L]?: L[P] | FilterQuery<L>}; options: {limit?: number; skip?: number; sort?: {[P in keyof L]: 1 | -1}; projection?: {[P in keyof L]: 1}}, tableName?: string}, transaction?: any | true): Promise<L[]>;
+  queryMutiRowMutiColumnBySql<L>(item: {query: {[P in keyof L]?: L[P] | FilterQuery<L>}; options: {limit?: number; skip?: number; sort?: {[P in keyof L]: 1 | -1}; projection?: {[P in keyof L]: 1}}; tableName?: string}, transaction?: any | true): Promise<L[]>;
   querySingelRowMutiColumnBySqlId<L>(sqlid: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<L | null>;
-  querySingelRowMutiColumnBySql<L>(item: {query: {[P in keyof L]?: L[P] | FilterQuery<L>}; options: {limit?: number; skip?: number; sort?: {[P in keyof L]: 1 | -1}; projection?: {[P in keyof L]: 1}}, tableName?: string}, transaction?: any | true): Promise<L | null>;
-  queryMutiRowSingelColumnBySql<M>(item: {query: {[P in keyof T]?: T[P] | FilterQuery<T>}; options: {limit?: number; skip?: number; sort?: {[P in keyof T]: 1 | -1}; projection?: {[P in keyof T]: 1}}, tableName?: string}, transaction?: any | true): Promise<M[]>;
+  querySingelRowMutiColumnBySql<L>(item: {query: {[P in keyof L]?: L[P] | FilterQuery<L>}; options: {limit?: number; skip?: number; sort?: {[P in keyof L]: 1 | -1}; projection?: {[P in keyof L]: 1}}; tableName?: string}, transaction?: any | true): Promise<L | null>;
+  queryMutiRowSingelColumnBySql<M>(item: {query: {[P in keyof T]?: T[P] | FilterQuery<T>}; options: {limit?: number; skip?: number; sort?: {[P in keyof T]: 1 | -1}; projection?: {[P in keyof T]: 1}}; tableName?: string}, transaction?: any | true): Promise<M[]>;
   queryMutiRowSingelColumnBySqlId<M>(sqlid: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<M[]>;
   querySingelRowSingelColumnBySql<M>(item: {query: {[P in keyof T]?: T[P] | Condition<T, P>}; options: {limit?: number; skip?: number; sort?: {[P in keyof T]: 1 | -1}; projection?: {[P in keyof T]: 1}}; tableName?: string}, transaction?: any | true): Promise<M | null>;
   querySingelRowSingelColumnBySqlId<M>(sqlid: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<M | null>;
@@ -1064,7 +1064,7 @@ export abstract class BaseService<T> extends Service {
 }
 export abstract class BaseSchedule extends Subscription {
   key: string;
-  singel: boolean = true;
+  singel = true;
   abstract excute(): Promise<string>;
 }
 
@@ -1307,12 +1307,12 @@ declare module 'egg' {
         ssl?: boolean;
         multipleStatements?: boolean;
         useConnectionPooling?: boolean;
-      }
+      };
       app: boolean;
       alinode: {
         appid: number;
         secret: string;
-      }
+      };
     };
     redis: {
       /**
@@ -1320,7 +1320,7 @@ declare module 'egg' {
        * other每次启动服务会清空
        * @type {({[key: 'user' | 'other']: {host: string, port: number, password: string, db: number}})}
        */
-      clients?: {[key: 'user' | 'other']: {host: string, port: number, password: string, db: number}};
+      clients?: {[key: 'user' | 'other']: {host: string; port: number; password: string; db: number}};
     };
     /**
      *
@@ -1332,7 +1332,7 @@ declare module 'egg' {
      * @type {{size?: number, ignoreChars?: string, noise?: number; color?: boolean; background?: string}}
      * @memberof EggAppConfig
      */
-    picCode?: {size?: number, ignoreChars?: string, noise?: number; color?: boolean; background?: string};
+    picCode?: {size?: number; ignoreChars?: string; noise?: number; color?: boolean; background?: string};
     session?: {
       /**
        *
@@ -1437,8 +1437,8 @@ declare module 'egg' {
       hsts?: {enable?: boolean; maxAge?: number; includeSubdomains?: boolean};
       dta?: {enable?: boolean};
       methodnoallow?: {enable?: boolean};
-      noopen?: {enable?: boolean}
-      nosniff?: {enable?: boolean}
+      noopen?: {enable?: boolean};
+      nosniff?: {enable?: boolean};
       referrerPolicy?: {enable?: boolean; value?: string};
       xssProtection?: {enable?: boolean; value?: string};
       csp?: {enable?: boolean; policy: {[key: string]: any}};
@@ -1462,7 +1462,7 @@ declare module 'egg' {
      * @memberof EggAppConfig
      */
     wxMini?: {
-      [appCode: string]: WxMiniConfig
+      [appCode: string]: WxMiniConfig;
     };
     /**
      * 默认小程序编码
@@ -1526,8 +1526,8 @@ declare module 'egg' {
      * @memberof EggAppConfig
      */
     wxPay?: {
-      [appCode: string]: WxPayOption
-    },
+      [appCode: string]: WxPayOption;
+    };
     /**
      *
      * 默认微信支付对象编码
@@ -1569,6 +1569,7 @@ declare module 'egg' {
      */
     emitASync(name: string, ...args: any[]): Promise<any>;
   }
+  // eslint-disable-next-line @typescript-eslint/interface-name-prefix
   interface IService {
     paasMongoService: BaseMongoService;
     paasService: PaasService;
@@ -1658,4 +1659,4 @@ export function wxDecrypt<T>({appId, sessionKey, encryptedData, iv}: {appId: str
  */
 export function ci(serviceDistDir: string, resources?: string[], dirs?: string[]): Promise<void>;
 
-export const SocketRoom: {SOCKET_ALL: string; SOCKET_USER: string; SOCKET_DEV: string;};
+export const SocketRoom: {SOCKET_ALL: string; SOCKET_USER: string; SOCKET_DEV: string};

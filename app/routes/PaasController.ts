@@ -83,7 +83,7 @@ const queryMongo = {
 const now = {
   path: '/now.json',
   method: 'get',
-  async handel({query: {minute, hour, day, week, month, year, format}}) {
+  handel({query: {minute, hour, day, week, month, year, format}}) {
     return dayjs()
       .add(minute || 0, 'minute')
       .add(hour || 0, 'hour')
@@ -96,7 +96,7 @@ const now = {
 const today = {
   path: '/today.json',
   method: 'get',
-  async handel({query: {minute, hour, day, week, month, year, format}}) {
+  handel({query: {minute, hour, day, week, month, year, format}}) {
     return dayjs()
       .add(minute || 0, 'minute')
       .add(hour || 0, 'hour')
@@ -124,14 +124,14 @@ const picCode = {
 const getConfigJson = {
   path: '/GlobalValues.json',
   method: 'get',
-  async handel(this: Controller) {
+  handel(this: Controller) {
     return this.app._globalValues;
   }
 };
 const getWxIds = {
   path: '/wx-mini-ms-id.json',
   method: 'get',
-  async handel(this: Controller, {query: {code}}) {
+  handel(this: Controller, {query: {code}}) {
     return this.app.getWxMini(code).getTemplIds();
   }
 };

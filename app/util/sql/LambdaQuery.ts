@@ -1,14 +1,14 @@
 import {Empty} from '../empty';
 export default class LambdaQuery<T> {
-  private andQuerys: Array<LambdaQuery<T>> = [];
-  private orQuerys: Array<LambdaQuery<T>> = [];
+  private andQuerys: LambdaQuery<T>[] = [];
+  private orQuerys: LambdaQuery<T>[] = [];
   private condition: string[] = [];
-  private group: Array<keyof T> = [];
+  private group: (keyof T)[] = [];
   private order: string[] = [];
   private param: Empty = {};
-  private index: number = 0;
-  private startRow: number = 0;
-  private pageSize: number = 0;
+  private index = 0;
+  private startRow = 0;
+  private pageSize = 0;
   private search: (sql: string, param: Empty) => Promise<T[]>;
   private excute: (sql: string, param: Empty) => Promise<number>;
   private findCount: (sql: string, param: Empty) => Promise<number>;
@@ -111,10 +111,10 @@ export default class LambdaQuery<T> {
   andIsNotNull(key: keyof T): this {
     return this.nil(key, 'NOT');
   }
-  andIn(key: keyof T, value: Array<T[keyof T]>): this {
+  andIn(key: keyof T, value: T[keyof T][]): this {
     return this.commonIn(key, value);
   }
-  andNotIn(key: keyof T, value: Array<T[keyof T]>): this {
+  andNotIn(key: keyof T, value: T[keyof T][]): this {
     return this.commonIn(key, value, 'NOT');
   }
   andBetween(
@@ -137,14 +137,14 @@ export default class LambdaQuery<T> {
     return this;
   }
 
-  asc(...keys: Array<keyof T>): this {
+  asc(...keys: (keyof T)[]): this {
     for (const key of keys) {
       this.order.push(`${ key } ASC`);
     }
     return this;
   }
 
-  desc(...keys: Array<keyof T>): this {
+  desc(...keys: (keyof T)[]): this {
     for (const key of keys) {
       this.order.push(`${ key } DESC`);
     }
@@ -166,7 +166,7 @@ export default class LambdaQuery<T> {
     this.updateData[key] = value;
     return this;
   }
-  async select(...columns: Array<keyof T>): Promise<T[]> {
+  async select(...columns: (keyof T)[]): Promise<T[]> {
     let sql = `SELECT ${
       columns && columns.length > 0 ? columns.join(',') : '*'
       } FROM ${ this.table } `;
@@ -192,7 +192,7 @@ export default class LambdaQuery<T> {
     }
     return await this.search(sql, this.param);
   }
-  async one(...columns: Array<keyof T>): Promise<T | undefined> {
+  async one(...columns: (keyof T)[]): Promise<T | undefined> {
     this.limit(0, 1);
     const list = await this.select(...columns);
     return list[0];
@@ -256,16 +256,16 @@ export default class LambdaQuery<T> {
     }
     return await this.excute(sql, this.param);
   }
-  private nil(key: keyof T, not: string = ''): this {
+  private nil(key: keyof T, not = ''): this {
     this.condition.push(`AND ${ key } is ${ not } null`);
     return this;
   }
   private like(
     key: keyof T,
     value: any,
-    not: string = '',
-    left: string = '%',
-    right: string = '%'
+    not = '',
+    left = '%',
+    right = '%'
   ): this {
     const pkey = `${ key }_${ this.index++ }`;
     this.condition.push(
@@ -278,7 +278,7 @@ export default class LambdaQuery<T> {
     key: keyof T,
     value1: any,
     value2: any,
-    not: string = ''
+    not = ''
   ): this {
     const pkey1 = `${ key }_${ this.index++ }`;
     const pkey2 = `${ key }_${ this.index++ }`;
@@ -291,7 +291,7 @@ export default class LambdaQuery<T> {
     key: keyof T,
     value: any,
     op: string,
-    not: string = ''
+    not = ''
   ) {
     const pkey = `${ key }_${ this.index++ }`;
     this.condition.push(`AND ${ key } ${ not } ${ op } :${ pkey } `);
@@ -301,7 +301,7 @@ export default class LambdaQuery<T> {
   private commonIn(
     key: keyof T,
     value: any,
-    not: string = ''
+    not = ''
   ) {
     const pkey = `${ key }_${ this.index++ }`;
     this.condition.push(`AND ${ key } ${ not } IN (:${ pkey }) `);

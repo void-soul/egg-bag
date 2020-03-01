@@ -7,7 +7,7 @@ import lodash = require('lodash');
  * @class Build
  */
 export default class Build {
-  private static page: string = 'COUNT(1) zccw1986 ';
+  private static page = 'COUNT(1) zccw1986 ';
   private count: boolean;
 
   /**
@@ -160,7 +160,7 @@ export default class Build {
   between() {
     return (text: string, render: (text: string) => string) => {
       const result = render(text);
-      if (result.match(/\(([\w\W]+)\)/)) {
+      if (/\(([\w\W]+)\)/.exec(result)) {
         return render(text).replace(/\(([\w\W]+)\)/, (a, b) => {
           if (a && b) {
             const xx = b.split(',');
@@ -190,7 +190,7 @@ export default class Build {
   distanceTag() {
     return (text: string, render: (text: string) => string) => {
       const result = render(text);
-      if (result.match(/\(([^()]+)\)/)) {
+      if (/\(([^()]+)\)/.exec(result)) {
         let index = 0;
         return render(text).replace(/\(([^()]+)\)/g, (a, b) => {
           if (a && b) {

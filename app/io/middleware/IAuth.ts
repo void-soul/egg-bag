@@ -1,7 +1,7 @@
 import {Context} from 'egg';
 import SocketConfig from '../../enums/SocketConfig';
 export default (): any => {
-  return async (ctx: Context, next: () => void) => {
+  return async (ctx: Context, next: () => Promise<void>) => {
     const {app, socket, request} = ctx;
     const id = socket.id;
     const nsp = app.io.of('/');

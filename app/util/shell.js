@@ -222,7 +222,7 @@ const EggInstall = (target, app, options = {}) => {
           service: ctx.service,
           ctx
         };
-        let result = await target.handel.call(that, ctx);
+        const result = await target.handel.call(that, ctx);
         if (target.type) {
           ctx.response.type = target.type;
           ctx.response.body = result;

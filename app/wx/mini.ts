@@ -5,7 +5,7 @@ import crypto = require('crypto');
 export class WxMini extends BaseWx {
   protected name = 'wxMini';
   private config: WxMiniConfig;
-  private templNameCache: {[name: string]: Array<{page: string; tmplId: string}>}; // 订阅消息缓存
+  private templNameCache: {[name: string]: {page: string; tmplId: string}[]}; // 订阅消息缓存
   private templKeyCache: {[key: string]: string[]}; // 订阅消息场景分组id
   constructor (app: Application, appCode: string) {
     super(app, appCode);
@@ -31,7 +31,7 @@ export class WxMini extends BaseWx {
       }
     }
   }
-  async getUnlimited({scene, model, page, fullpath, png, width, lineColor}: {scene: string, model?: string, page?: string, fullpath?: string, png?: '0' | '1' | 0 | 1 | true | false | 'true' | 'false', width?: number, lineColor?: {r: number; g: number; b: number}}) {
+  async getUnlimited({scene, model, page, fullpath, png, width, lineColor}: {scene: string; model?: string; page?: string; fullpath?: string; png?: '0' | '1' | 0 | 1 | true | false | 'true' | 'false'; width?: number; lineColor?: {r: number; g: number; b: number}}) {
     this.app.throwIf(!fullpath && (!model || !page), '路径不完整,fullpath或者model+page必须传一个');
     const pageto = fullpath ?? `pages/${ model }/${ page }/${ page }`;
     return await this.fetch(
@@ -53,9 +53,9 @@ export class WxMini extends BaseWx {
       openids: string[];
       name: string;
       data: {[key: string]: string | number};
-      scene: string
+      scene: string;
     }) {
-    const temps = this.templNameCache![name];
+    const temps = this.templNameCache[name];
     const dataSend: {[key: string]: {value: string | number}} = {};
     for (const [key, value] of Object.entries(data)) {
       dataSend[key] = {value};
@@ -96,9 +96,9 @@ export class WxMini extends BaseWx {
   getTemplIds() {
     return this.templKeyCache;
   }
-  async decrypt<T>({sessionKey, encryptedData, iv}: {iv: string; sessionKey: string; encryptedData: string}): Promise<T | undefined> {
+  decrypt<T>({sessionKey, encryptedData, iv}: {iv: string; sessionKey: string; encryptedData: string}): T | undefined {
     this.app.throwIf(!sessionKey, '会话过期，请重新登陆!');
-    const sessionKeyBuf = new Buffer(sessionKey!, 'base64');
+    const sessionKeyBuf = new Buffer(sessionKey, 'base64');
     const encryptedDataBuf = new Buffer(encryptedData, 'base64');
     const ivBuf = new Buffer(iv, 'base64');
     try {

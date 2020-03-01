@@ -1686,7 +1686,7 @@ export default abstract class <T> extends Service {
     if (transaction === true) {
       return await this.app.mysql.query(sql, param);
     } else {
-      return await this.transction(async (conn) => conn.query(sql, param));
+      return await this.transction((conn) => conn.query(sql, param));
     }
   }
 
@@ -1709,7 +1709,7 @@ export default abstract class <T> extends Service {
     if (transaction === true) {
       return await this.app.mysql.query(sql, param);
     } else {
-      return await this.transction(async (conn) => conn.query(sql, param));
+      return await this.transction((conn) => conn.query(sql, param));
     }
   }
 
@@ -1763,7 +1763,7 @@ export default abstract class <T> extends Service {
     if (transaction === true) {
       return await this.app.mysql.query(sql, param);
     } else {
-      return await this.transction(async (conn) => conn.query(sql, param));
+      return await this.transction((conn) => conn.query(sql, param));
     }
   }
 
@@ -1905,11 +1905,10 @@ export default abstract class <T> extends Service {
         pageNumber: number,
         limitSelf: boolean,
         query: PageQuery<L>,
-        orderBy?: string,
-        _orderMongo?: {[P in keyof L]?: 1 | -1}
+        orderBy?: string
       ) => {
-        let buildParam;
-        let sql;
+        let buildParam: Build;
+        let sql: string;
         if (limitSelf === false) {
           buildParam = new Build(false, param);
           sql = `SELECT _a.* FROM (${ Mustache.render(

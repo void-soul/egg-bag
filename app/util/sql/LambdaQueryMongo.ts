@@ -222,10 +222,10 @@ export default class LambdaQueryMongo<T> {
   /** https://docs.mongodb.com/manual/reference/operator/query/text/ */
   $text(
     options: {
-      search: string,
-      language?: string,
-      caseSensitive?: boolean,
-      diacriticSensitive?: boolean
+      search: string;
+      language?: string;
+      caseSensitive?: boolean;
+      diacriticSensitive?: boolean;
     }
   ): this {
     return this.common(options, '$text');

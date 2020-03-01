@@ -30,7 +30,7 @@ function mongo() {
  * @returns
  */
 function logicDelete() {
-  return (stateFileName: string, deleteState: string = '0') => {
+  return (stateFileName: string, deleteState = '0') => {
     return <T extends {new(...args: any[]): {}}>(constructor: T) => {
       return class extends constructor {
         stateFileName = stateFileName;
@@ -50,7 +50,7 @@ function transient() {
  * @param {boolean} [emptySkip=false] 是否跳过空字段
  * @returns
  */
-function buildData(target: any, emptySkip: boolean = false) {
+function buildData(target: any, emptySkip = false) {
   const data = {};
   Object.keys(target).forEach((key) => {
     if (Reflect.getMetadata(transientMeda, target, key) !== true) {

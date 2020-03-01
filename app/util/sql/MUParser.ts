@@ -6,13 +6,13 @@ import SQLSource from './SQLSource';
  * @class MUParser
  */
 export default class MUParser {
-  static END: number = 1;
+  static END = 1;
   private modelName: string;
-  private linNumber: number = 0;
+  private linNumber = 0;
   private lastLine: string;
   private lastlastLine: string;
-  private status: number = 0;
-  private lineSeparator: string = '\n';
+  private status = 0;
+  private lineSeparator = '\n';
   private files: string[];
   constructor (modelName: string, file: string) {
     this.modelName = modelName;
@@ -62,7 +62,7 @@ export default class MUParser {
     return this.lastlastLine;
   }
   private skipComment(): void {
-    let findComment: boolean = false;
+    let findComment = false;
     while (true) {
       let line: string = this.nextLine();
       if (this.status === MUParser.END) {

@@ -154,7 +154,7 @@ export class WxPay {
     });
   }
   private async parseData(data: string, name: string, option: {
-    strict?: boolean, encry?: boolean, sign?: boolean
+    strict?: boolean; encry?: boolean; sign?: boolean;
   }) {
     let response = await parser.parseStringPromise(data);
     if (option.strict === true) {

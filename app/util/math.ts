@@ -102,9 +102,9 @@ export enum MoneyStyle {
 export const money = (
   value: any,
   style: MoneyStyle = MoneyStyle.currency,
-  currency: string = 'CNY',
-  prefix: number = 2,
-  def: number = 0
+  currency = 'CNY',
+  prefix = 2,
+  def = 0
 ): string => {
   return (isNum(value) ? value : def).toLocaleString('zh', {
     style,

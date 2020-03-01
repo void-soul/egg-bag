@@ -8,7 +8,7 @@ export const uuid = (): string => {
  * @param uri
  */
 export const getPicKey = (uri: string): string => {
-  const arr = uri.match(/key=([0-9a-zA-Z.]+)/);
+  const arr = /key=([0-9a-zA-Z.]+)/.exec(uri);
   if (arr && arr.length === 2) {
     return arr[1];
   }

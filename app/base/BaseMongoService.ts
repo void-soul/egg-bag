@@ -18,7 +18,7 @@ export default abstract class <T> extends Service {
  * Whether causal consistency should be enabled on this session
  * @type {boolean} default true
  */
-  private causalConsistency: boolean = true;
+  private causalConsistency = true;
   private readConcern: {
     level: 'local' | 'available' | 'majority' | 'linearizable' | 'snapshot';
   } = {level: 'local'};
@@ -752,8 +752,7 @@ export default abstract class <T> extends Service {
       serviceTableName: string
     ) => serviceTableName
   ): Promise<L> {
-    let result;
-    result = await this.single<L>(id, transaction, tableName);
+    const result = await this.single<L>(id, transaction, tableName);
     if (!result) {
       this.app.throwNow(`not found data! ${ this.tableName } > ${ id }`);
     }
@@ -837,7 +836,7 @@ export default abstract class <T> extends Service {
     ) => serviceTableName
   ): Promise<L[]> {
     return await this.transction(async (conn: any) => {
-      const cursor = await this.getDb().collection(tableName(this.tableName)).find<L>({}, {
+      const cursor = this.getDb().collection(tableName(this.tableName)).find<L>({}, {
         session: conn
       });
       const result = await cursor.toArray();
@@ -882,7 +881,7 @@ export default abstract class <T> extends Service {
     ) => serviceTableName
   ): Promise<L[]> {
     return await this.transction(async (conn: any) => {
-      const cursor = await this.getDb().collection(tableName(this.tableName)).find<L>({}, {
+      const cursor = this.getDb().collection(tableName(this.tableName)).find<L>({}, {
         limit: size,
         skip: start,
         session: conn
@@ -953,7 +952,7 @@ export default abstract class <T> extends Service {
     ) => serviceTableName
   ): Promise<L[]> {
     return await this.transction(async (conn: any) => {
-      const cursor = await this.getDb().collection(tableName(this.tableName)).find<L>(this.filterEmptyAndTransient(where), {
+      const cursor = this.getDb().collection(tableName(this.tableName)).find<L>(this.filterEmptyAndTransient(where), {
         session: conn
       });
       const result = await cursor.toArray();
@@ -1043,7 +1042,7 @@ export default abstract class <T> extends Service {
     ) => serviceTableName
   ): Promise<L[]> {
     return await this.transction(async (conn: any) => {
-      const cursor = await this.getDb().collection(tableName(this.tableName)).find<L>(this.filterEmptyAndTransient(data), {
+      const cursor = this.getDb().collection(tableName(this.tableName)).find<L>(this.filterEmptyAndTransient(data), {
         limit: size,
         skip: start,
         session: conn
@@ -1127,7 +1126,7 @@ export default abstract class <T> extends Service {
           projection[key] = 1;
         }
         return await this.transction(async (conn: any) => {
-          const cursor = await this.getDb().collection(tableName(this.tableName)).find<L>(lambda.query, {
+          const cursor = this.getDb().collection(tableName(this.tableName)).find<L>(lambda.query, {
             limit: lambda.pageSize,
             skip: lambda.startRow,
             session: conn,
@@ -1232,7 +1231,7 @@ export default abstract class <T> extends Service {
       }
     }
     return await this.transction(async (conn: any) => {
-      const cursor = await this.getDb().collection(tableName(this.tableName)).find<L>(x.where || {}, {
+      const cursor = this.getDb().collection(tableName(this.tableName)).find<L>(x.where || {}, {
         limit: x.pageSize,
         skip: x.startRow,
         sort: x.orders,
@@ -1247,7 +1246,7 @@ export default abstract class <T> extends Service {
   }
   async customQueryCount<L>(
     x: {
-      where?: {[P in keyof L]?: L[P]}
+      where?: {[P in keyof L]?: L[P]};
     },
     transaction: any = true,
     tableName: (serviceTableName: string) => string = (
@@ -1408,7 +1407,7 @@ export default abstract class <T> extends Service {
   async countBySql<L>(
     item: {
       query: {[P in keyof L]?: L[P] | FilterQuery<L>};
-      tableName?: string
+      tableName?: string;
     },
     transaction: any = true
   ): Promise<number> {
@@ -1434,9 +1433,9 @@ export default abstract class <T> extends Service {
         limit?: number;
         skip?: number;
         sort?: {[P in keyof L]: 1 | -1};
-        projection?: {[P in keyof L]: 1}
-      },
-      tableName?: string
+        projection?: {[P in keyof L]: 1};
+      };
+      tableName?: string;
     },
     transaction: any = true
   ): Promise<L[]> {
@@ -1449,7 +1448,7 @@ export default abstract class <T> extends Service {
       item.options = {};
     }
     return await this.transction(async (conn: any) => {
-      const cursor = await this.getDb().collection(table).find<L>(item.query, {
+      const cursor = this.getDb().collection(table).find<L>(item.query, {
         ...item.options,
         session: conn
       });
@@ -1504,9 +1503,9 @@ export default abstract class <T> extends Service {
         limit?: number;
         skip?: number;
         sort?: {[P in keyof L]: 1 | -1};
-        projection?: {[P in keyof L]: 1}
-      },
-      tableName?: string
+        projection?: {[P in keyof L]: 1};
+      };
+      tableName?: string;
     },
     transaction: any = true
   ): Promise<L | null> {
@@ -1532,9 +1531,9 @@ export default abstract class <T> extends Service {
         limit?: number;
         skip?: number;
         sort?: {[P in keyof T]: 1 | -1};
-        projection?: {[P in keyof T]: 1}
-      },
-      tableName?: string
+        projection?: {[P in keyof T]: 1};
+      };
+      tableName?: string;
     },
     transaction: any = true
   ): Promise<M[]> {
@@ -1592,9 +1591,9 @@ export default abstract class <T> extends Service {
         limit?: number;
         skip?: number;
         sort?: {[P in keyof T]: 1 | -1};
-        projection?: {[P in keyof T]: 1}
-      },
-      tableName?: string
+        projection?: {[P in keyof T]: 1};
+      };
+      tableName?: string;
     },
     transaction: any = true
   ): Promise<M | null> {
@@ -1818,9 +1817,9 @@ export default abstract class <T> extends Service {
           limit?: number;
           skip?: number;
           sort?: {[P in keyof L]: 1 | -1};
-          projection?: {[P in keyof L]: 1}
-        },
-        tableName: string
+          projection?: {[P in keyof L]: 1};
+        };
+        tableName: string;
       };
       $regex: (s: string) => RegExp;
       [key: string]: any;

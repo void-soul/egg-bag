@@ -16,9 +16,9 @@ export default class PageQuery<T> {
   list: T[];
   totalPage: number;
   totalRow: number;
-  private [_limitSelf]: boolean = false;
-  private [_pageNumber]: number = 1;
-  private [_pageSize]: number = 0;
+  private [_limitSelf] = false;
+  private [_pageNumber] = 1;
+  private [_pageSize] = 0;
   private [_orderBy]: string;
   private [_orderMongo]: {[P in keyof T]: 1 | -1};
   private [_param]: Empty = new Empty();

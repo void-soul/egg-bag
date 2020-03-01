@@ -36,7 +36,7 @@ export abstract class BaseWx {
     }
     return token;
   }
-  protected async fetch(uri: (token: string) => string, method: 'get' | 'post', data: {[key: string]: any}, needToken: boolean = true, buffer: boolean = false) {
+  protected async fetch(uri: (token: string) => string, method: 'get' | 'post', data: {[key: string]: any}, needToken = true, buffer = false) {
     if (this.mock === true) {
       return {};
     }

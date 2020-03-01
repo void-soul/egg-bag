@@ -12,11 +12,11 @@ export default class <T> extends Set {
    */
   constructor (
     key: keyof T | {
-      key: keyof T,
-      onExist?: (oldData: T, newData: T) => void,
-      onNotExist?: (newData: T) => void,
-      replaceWhenExits?: boolean,
-      values?: ReadonlyArray<T> | null
+      key: keyof T;
+      onExist?: (oldData: T, newData: T) => void;
+      onNotExist?: (newData: T) => void;
+      replaceWhenExits?: boolean;
+      values?: ReadonlyArray<T> | null;
     },
     onExist?: (oldData: T, newData: T) => void,
     replaceWhenExits = false,
@@ -214,10 +214,10 @@ export default class <T> extends Set {
    * @param {boolean} [replaceWhenExits=false]
    */
   reset({key, onExist, onNotExist, replaceWhenExits}: {
-    key?: keyof T,
-    onExist?: (oldData: T, newData: T) => void | null,
-    onNotExist?: (newData: T) => void | null,
-    replaceWhenExits?: boolean
+    key?: keyof T;
+    onExist?: (oldData: T, newData: T) => void | null;
+    onNotExist?: (newData: T) => void | null;
+    replaceWhenExits?: boolean;
   }): this {
     if (onExist !== undefined) {
       this.whenOnExist = onExist;
