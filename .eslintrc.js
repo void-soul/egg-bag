@@ -12,7 +12,7 @@ module.exports = {
     "plugin:@typescript-eslint/recommended-requiring-type-checking"
   ],
   parserOptions: {
-    ecmaVersion: 2015,
+    ecmaVersion: 2020,
     project: './tsconfig.json'
   },
   rules: {
@@ -28,9 +28,13 @@ module.exports = {
     '@typescript-eslint/no-empty-interface': 'off',
     '@typescript-eslint/no-var-requires': 'off',
     '@typescript-eslint/no-this-alias': 'off',
+    '@typescript-eslint/no-unused-vars': 'off',
+    '@typescript-eslint/no-empty-function': 'off',
     'template-curly-spacing': ['error', 'always'],
     'no-constant-condition': 'off',
     'no-this-assignment': 'off',
-    'no-prototype-builtins': 'off'
+    'no-prototype-builtins': 'off',
+    'no-return-await': 'off',
+    'no-fallthrough': 'off'
   }
 };
