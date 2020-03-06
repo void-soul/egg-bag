@@ -11,11 +11,11 @@ const createTwoDecorator = Symbol('createTwoDecorator');
 const mappingRequest = Symbol('mappingRequest');
 
 class MethodHandler {
-  constructor(cMap) {
+  constructor (cMap) {
     this.cMap = cMap;
   }
 
-  getMetada(targetCb) {
+  getMetada (targetCb) {
     const reqMethod = Reflect.getMetadata(METHOD_METADATA, targetCb);
     const path = Reflect.getMetadata(PATH_METADATA, targetCb);
     const before = Reflect.getMetadata(BEFORE_METADATA, targetCb) || [];
@@ -34,60 +34,60 @@ class MethodHandler {
       lock
     };
   }
-  nuxt() {
+  nuxt () {
     return this[createMappingDecorator](RequestMethod.NUXT);
   }
-  render() {
+  render () {
     return this[createTwoDecorator](RequestMethod.Render);
   }
-  io() {
+  io () {
     return this[createMappingDecorator](RequestMethod.IO);
   }
-  get() {
+  get () {
     return this[createMappingDecorator](RequestMethod.GET);
   }
 
-  post() {
+  post () {
     return this[createMappingDecorator](RequestMethod.POST);
   }
 
-  put() {
+  put () {
     return this[createMappingDecorator](RequestMethod.PUT);
   }
 
-  delete() {
+  delete () {
     return this[createMappingDecorator](RequestMethod.DELETE);
   }
 
-  patch() {
+  patch () {
     return this[createMappingDecorator](RequestMethod.PATCH);
   }
 
-  options() {
+  options () {
     return this[createMappingDecorator](RequestMethod.OPTIONS);
   }
 
-  head() {
+  head () {
     return this[createMappingDecorator](RequestMethod.HEAD);
   }
 
-  before() {
+  before () {
     return this[createArrayDecorator](BEFORE_METADATA);
   }
 
-  after() {
+  after () {
     return this[createArrayDecorator](AFTER_METADATA);
   }
 
-  contentType() {
+  contentType () {
     return this[createSingleDecorator](CONTENT_TYPE_METADATA);
   }
-  lock() {
+  lock () {
     return (_target, _key, descriptor) => {
       Reflect.defineMetadata(LOCK_METADATA, true, descriptor.value);
     };
   }
-  [createMappingDecorator](method) {
+  [createMappingDecorator] (method) {
     return path => {
       return this[mappingRequest]({
         [PATH_METADATA]: path,
@@ -95,7 +95,7 @@ class MethodHandler {
       });
     };
   }
-  [createTwoDecorator](method) {
+  [createTwoDecorator] (method) {
     return (path, view) => {
       return this[mappingRequest]({
         [PATH_METADATA]: path,
@@ -104,7 +104,7 @@ class MethodHandler {
       });
     };
   }
-  [mappingRequest](metadata) {
+  [mappingRequest] (metadata) {
     const path = metadata[PATH_METADATA];
     const view = metadata[VIEW_METADATA];
     const reqMethod = metadata[METHOD_METADATA];
@@ -118,7 +118,7 @@ class MethodHandler {
     };
   }
 
-  [createSingleDecorator](metadata) {
+  [createSingleDecorator] (metadata) {
     return value => {
       return (target, _key, descriptor) => {
         this.cMap.set(target, target);
@@ -128,7 +128,7 @@ class MethodHandler {
     };
   }
 
-  [createArrayDecorator](metadata) {
+  [createArrayDecorator] (metadata) {
     return values => {
       return (_target, _key, descriptor) => {
         const _values = Reflect.getMetadata(metadata, descriptor.value) || [];

@@ -3,7 +3,7 @@
   "compilerOptions": {
     "esModuleInterop": false,
     "baseUrl": ".",
-    "target": "es2020",
+    "target": "ES2017",
     "module": "commonjs",
     "strict": true,
     "noImplicitAny": false,
