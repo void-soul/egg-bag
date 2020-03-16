@@ -147,7 +147,7 @@ const wxDecrypt = {
   path: '/wx-decrypt',
   method: 'get',
   before: [ILogin],
-  async handel(this: Controller, {query: {encryptedData, iv, code}}) {
+  handel(this: Controller, {query: {encryptedData, iv, code}}) {
     return this.app.getWxMini(code).decrypt({
       sessionKey: this.ctx.me.wx_mini_session_key!,
       iv,
@@ -155,9 +155,27 @@ const wxDecrypt = {
     });
   }
 };
+const socketRoomIn = {
+  path: '/login',
+  before: [ILogin],
+  handel(this: Controller, roomid: string) {
+    this.ctx.socket.join(roomid);
+    this.app.coreLogger.info(`${ this.ctx.me.userid } join to ${ roomid }`);
+  }
+};
+const socketRoomOut = {
+  path: '/logout',
+  handel(this: Controller, roomid: string) {
+    this.ctx.socket.leave(roomid);
+    this.app.coreLogger.info(`${ this.ctx.me.userid } leave from ${ roomid }`);
+  }
+};
 export const routes = [
   now, phoneCode, picCode, getConfigJson, today, getWxIds, getWxQr, wxDecrypt
 ];
 export const querys = [
   query, queryMongo
+];
+export const sockets = [
+  socketRoomOut, socketRoomIn
 ];

@@ -168,3 +168,9 @@ export default function (this: Context, order: WxRefHook) {
 # 1.23.16
 
 1. 修复一处打印日志错误
+
+# 1.24.0
+
+1. 优化登入时只允许登录一次的处理
+2. 可以通过配置 socket 中的回调`dickUser`来决定新登录用户是否提掉原有用户
+3. 增加默认 socket.emit 的路由 `/login` `/logout`，用于登入、登出 socket 房间

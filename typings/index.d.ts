@@ -1166,12 +1166,12 @@ declare module 'egg' {
     /**
      *
      * 当缓存设置为 redis、memory时，可以在app中获取
-     * @param {(string | undefined | null)} key
+     * @param {(string)} key
      * @param {('user' | 'other')} [redisName]
-     * @returns {(Promise<string | null | undefined>)}
+     * @returns {(Promise<string | null>)}
      * @memberof Application
      */
-    getCache(key: string | undefined | null, redisName?: 'user' | 'other'): Promise<string | null | undefined>;
+    getCache(key: string, redisName?: 'user' | 'other'): Promise<string | null>;
     /**
      *
      * 当缓存设置为 redis、memory时，可以在app中获取
@@ -1278,7 +1278,17 @@ declare module 'egg' {
     mongo?: {uri: string; options: MongoClientOptions; replica: boolean};
     userScheam: {[key: string]: Schema};
     queryDefaultParam?: {[key: string]: string};
-    socket?: {rooms: Array<(user: BaseUser) => string>; onlyOneLogin: (user: BaseUser) => boolean; joinMe?: (user: BaseUser) => boolean};
+    /** socket相关配置 */
+    socket?: {
+      /** 每次新连接建立时调用，返回需要加入的房间编号,默认会加入个人id、会话id、所有人房间 */
+      rooms: Array<(user: BaseUser) => string>;
+      /** 每次新连接建立时调用，返回是否需要踢掉其他同id登录?dickUser只有现在才生效 */
+      onlyOneLogin: (user: BaseUser) => boolean;
+      /** newUser登录后，是否踢掉oldUser?  */
+      dickUser?: (oldUser: BaseUser, newUser: BaseUser) => boolean;
+      /** 每次新连接建立时调用，是否加入个人房间? 默认是  */
+      joinMe?: (user: BaseUser) => boolean;
+    };
     smsDebug: boolean;
     ali: {accessKeyId: string; accessKeySecret: string; endpoint: string; apiVersion: string; RegionId: string; SignName: string; CommonCode: string};
     mysql: {
@@ -1540,8 +1550,6 @@ declare module 'egg' {
     socket: Socket;
     me: BaseUser;
     /**
-     *
-     *
      * @param {BaseUser} user
      * @param {boolean} [notify] 是否发出登陆通知？默认true
      * @memberof Context
@@ -1549,11 +1557,20 @@ declare module 'egg' {
     login(user: BaseUser, notify?: boolean);
     logout();
     nuxt(): Promise<any>;
-    getDevid(): string | undefined | null;
+    getDevid(): string | null;
     setCache(key: string, value: string, redisName?: 'user' | 'other', minutes?: number): Promise<void>;
-    getCache(key: string | undefined | null, redisName?: 'user' | 'other'): Promise<string | null | undefined>;
+    setCookie(key: string, value: string);
+    removeCookie(key: string);
+    getCache(key: string, redisName?: 'user' | 'other'): Promise<string | null>;
+    getCookie(key: string);
     delCache(key: string, redisName?: 'user' | 'other', minutes?: number): Promise<void>;
-    getUser(devid: string | undefined | null): Promise<BaseUser>;
+    getUser(devid: string): Promise<BaseUser>;
+    /** 获取userid已经登陆的devid */
+    getDevids(userid: string | number): Promise<string[] | null>;
+    /** 获取userid已经登陆的个人信息 */
+    getLoginInfos(userid: string | number): Promise<BaseUser[] | null>;
+    /** 删除某人的登录信息,host表示因为哪个IP导致 */
+    dickOut(user: BaseUser, host?: string): Promise<void>;
     /**
      *
      * 发出同步事件

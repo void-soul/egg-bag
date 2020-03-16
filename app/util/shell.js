@@ -185,6 +185,10 @@ const EggShell = (app, options = {}) => {
               status: error.status,
               message: error.message
             });
+          } finally {
+            if (instance.app.config.env !== 'prod') {
+              instance.app.coreLogger.info(`${ prefix + path } + ${ +new Date() - start }ms`);
+            }
           }
         });
       }
@@ -220,7 +224,8 @@ const EggInstall = (target, app, options = {}) => {
         const that = {
           app,
           service: ctx.service,
-          ctx
+          ctx,
+          logger: ctx.logger
         };
         const result = await target.handel.call(that, ctx);
         if (target.type) {
@@ -259,9 +264,51 @@ const EggInstall = (target, app, options = {}) => {
     routers.push(`[${ target.method }]${ target.path }-->native script`);
   }
 };
+const EggIoInstall = (target, app, options = {}) => {
+  const { io } = app;
+  app.coreLogger.info(`[egg-bag] found inner-io: ${ target.path }.`);
+  io.of('/').route(target.path, async function () {
+    const start = +new Date();
+    try {
+      const befores = [];
+      const afters = [];
+      if (options.before) befores.push(...options.before);
+      if (target.before) befores.push(...target.before);
+      if (target.after) afters.push(...target.after);
+      if (options.after) afters.push(...options.after);
+      for (const before of befores) {
+        await before()(this, () => { });
+      }
+      const that = {
+        app,
+        service: this.service,
+        ctx: this,
+        logger: this.logger
+      };
+      const result = await target.handel.call(that, this.args.slice(1));
+      this.app.io.of('/').emit(this.args[0], {
+        data: result
+      });
+      for (const after of afters) {
+        await after()(this, () => { });
+      }
+    } catch (error) {
+      this.app.coreLogger.error(error);
+      this.app.io.of('/').emit(this.args[0], {
+        status: error.status,
+        message: error.message
+      });
+    } finally {
+      if (this.app.config.env !== 'prod') {
+        this.app.coreLogger.info(`${ target.path } + ${ +new Date() - start }ms`);
+      }
+    }
+  });
+}
 module.exports = {
   EggShell,
   EggInstall,
+  EggIoInstall,
   StatusError,
 
   NUXT: methodHandler.nuxt(),

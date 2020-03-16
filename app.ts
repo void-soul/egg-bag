@@ -3,13 +3,13 @@ import IMe from './app/middleware/IMe';
 import {Application} from 'egg';
 import {Builder, Nuxt} from 'nuxt';
 import {dataConfig, enumToJson} from './app/util/enumUtil';
-import {EggInstall, EggShell} from './app/util/shell';
+import {EggInstall, EggShell, EggIoInstall} from './app/util/shell';
 import {IncomingMessage, ServerResponse} from 'http';
 import {merge} from 'lodash';
 import {MongoClient} from 'mongodb';
 import {nuxtDefaultConfig} from './app/util/ci-help';
 import {ObjectSchema} from 'fast-json-stringify';
-import {querys, routes} from './app/routes/PaasController';
+import {querys, routes, sockets} from './app/routes/PaasController';
 import {SQLLoad} from './app/util/sql';
 import {WxMini} from './app/wx/mini';
 import {WxOrgan} from './app/wx/organ';
@@ -239,6 +239,11 @@ export default class {
         route.before.length = 0;
       }
       EggInstall(route, this.app, {
+        before: [IMe]
+      });
+    }
+    for (const route of sockets) {
+      EggIoInstall(route, this.app, {
         before: [IMe]
       });
     }
