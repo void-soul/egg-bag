@@ -183,6 +183,7 @@ export interface WxMini {
   code2session(code: string): Promise<{openid: string; session_key: string; unionid?: string}>;
   getTemplIds(): {[key: string]: string[]};
   decrypt<T>({sessionKey, encryptedData, iv}: {iv: string; sessionKey: string; encryptedData: string}): T | undefined;
+  getLiveInfo(start: number, limit: number): Promise<WxLiveInfo[]>;
 }
 export interface WxOrganConfig {
   /**
@@ -342,7 +343,27 @@ export interface WxOrganTaskCard {
     is_bold?: boolean;
   }>;
 }
-
+export interface WxLiveInfo {
+  name: string;
+  roomid: number;
+  cover_img: string;
+  live_satus: number;
+  start_time: number;
+  end_time: number;
+  anchor_name: string;
+  anchor_img: string;
+  goods: Array<{
+    cover_img: string;
+    url: string;
+    price: number;
+    name: string;
+  }>;
+}
+export interface WxLiveReplay {
+  expire_time: string;
+  create_time: string;
+  media_url: string;
+}
 export interface WxOrgan {
   /**
    *

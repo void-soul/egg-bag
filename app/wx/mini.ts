@@ -1,6 +1,6 @@
 import {Application} from 'egg';
 import {BaseWx} from './base';
-import {WxMiniConfig} from '../../typings';
+import {WxMiniConfig, WxLiveInfo} from '../../typings';
 import crypto = require('crypto');
 export class WxMini extends BaseWx {
   protected name = 'wxMini';
@@ -113,5 +113,21 @@ export class WxMini extends BaseWx {
     } catch (err) {
       throw new Error('加密验证失败');
     }
+  }
+  async getLiveInfo(start: number, limit: number): Promise<WxLiveInfo[]> {
+    const data = await this.fetch(
+      (token: string) => `http://api.weixin.qq.com/wxa/business/getliveinfo?access_token=${ token }`,
+      'post',
+      {start, limit}
+    );
+    return data.room_info;
+  }
+  async getLiveReplay(room_id: number, start: number, limit: number): Promise<WxLiveInfo[]> {
+    const data = await this.fetch(
+      (token: string) => `http://api.weixin.qq.com/wxa/business/getliveinfo?access_token=${ token }`,
+      'post',
+      {room_id, start, limit, action: 'get_replay'}
+    );
+    return data.live_replay;
   }
 }
