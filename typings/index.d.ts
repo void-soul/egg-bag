@@ -183,7 +183,10 @@ export interface WxMini {
   code2session(code: string): Promise<{openid: string; session_key: string; unionid?: string}>;
   getTemplIds(): {[key: string]: string[]};
   decrypt<T>({sessionKey, encryptedData, iv}: {iv: string; sessionKey: string; encryptedData: string}): T | undefined;
+  /** https://developers.weixin.qq.com/miniprogram/dev/framework/liveplayer/live-player-plugin.html */
   getLiveInfo(start: number, limit: number): Promise<WxLiveInfo[]>;
+  /** https://developers.weixin.qq.com/miniprogram/dev/framework/liveplayer/live-player-plugin.html */
+  getLiveReplay(room_id: number, start: number, limit: number): Promise<WxLiveReplay[]>;
 }
 export interface WxOrganConfig {
   /**
@@ -359,6 +362,7 @@ export interface WxLiveInfo {
     name: string;
   }>;
 }
+
 export interface WxLiveReplay {
   expire_time: string;
   create_time: string;
