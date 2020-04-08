@@ -1,4 +1,4 @@
-import * as nanoid from 'nanoid';
+import {nanoid} from 'nanoid';
 
 export const uuid = (): string => {
   return nanoid();
