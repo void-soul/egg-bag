@@ -58,7 +58,7 @@ export class WxMini extends BaseWx {
     const temps = this.templNameCache[name];
     const dataSend: {[key: string]: {value: string | number}} = {};
     for (const [key, value] of Object.entries(data)) {
-      dataSend[key] = {value};
+      dataSend[key] = {value: value ?? ''};
     }
     if (scene) {
       scene = `?${ scene }`;
