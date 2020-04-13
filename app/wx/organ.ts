@@ -236,6 +236,12 @@ export class WxOrgan extends BaseWx {
     } else {
       scene = '';
     }
+    if (ms.content_item) {
+      for (const [key, value] of Object.entries(ms.content_item)) {
+        ms.content_item[key] = value ?? '';
+      }
+    }
+
     const temps = this.miniMessCache[name];
     for (const item of temps) {
       await this.fetch(
