@@ -1815,7 +1815,7 @@ export const Prefix: (path: string) => any;
 export const ContextMethodCache: (config: {
   /** 返回缓存key,参数同方法的参数 */
   key: (...args: any[]) => string;
-  /** 返回缓存清除key,参数同方法的参数 */
+  /** 返回缓存清除key,参数同方法的参数,如果不设置，只能按key清空缓存 */
   clearKey?: (...args: any[]) => string;
   /** 自动清空缓存的方法 */
   autoClearTime?: number;

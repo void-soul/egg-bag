@@ -169,8 +169,10 @@ export default {
   },
   async clearContextMethodCache(this: Application, clearKey: string) {
     const keys = await this.redis.get('other').smembers(clearKey);
-    for (const key of keys) {
-      await this.redis.get('other').del(key);
+    if (keys) {
+      for (const key of keys) {
+        await this.redis.get('other').del(key);
+      }
     }
     await this.redis.get('other').del(clearKey);
   }
