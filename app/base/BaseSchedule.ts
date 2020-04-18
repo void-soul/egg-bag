@@ -50,6 +50,9 @@ export default abstract class BaseSchedule extends Subscription {
       }
     }
     const start = +new Date();
+    const startTime = nowTime();
+    let ms = '';
+    let hasError = false;
     try {
       if (this.singel === true) {
         if (this.redis) {
@@ -60,17 +63,38 @@ export default abstract class BaseSchedule extends Subscription {
       }
       this.app.coreLogger.info(`${ start }:${ lockKey }:started`);
       const data = await this.excute();
-      this.app.coreLogger.info(
-        `${ lockKey } + ${ +new Date() - start }ms,data: ${ data || 'empty!' }`
-      );
+      ms = data;
+      this.app.coreLogger.info(`${ lockKey } +${ +new Date() - start }ms,data: ${ data || 'empty!' }`);
     } catch (e) {
-      this.app.coreLogger.info(`${ lockKey } + ${ +new Date() - start }ms,error: ${ e }`);
+      ms = e ? e.message : 'has error';
+      hasError = true;
+      this.app.coreLogger.error(`${ lockKey } +${ +new Date() - start }ms,error: ${ e ? e.message : 'has error!!' }`);
     } finally {
       if (this.singel === true) {
         if (this.redis) {
           await this.app.redis.get('other').del(`schedule-${ lockKey }`);
         } else {
           delete this.app._cache[`schedule-${ lockKey }`];
+        }
+      }
+      if (this.config.scheduleLogService) {
+        if (this.service[this.config.scheduleLogService.name]) {
+          if ((hasError === false && this.config.scheduleLogService.saveNoError === true) || hasError === false) {
+            const log = {
+              [this.config.scheduleLogService.fields.endTime]: nowTime(),
+              [this.config.scheduleLogService.fields.isError]: hasError ? '1' : '0',
+              [this.config.scheduleLogService.fields.key]: lockKey,
+              [this.config.scheduleLogService.fields.log]: ms,
+              [this.config.scheduleLogService.fields.startTime]: startTime
+            };
+            try {
+              await this.service[this.config.scheduleLogService.name].insert(log);
+            } catch (error) {
+              this.app.coreLogger.error(`${ lockKey } save log error: ${ error ? error.message : 'has error!!' }`);
+            }
+          }
+        } else {
+          this.app.coreLogger.error(`scheduleLogService config error: ${ this.config.scheduleLogService.name }`);
         }
       }
     }

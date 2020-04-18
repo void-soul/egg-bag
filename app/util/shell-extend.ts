@@ -64,6 +64,7 @@ function buildData(target: any, emptySkip = false) {
   });
   return data;
 }
+
 /* tslint:disable-next-line */
 export const DataSource = dataSource();
 /* tslint:disable-next-line */
@@ -76,3 +77,4 @@ export const BuildData = buildData;
 export const TransientMeda = transientMeda;
 /* tslint:disable-next-line */
 export const LogicDelete = logicDelete();
+

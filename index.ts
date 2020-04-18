@@ -18,6 +18,7 @@ import ILogin from './app/middleware/ILogin';
 import SocketConfig from './app/enums/SocketConfig';
 import {ci} from './app/util/ci-help';
 import {enumToJson} from './app/util/enumUtil';
+import {ContextMethodCache} from './app/util/method-enhance';
 
 export = {
   ...egg,
@@ -45,5 +46,6 @@ export = {
     SOCKET_ALL: SocketConfig.SOCKET_ALL.value(),
     SOCKET_USER: SocketConfig.SOCKET_USER.value(),
     SOCKET_DEV: SocketConfig.SOCKET_DEV.value()
-  }
+  },
+  ContextMethodCache
 };

@@ -14,23 +14,38 @@ import {Transition} from '@nuxt/vue-app';
 // tslint:disable-next-line:no-implicit-dependencies
 import {Socket, Server as SocketServer, Namespace as SocketNameSpace} from 'socket.io';
 
+/** 链式计算 */
 declare class Bus {
   constructor (result);
+  /** 加 */
   add(...args: any[]): this;
+  /** 减 */
   sub(...args: any[]): this;
+  /** 除 */
   div(...args: any[]): this;
+  /** 乘 */
   mul(...args: any[]): this;
+  /** 最大 */
   max(...args: any[]): this;
+  /** 最小 */
   min(...args: any[]): this;
+  /** 取反 */
   ac(): this;
+  /** 绝对值 */
   abs(): this;
+  /** 四舍五入 */
   round(numDigits: number, upOrDown?: number): this;
+  /** 计算结束，返回结果 */
   over(): number;
+  /** 计算结果，返回金钱格式化 */
   money(style?: MoneyStyle, currency?: string, prefix?: number, def?: number): string;
 }
+/** 仿java lambda 查询 */
 declare class LambdaQuery<T> {
   constructor (table: string, search: (sql: string, param: Empty) => Promise<T[]>, findCount: (sql: string, param: Empty) => Promise<number>, excute: (sql: string, param: Empty) => Promise<number>);
+  /** and 另一个query对象的条件 */
   and(lambda: LambdaQuery<T>): this;
+  /** or 另一个query对象的条件 */
   or(lambda: LambdaQuery<T>): this;
   andEq(key: keyof T, value: T[keyof T]): this;
   andNotEq(key: keyof T, value: T[keyof T]): this;
@@ -51,15 +66,22 @@ declare class LambdaQuery<T> {
   andBetween(key: keyof T, value1: T[keyof T], value2: T[keyof T]): this;
   andNotBetween(key: keyof T, value1: T[keyof T], value2: T[keyof T]): this;
   groupBy(key: keyof T): this;
+  /** 指定要更新哪列 */
   updateColumn(key: keyof T, value: T[keyof T]): this;
   asc(...keys: Array<keyof T>): this;
   desc(...keys: Array<keyof T>): this;
   limit(startRow: number, pageSize: number): this;
+  /** 获取此query的条件字符串 */
   where(): string;
+  /** 查询所有列或者某些列，结果是多条记录 */
   select(...columns: Array<keyof T>): Promise<T[]>;
+  /** 查询所有列或者某些列，结果只有一条记录 */
   one(...columns: Array<keyof T>): Promise<T | undefined>;
+  /** 查询当前条件下记录数 */
   count(): Promise<number>;
+  /** 更新指定条件为data，或者updateColumn指定的data */
   update(data?: T): Promise<number>;
+  /** 按当前条件进行删除 */
   delete(): Promise<number>;
 }
 type JSType = 'double' | 'string' | 'object' | 'array' | 'binData' | 'undefined' | 'objectId' | 'bool' | 'date' | 'null' | 'regex' | 'javascript' | 'javascriptWithScope' | 'int' | 'timestamp' | 'long' | 'decimal' | 'minKey' | 'maxKey';
@@ -143,8 +165,11 @@ export interface Point {
 export interface WxMiniConfig {
   appId: string;
   appSecret: string;
+  /** 小程序二维码设置 */
   qrcode?: {
+    /** 线条颜色 */
     lineColor?: {r: number; g: number; b: number};
+    /** 宽度 */
     width?: number;
   };
   /**
@@ -179,9 +204,13 @@ export interface WxMini {
    * @memberof WxMini
    */
   getUnlimited(param: {scene: string; model?: string; page?: string; fullpath?: string; png?: boolean; width?: number; lineColor?: {r: number; g: number; b: number}}): Promise<Buffer>;
+  /** https://developers.weixin.qq.com/miniprogram/dev/api-backend/open-api/subscribe-message/subscribeMessage.send.html */
   sendMs(param: {openids: string[]; name: string; data: {[key: string]: string | number}; scene: string}): Promise<void>;
+  /** https://developers.weixin.qq.com/miniprogram/dev/api-backend/open-api/login/auth.code2Session.html */
   code2session(code: string): Promise<{openid: string; session_key: string; unionid?: string}>;
+  /** 获取提前配置好的订阅消息id */
   getTemplIds(): {[key: string]: string[]};
+  /** https://developers.weixin.qq.com/miniprogram/dev/framework/open-ability/signature.html#%E5%8A%A0%E5%AF%86%E6%95%B0%E6%8D%AE%E8%A7%A3%E5%AF%86%E7%AE%97%E6%B3%95 */
   decrypt<T>({sessionKey, encryptedData, iv}: {iv: string; sessionKey: string; encryptedData: string}): T | undefined;
   /** https://developers.weixin.qq.com/miniprogram/dev/framework/liveplayer/live-player-plugin.html */
   getLiveInfo(start: number, limit: number): Promise<WxLiveInfo[]>;
@@ -1088,21 +1117,33 @@ export abstract class BaseService<T> extends Service {
   protected transction(fn: (conn: any) => Promise<any>, transaction?: any | true): Promise<any>;
 }
 export abstract class BaseSchedule extends Subscription {
+  /** 此定时任务唯一标识 */
   key: string;
+  /** 定时任务单例运行，不允许多线程  */
   singel = true;
   abstract excute(): Promise<string>;
 }
 
 // tslint:disable-next-line:max-classes-per-file
 declare class PaasService extends BaseService<Empty> {
+  /** 发送短信验证码,返回验证码编号 */
   sendCode(phone: string): Promise<string>;
+  /** 发送任意短信 */
   sendSms(phone: string, TemplateCode: string, params: {[key: string]: string}): Promise<any>;
+  /** 验证短信验证码, id是验证码编号 */
   validCode(phone: string, id: string, code: string): Promise<boolean>;
+  /** 删除短信验证码缓存 */
   removeCode(phone: string, id: string): Promise<number>;
+  /** 图形验证码 */
   picCode(key: string): Promise<string>;
+  /** 验证图像验证码 */
   validPicCode(key: string, code: string): Promise<boolean>;
+  /** 删除图形验证码缓存 */
   removePicCode(key: string): Promise<number>;
 }
+
+
+// declare
 
 declare module 'egg' {
   interface Application {
@@ -1262,6 +1303,14 @@ declare module 'egg' {
      * @memberof Application
      */
     emitSyncAll(name: string, ...args: any[]): void;
+
+    /**
+     *
+     * 清空指定的方法缓存
+     * @returns {Promise<void>}
+     * @memberof Application
+     */
+    clearContextMethodCache(): Promise<void>;
   }
   interface EggAppConfig {
     /**
@@ -1294,6 +1343,32 @@ declare module 'egg' {
      * @memberof EggAppConfig
      */
     scheduleRun?: boolean;
+    /**
+     *
+     * 定时器日志基础service
+     * 用于插入日志
+     * @type {string}
+     * @memberof EggAppConfig
+     */
+    scheduleLogService?: {
+      // 存储无报错的记录吗?
+      saveNoError: boolean;
+      // service 的name
+      name: string;
+      // 字段映射
+      fields: {
+        // 定时任务key字段
+        key: string;
+        // 开始时间
+        startTime: string;
+        // 结束时间
+        endTime: string;
+        // 日志内容
+        log: string;
+        // 本次运行是否报错
+        isError: string;
+      };
+    };
     /**
      * cookie\md5的加盐字符
      * @type {string}
@@ -1572,23 +1647,36 @@ declare module 'egg' {
     defWxPayAppCode?: string;
   }
   interface Context extends ExtendContextType {
+    /** 当前连接的socket链接 */
     socket: Socket;
+    /** 当前登录用户 */
     me: BaseUser;
     /**
+     * 登录
      * @param {BaseUser} user
      * @param {boolean} [notify] 是否发出登陆通知？默认true
      * @memberof Context
      */
     login(user: BaseUser, notify?: boolean);
+    /** 登出 */
     logout();
+    /** 执行nuxt渲染 */
     nuxt(): Promise<any>;
+    /** 获取会话token */
     getDevid(): string | null;
+    /** 添加缓存 */
     setCache(key: string, value: string, redisName?: 'user' | 'other', minutes?: number): Promise<void>;
+    /** 设置cookie */
     setCookie(key: string, value: string);
+    /** 删除cookie */
     removeCookie(key: string);
+    /** 获取缓存 */
     getCache(key: string, redisName?: 'user' | 'other'): Promise<string | null>;
+    /** 获取cookie */
     getCookie(key: string);
+    /** 删除缓存 */
     delCache(key: string, redisName?: 'user' | 'other', minutes?: number): Promise<void>;
+    /** 根据会话令牌获取用户 */
     getUser(devid: string): Promise<BaseUser>;
     /** 获取userid已经登陆的devid */
     getDevids(userid: string | number): Promise<string[] | null>;
@@ -1613,80 +1701,143 @@ declare module 'egg' {
   }
   // eslint-disable-next-line @typescript-eslint/interface-name-prefix
   interface IService {
+    /** 内置的一个mongoservice */
     paasMongoService: BaseMongoService;
+    /** 内置的一个mysqlservice */
     paasService: PaasService;
   }
 }
-
+/** 空promise方法 */
 export function emptyPromise(): Promise<any>;
-
+/** promise化任何函数 */
 export function promise<T>(this: any, {fn, target, last = true}: {fn: (...args: any[]) => any; target?: any; last?: boolean}): (...args: any[]) => Promise<T>;
+/** 线程级休眠 */
 export function sleep(time: number): Promise<{void}>;
-
+/** 转换为数字 */
 export function num(val: any, def = 0): number;
+/** 最大值 */
 export function max(...args: any[]): number;
+/** 最小值 */
 export function min(...args: any[]): number;
+/** 除法 */
 export function div(...args: any[]): number;
+/** 加法 */
 export function add(...args: any[]): number;
+/** 乘法 */
 export function mul(...args: any[]): number;
+/** 减法 */
 export function sub(...args: any[]): number;
+/** 四舍五入 */
 export function round(number: any, numDigits: number, upOrDown = 0): number;
+/** 金钱格式化可用样式 */
 export enum MoneyStyle {currency, decimal, percent}
+/** 金钱格式化 */
 export function money(value: any, style: MoneyStyle = MoneyStyle.currency, currency: string = 'CNY', prefix: number = 2, def: number = 0): string;
+/** 计算链生成 */
 export function calc(result: any): Bus;
+/** 计算两个地理信息点之间距离 */
 export function getGeo(p1: Point, p2: Point): number;
 
+/** 时间格式字符 YYYY-MM-DD HH:mm:ss */
 export const dateTime: string;
+/** 时间格式字符 YYYY-MM-DDTHH:mm:ss */
 export const dateXSDTime: string;
+/** 时间格式字符 YYYY-MM-DD */
 export const date: string;
+/** 当前时间 YYYY-MM-DD HH:mm:ss */
 export function nowTime(): string;
+/** 当前时间 YYYY-MM-DD */
 export function nowDate(): string;
+/** 当前xml时间 YYYY-MM-DDTHH:mm:ss */
 export function nowTimeXSD(): string;
 
+/** 对象克隆 */
 export function copyBean<T>(source: any, classType: any): T;
+/** 类型转换 */
 export function convertBean<T>(source: any, classType: any): T;
+/** 批量类型转换 */
 export function convertBeans<T>(source: any[], classType: any, cb?: (target: T, source: any) => void): T[];
+/** 返回一个类的空对象 */
 export function emptyBean<T>(classType: any): T;
+/** 将一个json数组提取为一个json对象 */
 export function createBeanFromArray<T>(source: any[], key: string, value: string): {[name: string]: T};
+/** 转换复合对象为指定bean */
 export function coverComplexBean<T>(source: any, classType: any): {data: T; array: {[key: string]: any[]}};
+/** 将目标对象中为空的字段替换为source中对应key的值或者函数返回值 */
 export function fixEmptyPrototy(target: any, source: {[key: string]: any}): Promise<void>;
 
+/** mysql service的数据源 */
 export function DataSource(clazz: any, tableName: string, ...idNames: string[]);
+/** mongodb service的数据源 */
 export function Mongo(clazz: any, tableName: string, dbName?: string);
+/** 实体类中忽略ORM的字段标记 */
 export function Transient();
+/** 过滤一个实体类中非ORM字段 */
 export function BuildData(target: any, emptySkip: boolean = false): any;
 export const TransientMeda: symbol;
+/** service的逻辑删除设置 */
 export function LogicDelete(stateFileName: string, deleteState: string = '0');
+/** controller方法上添加锁，只支持单个会话不能重复请求同一个接口 */
 export const Lock: () => Decorator;
+/** controller方法标记为NUXT渲染 */
 export const NUXT: (value?: string) => Decorator;
+/** controller方法标记为view渲染 */
 export const Render: (path: string, view?: string) => Decorator;
+/** controller方法标记为get请求 */
 export const Get: (value?: string) => Decorator;
+/** controller方法标记为post请求 */
 export const Post: (value?: string) => Decorator;
+/** controller方法标记为put请求 */
 export const Put: (value?: string) => Decorator;
+/** controller方法标记为delete请求 */
 export const Delete: (value?: string) => Decorator;
+/** controller方法标记为patch请求 */
 export const Patch: (value?: string) => Decorator;
+/** controller方法标记为options请求 */
 export const Options: (value?: string) => Decorator;
+/** controller方法标记为head请求 */
 export const Head: (value?: string) => Decorator;
+/** controller方法标记为socket io请求 */
 export const IO: (value?: string) => Decorator;
+/** controller方法执行前调用哪些过滤器 */
 export const Before: (fn: () => (ctx: Context, next: () => Promise<any>) => Promise<void>) => Decorator;
+/** controller方法执行后调用哪些过滤器 */
 export const After: (fn: () => (ctx: Context, next: () => Promise<any>) => Promise<void>) => Decorator;
+/** controller方法相应的content-type*/
 export const ContentType: (value?: string) => Decorator;
+/** controller上统一设置每个方法执行前的过滤器 */
 export const BeforeAll: (...fns: Array<() => (ctx: Context, next: () => Promise<any>) => Promise<void>>) => any;
+/** controller上统一设置每个方法执行后的过滤器 */
 export const AfterAll: (...fns: Array<() => (ctx: Context, next: () => Promise<any>) => Promise<void>>) => any;
+/** controller上统一设置每个方法请求地址的前缀，默认为 controller文件名 替换掉controller关键字，并首字母小写 */
 export const Prefix: (path: string) => any;
-
+/** service、controller的方法缓存设置 */
+export const ContextMethodCache: (config: {
+  /** 返回缓存key,参数同方法的参数 */
+  key: (...args: any[]) => string;
+  /** 返回缓存清除key,参数同方法的参数 */
+  clearKey: (...args: any[]) => string;
+  /** 自动清空缓存的方法 */
+  autoClearTime?: number;
+}) => any;
+/** 生成uuid */
 export function uuid(): string;
+/** 从http://127.0.0.1?key=3333得到key的值  */
 export function getPicKey(uri: string): string;
+/** 去掉空格，是否是空字符串,null\undefined都算空的, */
 export function emptyString(source: any): boolean;
+/** 去掉空格，是否是非空字符串,null\undefined都算空的 */
 export function notEmptyString(source: any): boolean;
+/** 将单引号去除 */
 export function safeString(source?: string): string;
+/** 生成指定位数的随机数 */
 export function randomNumber(len: number): string;
+/** 构建微信发送消息字符串 */
 export function buildWxStr(data: {[key: string]: string}, maxLabelLength: number, ...titles: string[]): string;
+/** 将枚举转换为json,例如GlobalValues */
 export function enumToJson(enums: any): EnmuJson;
+/** 替换中标点符号为英文的 */
 export function replaceChineseCode(str: string): string;
-
-
-export function wxDecrypt<T>({appId, sessionKey, encryptedData, iv}: {appId: string; sessionKey: string; encryptedData: string; iv: string}): T | undefined;
 
 /**
  *
@@ -1700,5 +1851,5 @@ export function wxDecrypt<T>({appId, sessionKey, encryptedData, iv}: {appId: str
  * @returns {Promise<void>}
  */
 export function ci(serviceDistDir: string, resources?: string[], dirs?: string[]): Promise<void>;
-
+/** 内置socket 房间编号 */
 export const SocketRoom: {SOCKET_ALL: string; SOCKET_USER: string; SOCKET_DEV: string};

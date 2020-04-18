@@ -166,5 +166,12 @@ export default {
   },
   emitSyncAll(this: Application, name: string, ...args: any[]) {
     this.messenger.sendToApp(name, args);
+  },
+  async clearContextMethodCache(this: Application, clearKey: string) {
+    const keys = await this.redis.get('other').smembers(clearKey);
+    for (const key of keys) {
+      await this.redis.get('other').del(key);
+    }
+    await this.redis.get('other').del(clearKey);
   }
 };
