@@ -1816,7 +1816,7 @@ export const ContextMethodCache: (config: {
   /** 返回缓存key,参数同方法的参数 */
   key: (...args: any[]) => string;
   /** 返回缓存清除key,参数同方法的参数 */
-  clearKey: (...args: any[]) => string;
+  clearKey?: (...args: any[]) => string;
   /** 自动清空缓存的方法 */
   autoClearTime?: number;
 }) => any;
