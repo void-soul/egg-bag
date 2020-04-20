@@ -4,7 +4,7 @@ export function ContextMethodCache(config: {
   /** 返回缓存key,参数同方法的参数 */
   key: (...args: any[]) => string;
   /** 返回缓存清除key,参数同方法的参数 */
-  clearKey?: (...args: any[]) => string;
+  clearKey?: (...args: any[]) => string[];
   /** 自动清空缓存的方法 */
   autoClearTime?: number;
 }) {
@@ -27,8 +27,10 @@ export function ContextMethodCache(config: {
           }
           if (config.clearKey) {
             const clearKey = config.clearKey.call(this, ...args);
-            if (clearKey && clearKey !== key) {
-              this.app.redis.get('other').sadd(clearKey, key);
+            if (clearKey && clearKey.length > 0) {
+              for (const clear of clearKey) {
+                this.app.redis.get('other').sadd(clear, key);
+              }
             }
           }
           return result;
