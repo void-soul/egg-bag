@@ -203,5 +203,20 @@ export default {
       this.coreLogger.info(`[egg-bag] async-sub named ${ name } has been called`);
       return await this._asyncSubClient[name].call(this, ...args);
     }
+  },
+  async doFlow(
+    this: Context,
+    param: {
+      flowPath: string;
+      flowParam: {
+        remark: string;
+      };
+      bizParam: any;
+      dataFlow?: any;
+      conn?: any;
+    }
+  ): Promise<any> {
+    this.coreLogger.info(`[egg-bag] flow named ${ param.flowPath } has been called`);
+    return await this.service.paasService.doFlow(param);
   }
 };

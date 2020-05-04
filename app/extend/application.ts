@@ -156,10 +156,23 @@ export default {
     return this._wxPay[appCode!];
   },
   async emitASync(this: Application, name: string, ...args: any[]) {
-    if (this._asyncSubClient[name]) {
-      this.coreLogger.info(`[egg-bag] async-sub named ${ name } has been called`);
-      return await this._asyncSubClient[name].call(this.createAnonymousContext(), ...args);
+    this.coreLogger.info(`[egg-bag] async-sub named ${ name } has been called`);
+    return await this.createAnonymousContext().emitASync(name, ...args);
+  },
+  async doFlow(
+    this: Application,
+    param: {
+      flowPath: string;
+      flowParam: {
+        remark: string;
+      };
+      bizParam: any;
+      dataFlow?: any;
+      conn?: any;
     }
+  ): Promise<any> {
+    const context = this.createAnonymousContext();
+    return await context.doFlow(param);
   },
   emitSyncRandom(this: Application, name: string, ...args: any[]) {
     this.messenger.sendRandom(name, args);

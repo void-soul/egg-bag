@@ -1,6 +1,6 @@
-import PageQuery from '../util/sql/PageQuery';
+import PageQuery from '../loader/sql/PageQuery';
 import {calc} from '../util/math';
-import {LambdaQueryMongo, SQLSource} from '../util/sql';
+import {LambdaQueryMongo} from '../loader/sql';
 import {Service} from 'egg';
 import {notEmptyString} from '../util/string';
 import * as vm from 'vm';
@@ -1366,8 +1366,8 @@ export default abstract class <T> extends Service {
     param?: {[propName: string]: any},
     transaction: any = true
   ): Promise<number> {
-    const source: SQLSource = this.app.getSql(sqlid);
-    const item = this.getSqlItem<T>(source.template, param);
+    const source = this.app.getSql.call(this.ctx, sqlid, param);
+    const item = this.getSqlItem<T>(source, param);
     return await this.countBySql<T>(item, transaction);
   }
   /**
@@ -1393,8 +1393,8 @@ export default abstract class <T> extends Service {
     param?: {[propName: string]: any},
     transaction: any = true
   ): Promise<L[]> {
-    const source: SQLSource = this.app.getSql(sqlid);
-    const item = this.getSqlItem<L>(source.template, param);
+    const source = this.app.getSql.call(this.ctx, sqlid, param);
+    const item = this.getSqlItem<L>(source, param);
     return await this.queryMutiRowMutiColumnBySql(item, transaction);
   }
   /**
@@ -1653,7 +1653,6 @@ export default abstract class <T> extends Service {
    * @returns {PageQuery}
    */
   pageQuery<L>(sqlid: string, transaction: any = true): PageQuery<L> {
-    const source: SQLSource = this.app.getSql(sqlid);
     return new PageQuery(
       async (
         param: {[key: string]: any},
@@ -1664,9 +1663,16 @@ export default abstract class <T> extends Service {
         _orderBy?: string,
         orderMongo?: {[P in keyof L]: 1 | -1}
       ) => {
+        const source = this.app.getSql.call(this.ctx, sqlid, {
+          ...param,
+          pageSize,
+          pageNumber,
+          limitSelf,
+          orderMongo
+        });
         if (limitSelf === false) {
           if (pageSize > 0) {
-            const pageItem = this.getSqlItem<L>(source.template, param);
+            const pageItem = this.getSqlItem<L>(source, param);
             const totalRow = await this.countBySql(
               pageItem,
               transaction
@@ -1687,7 +1693,7 @@ export default abstract class <T> extends Service {
             skip: pageSize
           });
         }
-        const item = this.getSqlItem<L>(source.template, param);
+        const item = this.getSqlItem<L>(source, param);
         if (orderMongo) {
           if (!item.options.sort) {
             item.options.sort = orderMongo;

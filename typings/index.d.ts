@@ -1,4 +1,4 @@
-import {Application, Service, Subscription, Context} from 'egg';
+import {Application, Service, Subscription, Context, BaseContextClass, IService} from 'egg';
 import {MongoClient, MongoClientOptions, FilterQuery} from 'mongodb';
 // tslint:disable-next-line:no-implicit-dependencies
 import {Redis} from 'ioredis';
@@ -13,7 +13,6 @@ import {NuxtConfiguration} from '@nuxt/config';
 import {Transition} from '@nuxt/vue-app';
 // tslint:disable-next-line:no-implicit-dependencies
 import {Socket, Server as SocketServer, Namespace as SocketNameSpace} from 'socket.io';
-
 /** 链式计算 */
 declare class Bus {
   constructor (result);
@@ -86,50 +85,125 @@ declare class LambdaQuery<T> {
 }
 type JSType = 'double' | 'string' | 'object' | 'array' | 'binData' | 'undefined' | 'objectId' | 'bool' | 'date' | 'null' | 'regex' | 'javascript' | 'javascriptWithScope' | 'int' | 'timestamp' | 'long' | 'decimal' | 'minKey' | 'maxKey';
 declare class LambdaQueryMongo<T> {
-  constructor (find: (lambda: LambdaQueryMongo<T>, columns: string[]) => Promise<T[]>, findCount: (lambda: LambdaQueryMongo<T>) => Promise<number>, update: (lambda: LambdaQueryMongo<T>, data: {[P in keyof T]?: T[P]}) => Promise<number>, remove: (lambda: LambdaQueryMongo<T>) => Promise<number>);
+  /** https://docs.mongodb.com/manual/reference/operator/query/eq/ */
   $eq(key: keyof T, value: T[keyof T]): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/eq/ */
   $$eq(key: keyof T, value: T[keyof T]): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/ne/ */
   $ne(key: keyof T, value: T[keyof T]): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/ne/ */
   $$ne(key: keyof T, value: T[keyof T]): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/gt/ */
   $gt(key: keyof T, value: T[keyof T]): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/gt/ */
   $$gt(key: keyof T, value: T[keyof T]): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/gte/ */
   $gte(key: keyof T, value: T[keyof T]): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/gte/ */
   $$gte(key: keyof T, value: T[keyof T]): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/in/ */
   $in(key: keyof T, value: Array<T[keyof T] | RegExp>): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/in/ */
   $$in(key: keyof T, value: Array<T[keyof T] | RegExp>): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/nin/ */
   $nin(key: keyof T, value: Array<T[keyof T] | RegExp>): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/nin/ */
   $$nin(key: keyof T, value: Array<T[keyof T] | RegExp>): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/lt/ */
   $lt(key: keyof T, value: T[keyof T]): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/lt/ */
   $$lt(key: keyof T, value: T[keyof T]): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/lte/ */
   $lte(key: keyof T, value: T[keyof T]): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/lte/ */
   $$lte(key: keyof T, value: T[keyof T]): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/and/ */
   $and(lambda: LambdaQueryMongo<T>): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/nor/ */
   $nor(lambda: LambdaQueryMongo<T>): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/or/ */
   $or(lambda: LambdaQueryMongo<T>): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/elemMatch/ */
   $elemMatch(lambda: LambdaQueryMongo<T>): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/exists/ */
   $exists(key: keyof T): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/exists/ */
   $$exists(key: keyof T): this;
-  $type(key: keyof T, value: JSType): this;
-  $$type(key: keyof T, value: JSType): this;
-  $expr(key: keyof T, value: {[name: string]: any}): this;
-  $$expr(key: keyof T, value: {[name: string]: any}): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/type/ */
+  $type(key: keyof T, value: 'double' | 'string' | 'object' | 'array' | 'binData' | 'undefined' | 'objectId' | 'bool' | 'date' | 'null' | 'regex' | 'javascript' | 'javascriptWithScope' | 'int' | 'timestamp' | 'long' | 'decimal' | 'minKey' | 'maxKey'): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/type/ */
+  $$type(key: keyof T, value: 'double' | 'string' | 'object' | 'array' | 'binData' | 'undefined' | 'objectId' | 'bool' | 'date' | 'null' | 'regex' | 'javascript' | 'javascriptWithScope' | 'int' | 'timestamp' | 'long' | 'decimal' | 'minKey' | 'maxKey'): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/expr/ */
+  $expr(value: {
+    [name: string]: any;
+  }): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/expr/ */
+  $$expr(value: {
+    [name: string]: any;
+  }): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/mod/ */
   $mod(key: keyof T, value: number[]): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/mod/ */
   $$mod(key: keyof T, value: number[]): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/regex/ */
   $regex(key: keyof T, value: RegExp, options?: Set<'i' | 'm' | 'g' | 'x'>): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/regex/ */
   $$regex(key: keyof T, value: RegExp, options?: Set<'i' | 'm' | 'g' | 'x'>): this;
-  $text(options: {search: string; language?: string; caseSensitive?: boolean; diacriticSensitive?: boolean}): this;
-  $where(fn: (this: T) => boolean);
+  /** https://docs.mongodb.com/manual/reference/operator/query/text/ */
+  $text(options: {
+    search: string;
+    language?: string;
+    caseSensitive?: boolean;
+    diacriticSensitive?: boolean;
+  }): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/where/ */
+  $where(fn: (this: T) => boolean): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/all/ */
   $all(key: keyof T, value: Array<T[keyof T]>): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/all/ */
   $$all(key: keyof T, value: Array<T[keyof T]>): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/size/ */
   $size(key: keyof T, value: number): this;
+  /** https://docs.mongodb.com/manual/reference/operator/query/size/*/
   $$size(key: keyof T, value: number): this;
   asc(...keys: Array<keyof T>): this;
   desc(...keys: Array<keyof T>): this;
   limit(startRow: number, pageSize: number): this;
+  /**
+   * 中断查询方法
+   * @param {...string[]} columns
+   * @returns {Promise<T[]>}
+   * @memberof LambdaQueryMongo
+   */
   select(...columns: Array<keyof T>): Promise<T[]>;
+  /**
+   *
+   * 中断查询方法
+   * @param {...string[]} columns
+   * @returns {(Promise<T | undefined>)}
+   * @memberof LambdaQueryMongo
+   */
   one(...columns: Array<keyof T>): Promise<T | undefined>;
+  /**
+   *
+   * 中断查询方法
+   * @returns {Promise<number>}
+   * @memberof LambdaQueryMongo
+   */
   count(): Promise<number>;
+  /**
+   * 中断更新方法
+   * @param {T} data
+   * @returns {Promise<number>}
+   * @memberof LambdaQueryMongo
+   */
   update(data: T): Promise<number>;
+  /**
+   *
+   * 中断删除方法
+   * @returns {Promise<number>}
+   * @memberof LambdaQueryMongo
+   */
   delete(): Promise<number>;
 }
 declare class PageQuery<T> {
@@ -656,24 +730,30 @@ export interface WxCreatedorder {
     };
   };
 }
+
+export interface WxCreateOrderJSAPI {
+  appId: string;
+  timeStamp: string;
+  nonceStr: string;
+  package: string;
+  signType: string;
+  paySign: string;
+}
+export interface WxCreateOrderAPP {
+  appid: string;
+  partnerid: string;
+  prepayid: string;
+  package: string;
+  noncestr: string;
+  timestamp: string;
+  sign: string;
+}
+/** 微信支付预创建订单返回结果 */
 export interface WxCreateOrderResult {
-  jsapi?: {
-    appId: string;
-    timeStamp: string;
-    nonceStr: string;
-    package: string;
-    signType: string;
-    paySign: string;
-  };
-  app?: {
-    appid: string;
-    partnerid: string;
-    prepayid: string;
-    package: string;
-    noncestr: string;
-    timestamp: string;
-    sign: string;
-  };
+  /** jsapi支付方式 */
+  jsapi?: WxCreateOrderJSAPI;
+  /** app支付方式 */
+  app?: WxCreateOrderAPP;
   prepay_id: string;
   code_url?: string;
   mweb_url?: string;
@@ -931,21 +1011,86 @@ export class SetEx<T> extends Set {
    * @memberof SetEx
    */
   constructor (param: {key: keyof T; onExist?: (oldData: T, newData: T) => void; onNotExist?: (newData: T) => void; replaceWhenExits?: boolean; values?: ReadonlyArray<T> | null});
+  /**
+   *
+   * 添加返回 当前对象
+   * @param {T} value
+   * @returns {this}
+   */
   add(value: T): this;
-  addAll(value: T): this;
+  addAll(...values: T[]): this;
+  /**
+   *
+   * 添加并返回添加成功的对象:可能是新加入集合的，也可能是原本存在的
+   * @param {T} value
+   * @returns {T}
+   */
   add2(value: T): T;
-  addAll2(value: T[]): T[];
+  /**
+   *
+   * 添加并返回添加成功的对象:可能是新加入集合的，也可能是原本存在的
+   * @param {T} value
+   * @returns {T}
+   */
+  addAll2(values: T[]): T[];
+  /**
+   * 用key找到匹配的第一个对象
+   * @param {*} value 这是对象的关键属性,而非对象
+   * @returns {(T | null)}
+   */
   find(value: T[keyof T]): T | null;
+  /**
+   * 用key找到匹配的所有对象
+   * @param {*} value 这是对象的关键属性,而非对象
+   * @returns {T[]}
+   */
   findAll(value: T[keyof T]): T[];
+  /**
+   *
+   * 用函数回调找到匹配的第一个对象
+   * @param {(item: T) => boolean} fn
+   * @returns {T[]}
+   */
   filter(fn: (item: T) => boolean): T | null;
+  /**
+   *
+   * 用函数回调找到匹配的所有对象
+   * @param {(item: T) => boolean} fn
+   * @returns {T[]}
+   */
   filterAll(fn: (item: T) => boolean): T[];
+  /**
+   *
+   * 是否存在key对应的对象
+   * @param {*} value 这是对象的关键属性,而非对象
+   * @returns {boolean}
+   */
   has(value: T[keyof T]): boolean;
   toArray(): T[];
+  /**
+   *
+   * 删除key对应的对象
+   * @param {*} value 这是对象的关键属性,而非对象
+   * @returns {boolean}
+   */
   delete(value: T[keyof T]): boolean;
-  reset(param: {key?: keyof T; onExist?: (oldData: T, newData: T) => void; replaceWhenExits?; values?: ReadonlyArray<T> | null}): this;
+  /**
+   *
+   * 重置
+   * @param {keyof T} key
+   * @param {(oldData: T, newData: T) => void} [onExist]
+   * @param {boolean} [replaceWhenExits=false]
+   */
+  reset({key, onExist, onNotExist, replaceWhenExits}: {
+    key?: keyof T;
+    onExist?: (oldData: T, newData: T) => void | null;
+    onNotExist?: (newData: T) => void | null;
+    replaceWhenExits?: boolean;
+  }): this;
   set onExist(onExist: ((oldData: T, newData: T) => void) | undefined);
   set key(key: keyof T);
   set replaceWhenExits(replaceWhenExits: boolean);
+
 }
 
 export interface BaseMongoModel {
@@ -974,147 +1119,1893 @@ export class Empty {
 }
 
 export abstract class BaseMongoService<T> extends Service {
-  insert(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  insertIfNotExists(data: {[P in keyof T]?: T[P]}, columns: Array<keyof T>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  replace(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  insertTemplate(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  insertTemplateLoose(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  insertTemplateIfNotExists(data: {[P in keyof T]?: T[P]}, columns: Array<keyof T>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  insertTemplateLooseIfNotExists(data: {[P in keyof T]?: T[P]}, columns: Array<keyof T>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  replaceTemplate(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  replaceTemplateLoose(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  insertBatch(datas: Array<{[P in keyof T]?: T[P]}>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
-  insertBatchIfNotExists(datas: Array<{[P in keyof T]?: T[P]}>, columns: Array<keyof T>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
-  replaceBatch(datas: Array<{[P in keyof T]?: T[P]}>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
-  insertBatchTemplate(datas: Array<{[P in keyof T]?: T[P]}>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
-  insertBatchTemplateLoose(datas: Array<{[P in keyof T]?: T[P]}>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
-  insertBatchTemplateIfNotExists(datas: Array<{[P in keyof T]?: T[P]}>, columns: Array<keyof T>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
-  insertBatchTemplateLooseIfNotExists(datas: Array<{[P in keyof T]?: T[P]}>, columns: Array<keyof T>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
-  replaceBatchTemplate(datas: Array<{[P in keyof T]?: T[P]}>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
-  replaceBatchTemplateLoose(datas: Array<{[P in keyof T]?: T[P]}>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
-  updateById(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  updateTemplateById(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  updateTemplateLooseById(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  updateBatchById(datas: Array<{[P in keyof T]?: T[P]}>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  updateBatchTemplateById(datas: Array<{[P in keyof T]?: T[P]}>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  updateBatchTemplateLooseById(datas: Array<{[P in keyof T]?: T[P]}>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  updateBatch(data: {[P in keyof T]?: T[P]}, where: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  deleteBatch(where: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  deleteById(id: any, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  unique<L>(id: any, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<L>;
-  uniqueMe(id: any, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<T>;
-  single<L>(id: any, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<L | null>;
-  singleMe(id: any, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<T | null>;
-  all<L>(transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<L[]>;
-  allMe(transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<T[]>;
-  allPage<L>(start: number, size: number, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<L[]>;
-  allPageMe(start: number, size: number, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<T[]>;
-  allCount(transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  template<L>(where: {[P in keyof L]?: L[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<L[]>;
-  templateMe(where: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<T[]>;
-  templateOne<L>(data: {[P in keyof L]?: L[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<L>;
-  templateOneMe(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<T>;
-  templatePage<L>(data: {[P in keyof L]?: L[P]}, start: number, size: number, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<L[]>;
-  templatePageMe(data: {[P in keyof T]?: T[P]}, start: number, size: number, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<T[]>;
-  templateCount(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  lambdaQuery<L>(transaction?: any | true, tableName?: (serviceTableName: string) => string): LambdaQueryMongo<L>;
-  lambdaQueryMe(transaction?: any | true, tableName?: (serviceTableName: string) => string): LambdaQueryMongo<T>;
-  customQuery<L>(x: {where?: {[P in keyof L]?: L[P]}; columns?: Array<keyof L>; startRow?: number; pageSize?: number; orders?: {[P in keyof L]: 1 | -1}}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<L[]>;
-  customQueryCount<L>(x: {where?: {[P in keyof L]?: L[P]}}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<L[]>;
-  customQueryMe(x: {where?: {[P in keyof T]?: T[P]}; columns?: Array<keyof T>; startRow?: number; pageSize?: number; orders?: {[P in keyof T]: 1 | -1}}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<T[]>;
-  queryBySqlId<L>(sqlid: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<L[]>;
-  queryMeBySqlId(sqlid: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<T[]>;
-  countBySqlId(sqlid: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<number>;
-  queryMutiRowMutiColumnBySqlId<L>(sqlid: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<L[]>;
-  countBySql<L>(item: {query: {[P in keyof L]?: L[P] | FilterQuery<L>}; tableName?: string}, transaction?: any | true): Promise<number>;
-  queryMutiRowMutiColumnBySql<L>(item: {query: {[P in keyof L]?: L[P] | FilterQuery<L>}; options: {limit?: number; skip?: number; sort?: {[P in keyof L]: 1 | -1}; projection?: {[P in keyof L]: 1}}; tableName?: string}, transaction?: any | true): Promise<L[]>;
-  querySingelRowMutiColumnBySqlId<L>(sqlid: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<L | null>;
-  querySingelRowMutiColumnBySql<L>(item: {query: {[P in keyof L]?: L[P] | FilterQuery<L>}; options: {limit?: number; skip?: number; sort?: {[P in keyof L]: 1 | -1}; projection?: {[P in keyof L]: 1}}; tableName?: string}, transaction?: any | true): Promise<L | null>;
-  queryMutiRowSingelColumnBySql<M>(item: {query: {[P in keyof T]?: T[P] | FilterQuery<T>}; options: {limit?: number; skip?: number; sort?: {[P in keyof T]: 1 | -1}; projection?: {[P in keyof T]: 1}}; tableName?: string}, transaction?: any | true): Promise<M[]>;
-  queryMutiRowSingelColumnBySqlId<M>(sqlid: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<M[]>;
-  querySingelRowSingelColumnBySql<M>(item: {query: {[P in keyof T]?: T[P] | Condition<T, P>}; options: {limit?: number; skip?: number; sort?: {[P in keyof T]: 1 | -1}; projection?: {[P in keyof T]: 1}}; tableName?: string}, transaction?: any | true): Promise<M | null>;
-  querySingelRowSingelColumnBySqlId<M>(sqlid: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<M | null>;
-  pageQuery<L>(sqlid: string, transaction?: any | true): PageQuery<L>;
-  pageQueryMe(sqlid: string, transaction?: any | true): PageQuery<T>;
-  protected transction(fn: (transaction: any) => Promise<any>, transaction?: any | true): Promise<any>;
+  /**
+     * 插入
+     * 返回成功插入行数
+     * @param {{[P in keyof T]?: T[P]}} data
+     * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+     * @param {(serviceTableName: string) => string} [tableName=(
+     *       serviceTableName: string
+     *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+     * @returns
+     */
+  insert(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 如果指定列名不存在数据库中，则插入所有列
+   * 返回成功插入行数
+   * @param {{[P in keyof T]?: T[P]}} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertIfNotExists(data: {
+    [P in keyof T]?: T[P];
+  }, columns: (keyof T)[], transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 插入或修改所有列
+   * 返回成功插入行数
+   * @param {{[P in keyof T]?: T[P]}} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  replace(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   *
+   * 只插入非空字段(undefined、null、空字符串)
+   * 返回成功插入行数
+   * @param {{[P in keyof T]?: T[P]}} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertTemplate(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: any, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  /**
+   *
+   * 只插入非空字段(undefined、null)
+   * 返回成功插入行数
+   * @param {{[P in keyof T]?: T[P]}} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertTemplateLoose(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 如果指定列名不存在数据库中，则插入非空列(undefined、null、空字符串)
+   * 返回成功插入行数
+   * @param {{[P in keyof T]?: T[P]}} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertTemplateIfNotExists(data: {
+    [P in keyof T]?: T[P];
+  }, columns: (keyof T)[], transaction?: any, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  /**
+   * 如果指定列名不存在数据库中，则插入非空列(undefined、null)
+   * 返回成功插入行数
+   * @param {{[P in keyof T]?: T[P]}} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertTemplateIfNotExistsLoose(data: {
+    [P in keyof T]?: T[P];
+  }, columns: (keyof T)[], transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 只插入或修改非空字段(undefined、null、空字符串)
+   * 返回成功插入行数
+   * @param {{[P in keyof T]?: T[P]}} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  replaceTemplate(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: any, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  /**
+   * 只插入或修改非空字段(undefined、null)
+   * 返回成功插入行数
+   * @param {{[P in keyof T]?: T[P]}} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  replaceTemplateLoose(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 批量插入所有列
+   * 返回成功插入行数
+   * @param {Array<{[P in keyof T]?: T[P]}>} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertBatch(datas: {
+    [P in keyof T]?: T[P];
+  }[], transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 如果指定列名不存在数据库中，则批量插入所有列
+   * 返回成功插入行数
+   * @param {{[P in keyof T]?: T[P]}} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertBatchIfNotExists(datas: {
+    [P in keyof T]?: T[P];
+  }[], columns: (keyof T)[], transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 批量插入或修改所有列
+   * 返回成功插入行数
+   * @param {Array<{[P in keyof T]?: T[P]}>} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  replaceBatch(datas: {
+    [P in keyof T]?: T[P];
+  }[], transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   *
+   * 批量插入非空字段(undefined、null、空字符串)
+   * 返回成功插入行数
+   * @param {Array<{[P in keyof T]?: T[P]}>} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertBatchTemplate(datas: {
+    [P in keyof T]?: T[P];
+  }[], transaction?: any, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  /**
+   *
+   * 批量插入非空字段(undefined、null、空字符串)
+   * 返回成功插入行数
+   * @param {Array<{[P in keyof T]?: T[P]}>} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertBatchTemplateLoose(datas: {
+    [P in keyof T]?: T[P];
+  }[], transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 如果指定列名不存在数据库中，则批量插入所有非空列
+   * 返回成功插入行数
+   * @param {{[P in keyof T]?: T[P]}} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertBatchTemplateIfNotExists(datas: {
+    [P in keyof T]?: T[P];
+  }[], columns: (keyof T)[], transaction?: any, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  /**
+    * 如果指定列名不存在数据库中，则批量插入所有非空列
+    * 返回成功插入行数
+    * @param {{[P in keyof T]?: T[P]}} data
+    * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+    * @param {(serviceTableName: string) => string} [tableName=(
+    *       serviceTableName: string
+    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+    * @returns
+    */
+  insertBatchTemplateLooseIfNotExists(datas: {
+    [P in keyof T]?: T[P];
+  }[], columns: (keyof T)[], transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 快速批量插入或修改非空字段(undefined、null、空字符串)
+   * 返回成功插入行数
+   * @param {Array<{[P in keyof T]?: T[P]}>} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  replaceBatchTemplate(datas: {
+    [P in keyof T]?: T[P];
+  }[], transaction?: any, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  /**
+   * 快速批量插入或修改非空字段(undefined、null、空字符串)
+   * 返回成功插入行数
+   * @param {Array<{[P in keyof T]?: T[P]}>} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  replaceBatchTemplateLoose(datas: {
+    [P in keyof T]?: T[P];
+  }[], transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 根据主键修改全部字段
+   * @param {{[P in keyof T]?: T[P]}} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  updateById(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 根据主键修改非空字段(undefined、null、空字符串)
+   *
+   * @param {{[P in keyof T]?: T[P]}} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  updateTemplateById(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: any, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  /**
+   * 根据主键修改非空字段(undefined、null、空字符串)
+   *
+   * @param {{[P in keyof T]?: T[P]}} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  updateTemplateLooseById(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   *
+   * 根据主键批量修改全部字段
+   * @param {Array<{[P in keyof T]?: T[P]}>} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  updateBatchById(datas: {
+    [P in keyof T]?: T[P];
+  }[], transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 根据主键修改所有非空字段(null、undefined、空字符串)
+   * 注意：此方法操作的列是所有记录的串集，若某条记录中不存在字段，则会重置为null
+   * 若想安全的修改，请使用updateBatchTemplateByIdSafe(较慢，但每条都会完整保存)
+   * @param {Array<{[P in keyof T]?: T[P]}>} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  updateBatchTemplateById(datas: {
+    [P in keyof T]?: T[P];
+  }[], transaction?: any, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  /**
+   * 根据主键修改所有非空字段(null、undefined、空字符串)
+   * 注意：此方法操作的列是所有记录的串集，若某条记录中不存在字段，则会重置为null
+   * 若想安全的修改，请使用updateBatchTemplateByIdSafe(较慢，但每条都会完整保存)
+   * @param {Array<{[P in keyof T]?: T[P]}>} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  updateBatchTemplateLooseById(datas: {
+    [P in keyof T]?: T[P];
+  }[], transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   *
+   * 根据自定义条件修改
+   * @param {{[P in keyof T]?: T[P]}} data
+   * @param {{[P in keyof T]?: T[P]}} where
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  updateBatch(data: {
+    [P in keyof T]?: T[P];
+  }, where: {
+    [P in keyof T]?: T[P];
+  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   *
+   * 自定义条件删除,如果service开启注解：logicDelete,那么将逻辑删除
+   * @param {{[P in keyof T]?: T[P]}} where
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {boolean} [fixTransient=true] 是否过滤一遍transient标记的字段?
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  deleteBatch(where: {
+    [P in keyof T]?: T[P];
+  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   *
+   * 根据主键删除
+   * @param {*} id
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  deleteById(id: any, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 根据主键查询，若查询不到结果，抛出异常
+   * @param {*} id
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  unique<L>(id: any, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<L>;
+  /**
+   * 根据主键查询，若查询不到结果，抛出异常
+   * @param {*} id
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  uniqueMe(id: any, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<T>;
+  /**
+   *
+   * 根据主键查询，若查询不到结果，不抛出异常
+   * @param {*} id
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  single<L>(id: any, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<L | null>;
+  /**
+   *
+   * 根据主键查询，若查询不到结果，不抛出异常
+   * @param {*} id
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  singleMe(id: any, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<T | null>;
+  /**
+   * 返回全部数据
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  all<L>(transaction?: any, tableName?: (serviceTableName: string) => string): Promise<L[]>;
+  /**
+   * 返回全部数据
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  allMe(transaction?: any, tableName?: (serviceTableName: string) => string): Promise<T[]>;
+  /**
+   *
+   * 分页方式返回全部数据
+   * @param {number} start 起始记录
+   * @param {number} size 返回条数
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  allPage<L>(start: number, size: number, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<L[]>;
+  /**
+   *
+   * 分页方式返回全部数据
+   * @param {number} start 起始记录
+   * @param {number} size 返回条数
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  allPageMe(start: number, size: number, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<T[]>;
+  /**
+   * 返回总条数
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  allCount(transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 根据模版查询所有数据
+   *
+   * @param {{[P in keyof T]?: T[P]}} data 模版，仅支持 = 操作符
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  template<L>(where: {
+    [P in keyof L]?: L[P];
+  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<L[]>;
+  /**
+   * 根据模版查询所有数据
+   *
+   * @param {{[P in keyof T]?: T[P]}} data 模版，仅支持 = 操作符
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  templateMe(where: {
+    [P in keyof T]?: T[P];
+  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<T[]>;
+  /**
+   * 根据模版查询所有一条数据
+   * @param {{[P in keyof T]?: T[P]}} data ，仅支持 = 操作符
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  templateOne<L>(data: {
+    [P in keyof L]?: L[P];
+  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<L>;
+  /**
+   * 根据模版查询所有一条数据
+   * @param {{[P in keyof T]?: T[P]}} data ，仅支持 = 操作符
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  templateOneMe(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<T>;
+  /**
+   *
+   * 根据模版分页查询数据
+   * @param {{[P in keyof T]?: T[P]}} data ，仅支持 = 操作符
+   * @param {number} start
+   * @param {number} size
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  templatePage<L>(data: {
+    [P in keyof L]?: L[P];
+  }, start: number, size: number, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<L[]>;
+  /**
+   *
+   * 根据模版分页查询数据
+   * @param {{[P in keyof T]?: T[P]}} data ，仅支持 = 操作符
+   * @param {number} start
+   * @param {number} size
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  templatePageMe(data: {
+    [P in keyof T]?: T[P];
+  }, start: number, size: number, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<T[]>;
+  /**
+   *
+   * 根据模版查询条数
+   * @param {{[P in keyof T]?: T[P]}} data，仅支持 = 操作符
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  templateCount(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 创建复杂查询对象
+   * 例如: lambdaQueryMe()
+   *       .andEq(CpResource.resourcecode, 'xxx')
+   *       .select(CpResource.resourcename)
+   *
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns {LambdaQueryMongo<L>}
+   */
+  lambdaQuery<L>(transaction?: any, tableName?: (serviceTableName: string) => string): LambdaQueryMongo<L>;
+  /**
+   * 创建复杂查询对象
+   * 例如: lambdaQueryMe()
+   *       .andEq(CpResource.resourcecode, 'xxx')
+   *       .select(CpResource.resourcename)
+   *
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns {LambdaQueryMongo<L>}
+   */
+  lambdaQueryMe(transaction?: any, tableName?: (serviceTableName: string) => string): LambdaQueryMongo<T>;
+  /**
+   * 简单自定义查询
+   * @param {{
+   *       where?: {
+   *         [key: string]: any
+   *       }
+   *     columns?: string[]
+   *     startRow?: number
+   *     pageSize?: number
+   *     orders?: string[]
+   *   }} x
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns {Promise<L[]>}
+   */
+  customQuery<L>(x: {
+    where?: {
+      [P in keyof L]?: L[P];
+    };
+    columns?: (keyof L)[];
+    startRow?: number;
+    pageSize?: number;
+    orders?: {
+      [P in keyof L]: 1 | -1;
+    };
+  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<L[]>;
+  customQueryCount<L>(x: {
+    where?: {
+      [P in keyof L]?: L[P];
+    };
+  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<L[]>;
+  /**
+   * 简单自定义查询
+   * @param {{
+   *       where?: {
+   *         [key: string]: any
+   *       }
+   *     columns?: string[]
+   *     startRow?: number
+   *     pageSize?: number
+   *     orders?: {[key: string]: number}
+   *   }} x
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns {Promise<T[]>}
+   */
+  customQueryMe(x: {
+    where?: {
+      [P in keyof T]?: T[P];
+    };
+    columns?: (keyof T)[];
+    startRow?: number;
+    pageSize?: number;
+    orders?: {
+      [P in keyof T]: 1 | -1;
+    };
+  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<T[]>;
+  /**
+   *
+   * 执行数据库查询 多列多行
+   * @param {string} sqlid sql语句编码,sql语句实际是一个json对象
+   * {
+        query: https://docs.mongodb.com/manual/reference/operator/query/,
+        options:{
+          limit?: number;
+          skip?: number;
+          sort?: {[P in keyof T]: 1 | -1};
+          projection?: {[P in keyof T]: 1}
+        },
+        tableName?: string
+   * }
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 指定类型数组
+   */
+  queryBySqlId<L>(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transaction?: any): Promise<L[]>;
+  /**
+   *
+   * 执行数据库查询 多列多行
+   * @param {string} sqlid sql语句编码,sql语句实际是一个json对象
+   * {
+        query: https://docs.mongodb.com/manual/reference/operator/query/,
+        options:{
+          limit?: number;
+          skip?: number;
+          sort?: {[P in keyof T]: 1 | -1};
+          projection?: {[P in keyof T]: 1}
+        },
+        tableName?: string
+   * }
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 本service对象数组
+   */
+  queryMeBySqlId(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transaction?: any): Promise<T[]>;
+  /**
+   *
+   * 执行数据库查询 条数
+   * @param {string} sqlid sql语句编码,sql语句实际是一个json对象
+   * {
+        query: https://docs.mongodb.com/manual/reference/operator/query/,
+        options:{
+          limit?: number;
+          skip?: number;
+          sort?: {[P in keyof T]: 1 | -1};
+          projection?: {[P in keyof T]: 1}
+        },
+        tableName?: string
+   * }
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 列名 =key的json数组
+   */
+  countBySqlId(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transaction?: any): Promise<number>;
+  /**
+   *
+   * 执行数据库查询 多列多行
+   * @param {string} sqlid sql语句编码,sql语句实际是一个json对象
+   * {
+        query: https://docs.mongodb.com/manual/reference/operator/query/,
+        options:{
+          limit?: number;
+          skip?: number;
+          sort?: {[P in keyof T]: 1 | -1};
+          projection?: {[P in keyof T]: 1}
+        },
+        tableName?: string
+   * }
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 列名 =key的json数组
+   */
+  queryMutiRowMutiColumnBySqlId<L>(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transaction?: any): Promise<L[]>;
+  /**
+   *
+   * 根据条件返回条数
+   * @param {{[propName: string]: any}} item 查询对象,格式：https://docs.mongodb.com/manual/reference/operator/query/
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 列名 =key的json数组
+   */
+  countBySql<L>(item: {
+    query: {
+      [P in keyof L]?: L[P] | FilterQuery<L>;
+    };
+    tableName?: string;
+  }, transaction?: any): Promise<number>;
+  /**
+   *
+   * 执行数据库查询 多列多行
+   * @param {{[propName: string]: any}} item 查询对象,格式：https://docs.mongodb.com/manual/reference/operator/query/
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 列名 =key的json数组
+   */
+  queryMutiRowMutiColumnBySql<L>(item: {
+    query: {
+      [P in keyof L]?: L[P] | FilterQuery<L>;
+    };
+    options: {
+      limit?: number;
+      skip?: number;
+      sort?: {
+        [P in keyof L]: 1 | -1;
+      };
+      projection?: {
+        [P in keyof L]: 1;
+      };
+    };
+    tableName?: string;
+  }, transaction?: any): Promise<L[]>;
+  /**
+   *
+   * 执行数据库查询 多列单行
+   * @param {string} sqlid sql语句编码,sql语句实际是一个json对象
+   * {
+        query: https://docs.mongodb.com/manual/reference/operator/query/,
+        options:{
+          limit?: number;
+          skip?: number;
+          sort?: {[P in keyof T]: 1 | -1};
+          projection?: {[P in keyof T]: 1}
+        },
+        tableName?: string
+   * }
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns
+   */
+  querySingelRowMutiColumnBySqlId<L>(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transaction?: any): Promise<L | null>;
+  /**
+   *
+   * 执行数据库查询 多列单行
+   * @param {{[propName: string]: any}} item 查询对象,格式：https://docs.mongodb.com/manual/reference/operator/query/
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns
+   */
+  querySingelRowMutiColumnBySql<L>(item: {
+    query: {
+      [P in keyof L]?: L[P] | FilterQuery<L>;
+    };
+    options: {
+      limit?: number;
+      skip?: number;
+      sort?: {
+        [P in keyof L]: 1 | -1;
+      };
+      projection?: {
+        [P in keyof L]: 1;
+      };
+    };
+    tableName?: string;
+  }, transaction?: any): Promise<L | null>;
+  /**
+   *
+   * 执行数据库查询 单列多行
+   * @param {{[propName: string]: any}} item 查询对象,格式：https://docs.mongodb.com/manual/reference/operator/query/
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns
+   */
+  queryMutiRowSingelColumnBySql<M>(item: {
+    query: {
+      [P in keyof T]?: T[P] | FilterQuery<T>;
+    };
+    options: {
+      limit?: number;
+      skip?: number;
+      sort?: {
+        [P in keyof T]: 1 | -1;
+      };
+      projection?: {
+        [P in keyof T]: 1;
+      };
+    };
+    tableName?: string;
+  }, transaction?: any): Promise<M[]>;
+  /**
+   *
+   * 执行数据库查询 单列多行
+   * @param {string} sqlid sql语句编码,sql语句实际是一个json对象
+   * {
+        query: https://docs.mongodb.com/manual/reference/operator/query/,
+        options:{
+          limit?: number;
+          skip?: number;
+          sort?: {[P in keyof T]: 1 | -1};
+          projection?: {[P in keyof T]: 1}
+        },
+        tableName?: string
+   * }
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns
+   */
+  queryMutiRowSingelColumnBySqlId<M>(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transaction?: any): Promise<M[]>;
+  /**
+   *
+   * 执行数据库查询 单列单行
+   * @param {{[propName: string]: any}} item 查询对象,格式：https://docs.mongodb.com/manual/reference/operator/query/
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns
+   */
+  querySingelRowSingelColumnBySql<M>(item: {
+    query: {
+      [P in keyof T]?: T[P] | FilterQuery<T>;
+    };
+    options: {
+      limit?: number;
+      skip?: number;
+      sort?: {
+        [P in keyof T]: 1 | -1;
+      };
+      projection?: {
+        [P in keyof T]: 1;
+      };
+    };
+    tableName?: string;
+  }, transaction?: any): Promise<M | null>;
+  /**
+   *
+   * 执行数据库查询 单列单行
+   * @param {string} sqlid sql语句编码,sql语句实际是一个json对象
+   * {
+        query: https://docs.mongodb.com/manual/reference/operator/query/,
+        options:{
+          limit?: number;
+          skip?: number;
+          sort?: {[P in keyof T]: 1 | -1};
+          projection?: {[P in keyof T]: 1}
+        },
+        tableName?: string
+   * }
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns
+   */
+  querySingelRowSingelColumnBySqlId<M>(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transaction?: any): Promise<M | null>;
+  /**
+   *
+   * 创建分页查询语句
+   * @param {string} sqlid sql语句编码,sql语句实际是一个json对象
+   * {
+        query: https://docs.mongodb.com/manual/reference/operator/query/,
+        options:{
+          limit?: number;
+          skip?: number;
+          sort?: {[P in keyof T]: 1 | -1};
+          projection?: {[P in keyof T]: 1}
+        },
+        tableName?: string
+   * }
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns {PageQuery}
+   */
+  pageQuery<L>(sqlid: string, transaction?: any): PageQuery<L>;
+  /**
+   *
+   * 创建分页查询语句
+   * @param {string} sqlid sql语句编码,sql语句实际是一个json对象
+   * {
+        query: https://docs.mongodb.com/manual/reference/operator/query/,
+        options:{
+          limit?: number;
+          skip?: number;
+          sort?: {[P in keyof T]: 1 | -1};
+          projection?: {[P in keyof T]: 1}
+        },
+        tableName?: string
+   * }
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns {PageQuery}
+   */
+  pageQueryMe(sqlid: string, transaction?: any): PageQuery<T>;
+  /**
+    *
+    * 事务执行方法
+    * @param {() => Promise<any>} fn 方法主体
+    * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+    * @returns
+    */
+  protected transction(fn: (transaction: any) => Promise<any>, transaction?: any): Promise<any>;
 }
 export abstract class BaseService<T> extends Service {
-  insert(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  insertIfNotExists(data: {[P in keyof T]?: T[P]}, columns: Array<keyof T>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  replace(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  insertTemplate(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  insertTemplateLoose(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  insertTemplateIfNotExists(data: {[P in keyof T]?: T[P]}, columns: Array<keyof T>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  insertTemplateLooseIfNotExists(data: {[P in keyof T]?: T[P]}, columns: Array<keyof T>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  replaceTemplate(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  replaceTemplateLoose(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  insertBatch(datas: Array<{[P in keyof T]?: T[P]}>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  insertBatchIfNotExists(datas: Array<{[P in keyof T]?: T[P]}>, columns: Array<keyof T>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  replaceBatch(datas: Array<{[P in keyof T]?: T[P]}>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
-  insertBatchTemplate(datas: Array<{[P in keyof T]?: T[P]}>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
-  insertBatchTemplateLoose(datas: Array<{[P in keyof T]?: T[P]}>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
-  insertBatchTemplateIfNotExists(datas: Array<{[P in keyof T]?: T[P]}>, columns: Array<keyof T>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
-  insertBatchTemplateLooseIfNotExists(datas: Array<{[P in keyof T]?: T[P]}>, columns: Array<keyof T>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
-  replaceBatchTemplate(datas: Array<{[P in keyof T]?: T[P]}>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
-  replaceBatchTemplateLoose(datas: Array<{[P in keyof T]?: T[P]}>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
-  replaceBatchTemplateSafe(datas: Array<{[P in keyof T]?: T[P]}>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
-  replaceBatchTemplateLooseSafe(datas: Array<{[P in keyof T]?: T[P]}>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
-  updateById(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  updateTemplateById(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  updateTemplateLooseById(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  updateBatchById(datas: Array<{[P in keyof T]?: T[P]}>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  updateBatchTemplateById(datas: Array<{[P in keyof T]?: T[P]}>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  updateBatchTemplateLooseById(datas: Array<{[P in keyof T]?: T[P]}>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  updateBatchTemplateByIdSafe(datas: Array<{[P in keyof T]?: T[P]}>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  updateBatchTemplateLooseByIdSafe(datas: Array<{[P in keyof T]?: T[P]}>, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  updateBatch(data: {[P in keyof T]?: T[P]}, where: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  deleteBatch(where: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  deleteByIdMuti(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  deleteById(id: any, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  deleteByIds(ids: any[], transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
-  unique<L>(id: any, error?: string, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<L>;
-  uniqueMe(id: any, error?: string, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<T>;
-  uniqueMuti<L>(data: {[P in keyof T]?: T[P]}, error?: string, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<L>;
-  uniqueMutiMe(data: {[P in keyof T]?: T[P]}, error?: string, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<T>;
-  single<L>(id: any, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<L | null>;
-  singleMe(id: any, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<T | null>;
-  singleMuti<L>(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<L | null>;
-  singleMutiMe(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<T | null>;
-  all<L>(transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<L[]>;
-  allMe(transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<T[]>;
-  allPage<L>(start: number, size: number, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<L[]>;
-  allPageMe(start: number, size: number, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<T[]>;
-  allCount(transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  template<L>(where: {[P in keyof L]?: L[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<L[]>;
-  templateMe(where: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<T[]>;
-  templateOne<L>(data: {[P in keyof L]?: L[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<L>;
-  templateOneMe(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<T>;
-  templatePage<L>(data: {[P in keyof L]?: L[P]}, start: number, size: number, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<L[]>;
-  templatePageMe(data: {[P in keyof T]?: T[P]}, start: number, size: number, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<T[]>;
-  templateCount(data: {[P in keyof T]?: T[P]}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<number>;
-  executeBySqlId(sqlid: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<number>;
-  executeBySql(sql: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<number>;
-  queryMeBySqlId(sqlid: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<T[]>;
-  queryBySql<L>(sql: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<L[]>;
-  queryBySqlId<L>(sqlid: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<L[]>;
-  queryMulitBySql<L>(sql: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<L[][]>;
-  queryMulitBySqlId<L>(sqlid: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<L[][]>;
-  queryMeBySql(sql: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<T[]>;
-  queryMutiRowMutiColumnBySqlId<L>(sqlid: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<L[]>;
-  queryMutiRowMutiColumnBySql<L>(sql: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<L[]>;
-  querySingelRowMutiColumnBySqlId<L>(sqlid: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<L | null>;
-  querySingelRowMutiColumnBySql<L>(sql: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<L | null>;
-  queryMutiRowSingelColumnBySqlId<M>(sqlid: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<M[]>;
-  queryMutiRowSingelColumnBySql<L>(sql: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<L[]>;
-  querySingelRowSingelColumnBySqlId<M>(sqlid: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<M | null>;
-  querySingelRowSingelColumnBySql<M>(sql: string, param?: {[propName: string]: any}, transaction?: any | true): Promise<M | null>;
-  pageQuery<L>(sqlid: string, transaction?: any | true): PageQuery<L>;
-  pageQueryMe(sqlid: string, transaction?: any | true): PageQuery<T>;
-  lambdaQuery<L>(transaction?: any | true, tableName?: (serviceTableName: string) => string): LambdaQuery<L>;
-  lambdaQueryMe(transaction?: any | true, tableName?: (serviceTableName: string) => string): LambdaQuery<T>;
-  customQuery<L>(x: {where?: {[P in keyof L]?: L[P]}; columns?: Array<keyof L>; startRow?: number; pageSize?: number; orders?: Array<[keyof L, 'asc' | 'desc']>}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<L[]>;
-  customQueryMe(x: {where?: {[P in keyof T]?: T[P]}; columns?: Array<keyof T>; startRow?: number; pageSize?: number; orders?: Array<[keyof T, 'asc' | 'desc']>}, transaction?: any | true, tableName?: (serviceTableName: string) => string): Promise<T[]>;
-  protected transction(fn: (conn: any) => Promise<any>, transaction?: any | true): Promise<any>;
+  /**
+   * 插入所有列
+   * 返回自增主键或者0
+   * @param {T} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insert(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 如果指定列名不存在数据库中，则插入所有列
+   * 返回自增主键或者0
+   * @param {T} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertIfNotExists(data: {
+    [P in keyof T]?: T[P];
+  }, columns: (keyof T)[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 插入或修改所有列
+   * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
+   * 此方法是数据库级别的函数，先删除再插入
+   * @param {T} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  replace(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   *
+   * 只插入非空字段(排除undefined、null、空字符串)
+   * 返回自增主键或者0
+   * @param {T} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertTemplate(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  /**
+   *
+   * 只插入非空字段(排除undefined、null)
+   * 返回自增主键或者0
+   * @param {T} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertTemplateLoose(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 如果指定列名不存在数据库中，则插入非空列(排除undefined、null、空字符串)
+   * 返回自增主键或者0
+   * @param {T} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertTemplateIfNotExists(data: {
+    [P in keyof T]?: T[P];
+  }, columns: (keyof T)[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  /**
+ * 如果指定列名不存在数据库中，则插入非空列(排除undefined、null)
+ * 返回自增主键或者0
+ * @param {T} data
+ * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+ * @param {(serviceTableName: string) => string} [tableName=(
+ *       serviceTableName: string
+ *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+ * @returns
+ */
+  insertTemplateLooseIfNotExists(data: {
+    [P in keyof T]?: T[P];
+  }, columns: (keyof T)[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 只插入或修改非空字段(排除undefined、null、空字符串)
+   * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
+   * 此方法是数据库级别的函数，先删除再插入
+   * @param {T} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  replaceTemplate(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  /**
+   * 只插入或修改非空字段(排除undefined、null)
+   * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
+   * 此方法是数据库级别的函数，先删除再插入
+   * @param {T} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  replaceTemplateLoose(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 批量插入所有列,返回自增主键或者0
+   * @param {T[]} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertBatch(datas: {
+    [P in keyof T]?: T[P];
+  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
+  /**
+   * 如果指定列名不存在数据库中，则批量插入所有列
+   * 返回自增主键或者0
+   * @param {T} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertBatchIfNotExists(datas: {
+    [P in keyof T]?: T[P];
+  }[], columns: (keyof T)[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
+  /**
+   * 批量插入或修改所有列
+   * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
+   * 此方法是数据库级别的函数，先删除再插入
+   * @param {T[]} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  replaceBatch(datas: {
+    [P in keyof T]?: T[P];
+  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
+  /**
+   *
+   * 批量插入非空字段(排除undefined、null、空字符串)
+   * 返回自增主键或者0
+   * @param {T[]} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertBatchTemplate(datas: {
+    [P in keyof T]?: T[P];
+  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number[]>;
+  /**
+   *
+   * 批量插入非空字段(排除undefined、null)
+   * 返回自增主键或者0
+   * @param {T[]} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertBatchTemplateLoose(datas: {
+    [P in keyof T]?: T[P];
+  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
+  /**
+   * 如果指定列名不存在数据库中，则批量插入所有非空列(排除undefined、null、空字符串)
+   * 返回自增主键或者0
+   * @param {T} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertBatchTemplateIfNotExists(datas: {
+    [P in keyof T]?: T[P];
+  }[], columns: (keyof T)[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number[]>;
+  /**
+    * 如果指定列名不存在数据库中，则批量插入所有非空列(排除undefined、null)
+    * 返回自增主键或者0
+    * @param {T} data
+    * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+    * @param {(serviceTableName: string) => string} [tableName=(
+    *       serviceTableName: string
+    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+    * @returns
+    */
+  insertBatchTemplateLooseIfNotExists(datas: {
+    [P in keyof T]?: T[P];
+  }[], columns: (keyof T)[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
+  /**
+   * 快速批量插入或修改非空字段(排除undefined、null、空字符串)
+   * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
+   * 注意：此方法认为所有记录的字段都和第一条一致,比第一条多的字段不会保存，比第一条少的字段将变为null
+   * 若想安全的修改，请使用replaceBatchTemplateSafe(较慢，但每条都会完整保存)
+   * 此方法是数据库级别的函数，先删除再插入
+   * @param {T[]} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  replaceBatchTemplate(datas: {
+    [P in keyof T]?: T[P];
+  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number[]>;
+  /**
+   * 快速批量插入或修改非空字段(排除undefined、null)
+   * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
+   * 注意：此方法认为所有记录的字段都和第一条一致,比第一条多的字段不会保存，比第一条少的字段将变为null
+   * 若想安全的修改，请使用replaceBatchTemplateSafe(较慢，但每条都会完整保存)
+   * 此方法是数据库级别的函数，先删除再插入
+   * @param {T[]} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  replaceBatchTemplateLoose(datas: {
+    [P in keyof T]?: T[P];
+  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
+  /**
+   * 安全的批量插入或修改非空字段(排除undefined、null、空字符串)
+   * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
+   * 此方法是数据库级别的函数，先删除再插入
+   * @param {T[]} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  replaceBatchTemplateSafe(datas: {
+    [P in keyof T]?: T[P];
+  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number[]>;
+  /**
+   * 安全的批量插入或修改非空字段(排除undefined、null)
+   * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
+   * 此方法是数据库级别的函数，先删除再插入
+   * @param {T[]} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  replaceBatchTemplateLooseSafe(datas: {
+    [P in keyof T]?: T[P];
+  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
+  /**
+   * 根据主键修改全部字段
+   * @param {T} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  updateById(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 根据主键修改非空字段(排除undefined、null、空字符串)
+   *
+   * @param {T} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  updateTemplateById(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  /**
+   * 根据主键修改非空字段(排除undefined、null)
+   *
+   * @param {T} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  updateTemplateLooseById(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   *
+   * 根据主键批量修改全部字段
+   * @param {T[]} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  updateBatchById(datas: {
+    [P in keyof T]?: T[P];
+  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 根据主键修改所有非空字段(null、undefined、空字符串)
+   * 注意：此方法操作的列是所有记录的串集，若某条记录中不存在字段，则会重置为null
+   * 若想安全的修改，请使用updateBatchTemplateByIdSafe(较慢，但每条都会完整保存)
+   * @param {T[]} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  updateBatchTemplateById(datas: {
+    [P in keyof T]?: T[P];
+  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  /**
+   * 根据主键修改所有非空字段(null、undefined、空字符串)
+   * 注意：此方法操作的列是所有记录的串集，若某条记录中不存在字段，则会重置为null
+   * 若想安全的修改，请使用updateBatchTemplateByIdSafe(较慢，但每条都会完整保存)
+   * @param {T[]} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  updateBatchTemplateLooseById(datas: {
+    [P in keyof T]?: T[P];
+  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 安全的根据主键修改所有非空字段(null、undefined、空字符串)
+   * @param {T[]} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  updateBatchTemplateByIdSafe(datas: {
+    [P in keyof T]?: T[P];
+  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  /**
+   * 安全的根据主键修改所有非空字段(null、undefined)
+   * @param {T[]} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  updateBatchTemplateLooseByIdSafe(datas: {
+    [P in keyof T]?: T[P];
+  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   *
+   * 根据自定义条件修改
+   * @param {T} data
+   * @param {T} where
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  updateBatch(data: {
+    [P in keyof T]?: T[P];
+  }, where: {
+    [P in keyof T]?: T[P];
+  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   *
+   * 自定义条件删除,如果service开启注解：logicDelete,那么将逻辑删除
+   * @param {T} where
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {boolean} [fixTransient=true] 是否过滤一遍transient标记的字段?
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  deleteBatch(where: {
+    [P in keyof T]?: T[P];
+  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   *
+   * 根据复合主键删除
+   * @param {T[]} datas
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  deleteByIdMuti(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   *
+   * 根据主键删除
+   * @param {*} id
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  deleteById(id: any, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   *
+   * 一次性删除多个主键
+   * @param {any[]} ids
+   * @param {*} [transaction=true]
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName]
+   * @returns {Promise<number[]>}
+   */
+  deleteByIds(ids: any[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
+  /**
+   * 根据主键查询，若查询不到结果，抛出异常
+   * @param {*} id
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  unique<L>(id: any, error?: string, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<L>;
+  /**
+   * 根据主键查询，若查询不到结果，抛出异常
+   * @param {*} id
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  uniqueMe(id: any, error?: string, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<T>;
+  /**
+   * 根据复合主键查询，若查询不到结果，抛出异常
+   * @param {T} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  uniqueMuti<L>(data: {
+    [P in keyof T]?: T[P];
+  }, error?: string, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<L>;
+  /**
+   * 根据复合主键查询，若查询不到结果，抛出异常
+   * @param {T} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  uniqueMutiMe(data: {
+    [P in keyof T]?: T[P];
+  }, error?: string, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<T>;
+  /**
+   *
+   * 根据主键查询，若查询不到结果，不抛出异常
+   * @param {*} id
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  single<L>(id: any, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<L | null>;
+  /**
+   *
+   * 根据主键查询，若查询不到结果，不抛出异常
+   * @param {*} id
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  singleMe(id: any, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<T | null>;
+  /**
+   * 根据复合主键查询，若查询不到结果，不抛出异常
+   * @param {T} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  singleMuti<L>(data: {
+    [P in keyof L]?: L[P];
+  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<L | null>;
+  /**
+   * 根据复合主键查询，若查询不到结果，不抛出异常
+   * @param {T} data
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  singleMutiMe(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<T | null>;
+  /**
+   * 返回全部数据
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  all<L>(transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<L[]>;
+  /**
+   * 返回全部数据
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  allMe(transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<T[]>;
+  /**
+   *
+   * 分页方式返回全部数据
+   * @param {number} start 起始记录
+   * @param {number} size 返回条数
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  allPage<L>(start: number, size: number, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<L[]>;
+  /**
+   *
+   * 分页方式返回全部数据
+   * @param {number} start 起始记录
+   * @param {number} size 返回条数
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  allPageMe(start: number, size: number, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<T[]>;
+  /**
+   * 返回总条数
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  allCount(transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 根据模版查询所有数据
+   *
+   * @param {T} data 模版，仅支持 = 操作符
+   * @param {boolean} [fixTransient=true] 是否过滤一遍transient标记的字段?
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  template<L>(where: {
+    [P in keyof L]?: L[P];
+  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<L[]>;
+  /**
+   * 根据模版查询所有数据
+   *
+   * @param {T} data 模版，仅支持 = 操作符
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  templateMe(where: {
+    [P in keyof T]?: T[P];
+  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<T[]>;
+  /**
+   * 根据模版查询所有一条数据
+   * @param {T} data ，仅支持 = 操作符
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  templateOne<L>(data: {
+    [P in keyof L]?: L[P];
+  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<L>;
+  /**
+   * 根据模版查询所有一条数据
+   * @param {T} data ，仅支持 = 操作符
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  templateOneMe(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<T>;
+  /**
+   *
+   * 根据模版分页查询数据
+   * @param {T} data ，仅支持 = 操作符
+   * @param {number} start
+   * @param {number} size
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  templatePage<L>(data: {
+    [P in keyof L]?: L[P];
+  }, start: number, size: number, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<L[]>;
+  /**
+   *
+   * 根据模版分页查询数据
+   * @param {T} data ，仅支持 = 操作符
+   * @param {number} start
+   * @param {number} size
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  templatePageMe(data: {
+    [P in keyof T]?: T[P];
+  }, start: number, size: number, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<T[]>;
+  /**
+   *
+   * 根据模版查询条数
+   * @param {T} data，仅支持 = 操作符
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  templateCount(data: {
+    [P in keyof T]?: T[P];
+  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 执行数据库操作
+   *
+   * @param {string} sqlid sql语句编码
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @returns
+   */
+  executeBySqlId(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transaction?: DbConnection | true): Promise<number>;
+  /**
+   *
+   * 执行数据库操作
+   * @param {string} sql sql语句
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @returns
+   */
+  executeBySql(sql: string, param?: {
+    [propName: string]: any;
+  }, transaction?: DbConnection | true): Promise<number>;
+  /**
+   *
+   * 执行数据库查询 多列多行
+   * @param {string} sqlid sql语句编码
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 本service对象数组
+   */
+  queryMeBySqlId(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transaction?: DbConnection | true): Promise<T[]>;
+  /**
+   *
+   * 执行数据库查询 多列多行
+   * @param {string} sql sql语句
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 指定类型数组
+   */
+  queryBySql<L>(sql: string, param?: {
+    [propName: string]: any;
+  }, transaction?: DbConnection | true): Promise<L[]>;
+  /**
+   *
+   * 执行数据库查询 多列多行
+   * @param {string} sqlid sql语句编码
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 指定类型数组
+   */
+  queryBySqlId<L>(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transaction?: DbConnection | true): Promise<L[]>;
+  /**
+   *
+   * 执行数据库查询 ,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组,与sql语句的顺序对应
+   * @param {string} sql sql语句
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 指定类型数组
+   */
+  queryMulitBySql<L>(sql: string, param?: {
+    [propName: string]: any;
+  }, transaction?: DbConnection | true): Promise<L[][]>;
+  /**
+   *
+   * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+   * @param {string} sqlid sql语句编码
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 指定类型数组
+   */
+  queryMulitBySqlId<L>(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transaction?: DbConnection | true): Promise<L[][]>;
+  /**
+   *
+   * 执行数据库查询 多列多行
+   * @param {string} sql sql语句
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 本service对象数组
+   */
+  queryMeBySql(sql: string, param?: {
+    [propName: string]: any;
+  }, transaction?: DbConnection | true): Promise<T[]>;
+  /**
+   *
+   * 执行数据库查询 多列多行
+   * @param {string} sqlid sql语句编码
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 列名 =key的json数组
+   */
+  queryMutiRowMutiColumnBySqlId<L>(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transaction?: DbConnection | true): Promise<L[]>;
+  /**
+   *
+   * 执行数据库查询 多列多行
+   * @param {string} sql sql语句
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 列名 =key的json数组
+   */
+  queryMutiRowMutiColumnBySql<L>(sql: string, param?: {
+    [propName: string]: any;
+  }, transaction?: DbConnection | true): Promise<L[]>;
+  /**
+   *
+   * 执行数据库查询 多列单行
+   * @param {string} sqlid sql语句编码
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns
+   */
+  querySingelRowMutiColumnBySqlId<L>(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transaction?: DbConnection | true): Promise<L | null>;
+  /**
+   *
+   * 执行数据库查询 多列单行
+   * @param {string} sql sql语句
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 列名 =key的json数组
+   */
+  querySingelRowMutiColumnBySql<L>(sql: string, param?: {
+    [propName: string]: any;
+  }, transaction?: DbConnection | true): Promise<L | null>;
+  /**
+   *
+   * 执行数据库查询 单列多行
+   * @param {string} sqlid sql语句编码
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns
+   */
+  queryMutiRowSingelColumnBySqlId<M>(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transaction?: DbConnection | true): Promise<M[]>;
+  /**
+   *
+   * 执行数据库查询 单列多行
+   * @param {string} sql sql语句
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 列名 =key的json数组
+   */
+  queryMutiRowSingelColumnBySql<L>(sql: string, param?: {
+    [propName: string]: any;
+  }, transaction?: DbConnection | true): Promise<L[]>;
+  /**
+   *
+   * 执行数据库查询 单列单行
+   * @param {string} sqlid sql语句编码
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns
+   */
+  querySingelRowSingelColumnBySqlId<M>(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transaction?: DbConnection | true): Promise<M | null>;
+  /**
+   *
+   * 执行数据库查询 单列单行
+   * @param {string} sql sql语句
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 列名 =key的json数组
+   */
+  querySingelRowSingelColumnBySql<M>(sql: string, param?: {
+    [propName: string]: any;
+  }, transaction?: DbConnection | true): Promise<M | null>;
+  /**
+   *
+   * 创建分页查询语句
+   * @param {string} sqlid sql语句编码
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns {PageQuery}
+   */
+  pageQuery<L>(sqlid: string, transaction?: DbConnection | true): PageQuery<L>;
+  /**
+   *
+   * 创建分页查询语句
+   * @param {string} sqlid sql语句编码
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns {PageQuery}
+   */
+  pageQueryMe(sqlid: string, transaction?: DbConnection | true): PageQuery<T>;
+  /**
+   * 创建复杂查询、修改、删除对象
+   * 例如: lambdaQuery()
+   *       .andEq(CpResource.resourcecode, 'xxx')
+   *       .select(CpResource.resourcename)
+   *
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns {LambdaQuery<L>}
+   */
+  lambdaQuery<L>(transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): LambdaQuery<L>;
+  /**
+   * 创建复杂查询对象
+   * 例如: lambdaQueryMe()
+   *       .andEq(CpResource.resourcecode, 'xxx')
+   *       .select(CpResource.resourcename)
+   *
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns {LambdaQuery<L>}
+   */
+  lambdaQueryMe(transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): LambdaQuery<T>;
+  /**
+   * 简单自定义查询
+   * @param {{
+   *       where?: {
+   *         [key: string]: any
+   *       }
+   *     columns?: string[]
+   *     startRow?: number
+   *     pageSize?: number
+   *     orders?: string[] 例如 orders: [['id', 'desc'], ['name', 'asc']]
+   *   }} x
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns {Promise<L[]>}
+   */
+  customQuery<L>(x: {
+    where?: {
+      [P in keyof L]?: L[P];
+    };
+    columns?: (keyof L)[];
+    startRow?: number;
+    pageSize?: number;
+    orders?: [keyof L, 'asc' | 'desc'][];
+  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<L[]>;
+  /**
+   * 简单自定义查询
+   * @param {{
+   *       where?: {
+   *         [key: string]: any
+   *       }
+   *     columns?: string[]
+   *     startRow?: number
+   *     pageSize?: number
+   *     orders?: string[] 例如 orders: [['id', 'desc'], ['name', 'asc']]
+   *   }} x
+   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns {Promise<T[]>}
+   */
+  customQueryMe(x: {
+    where?: {
+      [P in keyof T]?: T[P];
+    };
+    columns?: (keyof T)[];
+    startRow?: number;
+    pageSize?: number;
+    orders?: [keyof T, 'asc' | 'desc'][];
+  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<T[]>;
+  /**
+   *
+   * 事务执行方法
+   * @param {(conn: any) => void} fn 方法主体
+   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @returns
+   */
+  protected transction(fn: (conn: DbConnection) => Promise<any>, transaction?: DbConnection | true): Promise<any>;
 }
 export abstract class BaseSchedule extends Subscription {
   /** 此定时任务唯一标识 */
@@ -1123,6 +3014,150 @@ export abstract class BaseSchedule extends Subscription {
   singel = true;
   abstract excute(): Promise<string>;
 }
+
+/**
+ *
+ * 流程上下文
+ * @export
+ * @interface FlowContext
+ * @template P bizParam类型
+ * @template F 数据流类型
+ * @template R 流程返回值
+ */
+export interface FlowContext<P, F, R> {
+  readonly ctx: Context;
+  readonly service: IService;
+  readonly app: Application;
+
+  /** 提交流程时，流程相关参数 */
+  readonly flowParam: {remark: string};
+  /** 提交流程时，业务相关参数 */
+  readonly bizParam: P;
+
+  /** 流程编码 */
+  readonly flowCode: string;
+  /** 来自哪个节点，当前node编码，可以在action中进行判断 */
+  readonly fromNode?: string;
+  // /** 将要到哪个节点，取自action定义 */
+  // toNode?: string;
+
+  /** 数据流 */
+  dataFlow: F;
+  /** 返回值 */
+  returnValue?: R;
+
+  /** 可能存在的异常信息,每个节点处理完异常后，可以将异常对象从上下文移除，以通知其他节点异常已经解决 */
+  error?: Error;
+
+  /** 事务 */
+  readonly conn: any;
+}
+
+export type FlowMeta = (this: FlowContext<P, F, R>) => Promise<void>;
+
+// /**
+//  * 流程定义
+//  * 在action中，不需要保存业务的状态
+//  * 而是在流程定义中进行存储
+//  */
+// export interface Flow {
+//   /* 别名 */
+//   alias?: string[];
+//   /** 一批节点处理完毕触发,可以存储状态、todo（一批是指一个操作+N个自动操作） */
+//   doAfterAllAction?: FlowMeta;
+//   /** 一批处理之前调用（一批是指一个操作+N个自动操作） */
+//   doBeforeAllAction?: FlowMeta;
+//   /** 每个处理完毕触发 */
+//   doAfterEveryAction?: FlowMeta;
+//   /** 每个处理之前调用 */
+//   doBeforeEveryAction?: FlowMeta;
+//   /** 异常处理 */
+//   doException?: FlowMeta;
+// }
+
+// /**
+//  * 流程节点定义1
+//  */
+// export interface FlowNode {
+//   /* 别名 */
+//   alias?: string[];
+//   /** 节点自动操作，系统自动匹配，无需设置 */
+//   autoAction?: string;
+//   /** 每个节点内操作进行之前调用 */
+//   async doAfterEveryAction?: FlowMeta;
+//   /** 每个节点内操作进行之后调用 */
+//   async doBeforeEveryAction?: FlowMeta;
+//   /** 进入此节点时执行，可以匹配结点处理人员、发送消息等 */
+//   async onInto?: FlowMeta;
+//   /** 离开此节点时执行，可以找到所有的 todo userid,加以清除 */
+//   async onLeave?: FlowMeta;
+//   /** 异常处理 */
+//   doException?: FlowMeta;
+// }
+// /**
+//  * 流程节点定义1
+//  */
+// export interface FlowAction1 {
+//   /* 别名 */
+//   alias?: string[];
+//   /** 自动执行吗？每个节点只能由一个自动节点,沿用上一个ctx;要求必须存在node的index文件 */
+//   auto?: boolean;
+//   /** 到哪个节点，用于流程跳转 */
+//   toNode: string;
+//   /** 节点执行,不用保存 业务的状态、操作历史哦 */
+//   excute: FlowMeta;
+// }
+
+export type FlowCodeFilter = string | string[];
+
+/**
+ * 流程节点定义2
+ */
+export interface FlowAction {
+  /** 流程定义，一个流程对应一个节点 */
+  flowConfig: Array<{
+    flowCode: FlowCodeFilter;
+    nodeCode: FlowCodeFilter;
+  }>;
+  /** 流程别名 */
+  flowAlias?: {
+    [name: string]: {
+      flowCode?: FlowCodeFilter;
+      nodeCode?: FlowCodeFilter;
+    };
+  };
+  /** 节点执行,不用保存 业务的状态、操作历史哦 */
+  excute: FlowMeta;
+}
+export interface FlowActionConfigFilter {
+  flowCode?: FlowCodeFilter;
+  nodeCode?: FlowCodeFilter;
+  alias?: FlowCodeFilter;
+
+  /** 发生异常才进行调用? */
+  exception?: boolean;
+  /** 先扩展dataFlow，然后再调用handler */
+  dataFlow?: {[key: string]: any};
+  /** 先扩展dataFlow，然后再调用handler */
+  handler?: FlowMeta[] | FlowMeta;
+  // toNode?: string;
+}
+/**
+ * 顺序
+ * Specil或者All,
+ * 空>Reverse,
+ * Reverse 仅有一个生效！
+ * toNode、doException 都是 Specil>All>空>Reverse,一旦匹配成功就跳出
+ */
+export interface FlowActionConfigParam {
+  before?: FlowActionConfigFilter[];
+  after?: FlowActionConfigFilter[];
+}
+
+/**
+ * 流程操作过滤配置,进行操作时按照声明文件的顺序来执行
+ */
+export const FlowActionConfig: (config: FlowActionConfigParam) => Decorator;
 
 // tslint:disable-next-line:max-classes-per-file
 declare class PaasService extends BaseService<Empty> {
@@ -1140,11 +3175,61 @@ declare class PaasService extends BaseService<Empty> {
   validPicCode(key: string, code: string): Promise<boolean>;
   /** 删除图形验证码缓存 */
   removePicCode(key: string): Promise<number>;
+  /** 执行流程 */
+  doFlow(
+    param: {
+      flowPath: string;
+      flowParam: {
+        remark: string;
+      };
+      bizParam: any;
+      dataFlow?: any;
+      conn?: any;
+    }
+  ): Promise<any>;
 }
 
-
-// declare
-
+export interface DbConnection {
+  query: (sql: string, param?: {[key: string]: any}) => Promise<any>;
+  count: <T>(tableName: string, where?: {[P in keyof T]?: T[P]}) => Promise<number>;
+  select: <T>(tableName: string, options?: {
+    where?: {[P in keyof T]?: T[P]};
+    columns?: (keyof T)[];
+    offset?: number;
+    limit?: number;
+    orders?: [keyof T, 'asc' | 'desc'][];
+  }) => Promise<T[]>;
+  get: <T>(tableName: string, where?: {[P in keyof T]?: T[P]}, options?: {
+    columns?: (keyof T)[];
+    orders?: [keyof T, 'asc' | 'desc'][];
+  }) => Promise<T>;
+  insertIF: <T>(tableName: string, options: Array<{
+    row: {[P in keyof T]?: T[P]};
+    where: {[P in keyof T]?: T[P]};
+  }>, columns: (keyof T)[]) => Promise<{insertId: number; affectedRows: number}>;
+  insert: <T>(tableName: string, rows: Array<{[P in keyof T]?: T[P]}> | {[P in keyof T]?: T[P]}, options: {
+    columns: (keyof T)[];
+  }) => Promise<{insertId: number; affectedRows: number}>;
+  replace: <T>(tableName: string, rows: Array<{[P in keyof T]?: T[P]}> | {[P in keyof T]?: T[P]}, options: {
+    columns?: (keyof T)[];
+    ids: (keyof T)[];
+  }) => Promise<{insertId: number; affectedRows: number}>;
+  update: <T>(tableName: string, row: {[P in keyof T]?: T[P]}, options: {
+    where: {[P in keyof T]?: T[P]};
+    columns: (keyof T)[];
+  }) => Promise<{affectedRows: number}>;
+  updateUnSafe: <T>(tableName: string, row: {[P in keyof T]?: T[P]}, options: {
+    where: {[P in keyof T]?: T[P]};
+    columns: (keyof T)[];
+  }) => Promise<{affectedRows: number}>;
+  updateRows: <T>(tableName: string, options: {
+    rows: Array<{[P in keyof T]?: T[P]}>;
+    where: {[P in keyof T]?: T[P]};
+    columns: (keyof T)[];
+  }) => Promise<{affectedRows: number}>;
+  delete: (tableName: string, where?: {[P in keyof T]?: T[P]}) => Promise<{affectedRows: number}>;
+  beginTransactionScope: (fn: (conn: DbConnection) => Promise<any>, ctx: Context) => Promise<any>;
+}
 declare module 'egg' {
   interface Application {
     _wxMini: {[appCode: string]: WxMini};
@@ -1160,7 +3245,7 @@ declare module 'egg' {
      */
     _cache: {[key: string]: any};
     _globalValues: EnmuJson;
-    mysql: any;
+    mysql: DbConnection;
     redis: {get: (name: 'user' | 'other') => Redis};
     io: EggIOServer & EggSocketNameSpace & EggSocketIO;
     mongo: MongoClient;
@@ -1169,6 +3254,12 @@ declare module 'egg' {
      * nuxt 是否已经准备完毕
      */
     _nuxtReady: boolean;
+    // /** 流程 */
+    // _flowMap: {[name: string]: Flow};
+    // /** 流程节点 */
+    // _flowNodeMap: {[name: string]: FlowNode};
+    /** 流程操作 */
+    _flowActionMap: {[name: string]: FlowAction};
     /**
      * 手动调用nuxt渲染
      * 只有配置了nuxt选项后才能使用
@@ -1187,7 +3278,7 @@ declare module 'egg' {
      * 加载sql模板，位于 app/sql
      * @memberof Application
      */
-    getSql(id: string);
+    getSql(this: Context, id: string, ...args: any[]): string;
     /**
      *
      * 加载sql模板函数，位于 app/sql-fn
@@ -1275,8 +3366,8 @@ declare module 'egg' {
     /**
      *
      * 发出同步事件
-     * 与emitSync不同，emitSync是异步且无法获取到订阅者的返回值
-     * emitASync只能发送给自己
+     * 与emitSync不同，emitSync是异步且无法获取到订阅者的返回值,且可能发送给其他进程
+     * emitASync只能发送给同一个进程
      * 返回 事件方法的返回值
      *
      * @param {string} name
@@ -1285,6 +3376,25 @@ declare module 'egg' {
      * @memberof Application
      */
     emitASync(name: string, ...args: any[]): Promise<any>;
+    /**
+     *
+     * 处理流程
+     * @param {string} flow
+     * @param {*} data
+     * @returns {Promise<any>}
+     * @memberof Application
+     */
+    doFlow(
+      param: {
+        flowPath: string;
+        flowParam: {
+          remark: string;
+        };
+        bizParam: any;
+        dataFlow?: any;
+        conn?: any;
+      }
+    ): Promise<any>;
     /**
      *
      * 发出异步事件,随机找一个worker执行
@@ -1303,14 +3413,13 @@ declare module 'egg' {
      * @memberof Application
      */
     emitSyncAll(name: string, ...args: any[]): void;
-
     /**
      *
      * 清空指定的方法缓存
      * @returns {Promise<void>}
      * @memberof Application
      */
-    clearContextMethodCache(): Promise<void>;
+    clearContextMethodCache(clearKey: string): Promise<void>;
   }
   interface EggAppConfig {
     /**
@@ -1351,21 +3460,21 @@ declare module 'egg' {
      * @memberof EggAppConfig
      */
     scheduleLogService?: {
-      // 存储无报错的记录吗?
+      /** 存储无报错的记录吗? */
       saveNoError: boolean;
-      // service 的name
+      /**  service 的name */
       name: string;
-      // 字段映射
+      /** 字段映射 */
       fields: {
-        // 定时任务key字段
+        /** 定时任务key字段 */
         key: string;
-        // 开始时间
+        /** 开始时间 */
         startTime: string;
-        // 结束时间
+        /** 结束时间 */
         endTime: string;
-        // 日志内容
+        /** 日志内容 */
         log: string;
-        // 本次运行是否报错
+        /** 本次运行是否报错 */
         isError: string;
       };
     };
@@ -1396,6 +3505,7 @@ declare module 'egg' {
         host: string;
         port: string;
         localAddress?: string;
+        socketPath?: string;
         user: string;
         password: string;
         passwordSha1?: string;
@@ -1414,9 +3524,14 @@ declare module 'egg' {
         dateStrings?: boolean;
         debug?: boolean;
         trace?: boolean;
+        localInfile?: boolean;
         ssl?: boolean;
         multipleStatements?: boolean;
         useConnectionPooling?: boolean;
+        queueLimit?: number;
+        connectionLimit?: number;
+        acquireTimeout?: number;
+        waitForConnections?: boolean;
       };
       app: boolean;
       alinode: {
@@ -1687,8 +3802,8 @@ declare module 'egg' {
     /**
      *
      * 发出同步事件
-     * 与emitSync不同，emitSync是异步且无法获取到订阅者的返回值
-     * emitASync只能发送给自己
+     * 与emitSync不同，emitSync是异步且无法获取到订阅者的返回值,且可能发送给其他进程
+     * emitASync只能发送给同一个进程
      * this指向当前上下文
      * 返回 事件方法的返回值
      *
@@ -1698,6 +3813,18 @@ declare module 'egg' {
      * @memberof Application
      */
     emitASync(name: string, ...args: any[]): Promise<any>;
+    /** 执行流程,this指向当前上下文 */
+    doFlow(
+      param: {
+        flowPath: string;
+        flowParam: {
+          remark: string;
+        };
+        bizParam: any;
+        dataFlow?: any;
+        conn?: any;
+      }
+    ): Promise<any>;
   }
   // eslint-disable-next-line @typescript-eslint/interface-name-prefix
   interface IService {
@@ -1813,13 +3940,13 @@ export const AfterAll: (...fns: Array<() => (ctx: Context, next: () => Promise<a
 export const Prefix: (path: string) => any;
 /** service、controller的方法缓存设置 */
 export const ContextMethodCache: (config: {
-  /** 返回缓存key,参数同方法的参数 */
+  /** 返回缓存key,参数同方法的参数。可以用来清空缓存。 */
   key: (...args: any[]) => string;
-  /** 返回缓存清除key,参数同方法的参数,如果不设置，只能按key清空缓存 */
+  /** 返回缓存清除key,参数同方法的参数。可以用来批量清空缓存 */
   clearKey?: (...args: any[]) => string[];
-  /** 自动清空缓存的方法 */
+  /** 自动清空缓存的时间，单位分钟 */
   autoClearTime?: number;
-}) => any;
+}) => Decorator;
 /** 生成uuid */
 export function uuid(): string;
 /** 从http://127.0.0.1?key=3333得到key的值  */

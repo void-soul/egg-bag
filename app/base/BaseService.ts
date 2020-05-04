@@ -1,9 +1,10 @@
 import {Service} from 'egg';
 import * as Mustache from 'mustache';
 import {calc} from '../util/math';
-import {Build, LambdaQuery, PageQuery, SQLSource} from '../util/sql';
+import {Build, LambdaQuery, PageQuery} from '../loader/sql';
 import {Empty} from '../util/empty';
 import {notEmptyString} from '../util/string';
+import {DbConnection} from '../../typings';
 export default abstract class <T> extends Service {
   private max = 500;
   private tableName: string;
@@ -24,13 +25,13 @@ export default abstract class <T> extends Service {
    */
   async insert(
     data: {[P in keyof T]?: T[P]},
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<number> {
-    return await this.transction(async (conn: any) => {
-      const result = await conn.insert(tableName(this.tableName), data, {
+    return await this.transction(async (conn) => {
+      const result = await conn.insert<T>(tableName(this.tableName), data, {
         columns: this.keys
       });
 
@@ -50,19 +51,19 @@ export default abstract class <T> extends Service {
   async insertIfNotExists(
     data: {[P in keyof T]?: T[P]},
     columns: (keyof T)[],
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<number> {
-    return await this.transction(async (conn: any) => {
+    return await this.transction(async (conn) => {
       const where: {[P in keyof T]?: T[P]} = {};
       columns.forEach((column) => {
         if (notEmptyString(data[column])) {
           where[column] = data[column];
         }
       });
-      const result = await conn.insertIF(
+      const result = await conn.insertIF<T>(
         tableName(this.tableName),
         [{row: data, where}],
         this.keys
@@ -84,7 +85,7 @@ export default abstract class <T> extends Service {
    */
   async replace(
     data: {[P in keyof T]?: T[P]},
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -92,8 +93,8 @@ export default abstract class <T> extends Service {
     for (const idName of this.idNames) {
       this.app.throwIf(!data[idName], `id must be set!${ this.tableName }`);
     }
-    return await this.transction(async (conn: any) => {
-      const result = await conn.replace(tableName(this.tableName), data, {
+    return await this.transction(async (conn) => {
+      const result = await conn.replace<T>(tableName(this.tableName), data, {
         columns: this.keys,
         ids: this.idNames
       });
@@ -114,16 +115,16 @@ export default abstract class <T> extends Service {
    */
   async insertTemplate(
     data: {[P in keyof T]?: T[P]},
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName,
     dealEmptyString = true
   ): Promise<number> {
-    return await this.transction(async (conn: any) => {
-      const result = await conn.insert(
+    return await this.transction(async (conn) => {
+      const result = await conn.insert<T>(
         tableName(this.tableName),
-        this.filterEmptyAndTransient(data, true, dealEmptyString),
+        this.filterEmptyAndTransient<T>(data, true, dealEmptyString),
         {
           columns: this.keys
         }
@@ -144,7 +145,7 @@ export default abstract class <T> extends Service {
    */
   async insertTemplateLoose(
     data: {[P in keyof T]?: T[P]},
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -164,24 +165,24 @@ export default abstract class <T> extends Service {
   async insertTemplateIfNotExists(
     data: {[P in keyof T]?: T[P]},
     columns: (keyof T)[],
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName,
     dealEmptyString = true
   ): Promise<number> {
-    return await this.transction(async (conn: any) => {
+    return await this.transction(async (conn) => {
       const where: {[P in keyof T]?: T[P]} = {};
-      const row = this.filterEmptyAndTransient(data, true, dealEmptyString);
+      const row = this.filterEmptyAndTransient<T>(data, true, dealEmptyString);
       columns.forEach((column) => {
         if (notEmptyString(row[column])) {
           where[column] = row[column];
         }
       });
-      const result = await conn.insertIF(
+      const result = await conn.insertIF<T>(
         tableName(this.tableName),
         [{row, where}],
-        Object.keys(row)
+        Object.keys(row) as any
       );
 
       return result.insertId;
@@ -200,7 +201,7 @@ export default abstract class <T> extends Service {
   async insertTemplateLooseIfNotExists(
     data: {[P in keyof T]?: T[P]},
     columns: (keyof T)[],
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -220,7 +221,7 @@ export default abstract class <T> extends Service {
    */
   async replaceTemplate(
     data: {[P in keyof T]?: T[P]},
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName,
@@ -229,9 +230,9 @@ export default abstract class <T> extends Service {
     for (const idName of this.idNames) {
       this.app.throwIf(!data[idName], `id must be set!${ this.tableName }`);
     }
-    return await this.transction(async (conn: any) => {
-      const realData = this.filterEmptyAndTransient(data, true, dealEmptyString);
-      const result = await conn.replace(tableName(this.tableName), realData, {
+    return await this.transction(async (conn) => {
+      const realData = this.filterEmptyAndTransient<T>(data, true, dealEmptyString);
+      const result = await conn.replace<T>(tableName(this.tableName), realData, {
         ids: this.idNames
       });
       return result.insertId;
@@ -250,7 +251,7 @@ export default abstract class <T> extends Service {
    */
   async replaceTemplateLoose(
     data: {[P in keyof T]?: T[P]},
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -268,7 +269,7 @@ export default abstract class <T> extends Service {
    */
   async insertBatch(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -276,12 +277,12 @@ export default abstract class <T> extends Service {
     if (datas.length === 0) {
       return [];
     }
-    return await this.transction(async (conn: any) => {
+    return await this.transction(async (conn) => {
       const result = new Array<number>();
       const table = tableName(this.tableName);
       const length = Math.ceil(datas.length / this.max);
       for (let i = 0; i < length; i++) {
-        const ret = await conn.insert(table, datas.slice(i * this.max, (i + 1) * this.max), {
+        const ret = await conn.insert<T>(table, datas.slice(i * this.max, (i + 1) * this.max), {
           columns: this.keys
         });
         result.push(ret.insertId);
@@ -302,7 +303,7 @@ export default abstract class <T> extends Service {
   async insertBatchIfNotExists(
     datas: {[P in keyof T]?: T[P]}[],
     columns: (keyof T)[],
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -310,7 +311,7 @@ export default abstract class <T> extends Service {
     if (datas.length === 0) {
       return [];
     }
-    return await this.transction(async (conn: any) => {
+    return await this.transction(async (conn) => {
       const options = new Array<any>();
       datas.forEach((item) => {
         const where: {[P in keyof T]?: T[P]} = {};
@@ -328,7 +329,7 @@ export default abstract class <T> extends Service {
       const table = tableName(this.tableName);
       const length = Math.ceil(options.length / this.max);
       for (let i = 0; i < length; i++) {
-        const ret = await conn.insertIF(
+        const ret = await conn.insertIF<T>(
           table,
           options.slice(i * this.max, (i + 1) * this.max),
           this.keys
@@ -351,7 +352,7 @@ export default abstract class <T> extends Service {
    */
   async replaceBatch(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -359,12 +360,12 @@ export default abstract class <T> extends Service {
     if (datas.length === 0) {
       return [];
     }
-    return await this.transction(async (conn: any) => {
+    return await this.transction(async (conn) => {
       const result = new Array<number>();
       const table = tableName(this.tableName);
       const length = Math.ceil(datas.length / this.max);
       for (let i = 0; i < length; i++) {
-        const ret = await conn.replace(
+        const ret = await conn.replace<T>(
           table,
           datas.slice(i * this.max, (i + 1) * this.max),
           {
@@ -390,7 +391,7 @@ export default abstract class <T> extends Service {
    */
   async insertBatchTemplate(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName,
@@ -399,14 +400,14 @@ export default abstract class <T> extends Service {
     if (datas.length === 0) {
       return [];
     }
-    return await this.transction(async (conn: any) => {
+    return await this.transction(async (conn) => {
       const result = new Array<number>();
       const table = tableName(this.tableName);
       const length = Math.ceil(datas.length / this.max);
       for (let i = 0; i < length; i++) {
-        const ret = await conn.insert(
+        const ret = await conn.insert<T>(
           table,
-          this.filterEmptyAndTransients(datas.slice(i * this.max, (i + 1) * this.max), true, dealEmptyString),
+          this.filterEmptyAndTransients<T>(datas.slice(i * this.max, (i + 1) * this.max), true, dealEmptyString),
           {
             columns: this.keys
           }
@@ -429,7 +430,7 @@ export default abstract class <T> extends Service {
    */
   async insertBatchTemplateLoose(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -449,7 +450,7 @@ export default abstract class <T> extends Service {
   async insertBatchTemplateIfNotExists(
     datas: {[P in keyof T]?: T[P]}[],
     columns: (keyof T)[],
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName,
@@ -458,11 +459,11 @@ export default abstract class <T> extends Service {
     if (datas.length === 0) {
       return [];
     }
-    return await this.transction(async (conn: any) => {
+    return await this.transction(async (conn) => {
       const options = new Array<any>();
       datas.forEach((item) => {
         const where: {[P in keyof T]?: T[P]} = {};
-        const realData = this.filterEmptyAndTransient(item, true, dealEmptyString);
+        const realData = this.filterEmptyAndTransient<T>(item, true, dealEmptyString);
         columns.forEach((column) => {
           if (notEmptyString(realData[column])) {
             where[column] = realData[column];
@@ -477,7 +478,7 @@ export default abstract class <T> extends Service {
       const table = tableName(this.tableName);
       const length = Math.ceil(options.length / this.max);
       for (let i = 0; i < length; i++) {
-        const ret = await conn.insertIF(
+        const ret = await conn.insertIF<T>(
           table,
           options.slice(i * this.max, (i + 1) * this.max),
           this.keys
@@ -501,7 +502,7 @@ export default abstract class <T> extends Service {
   async insertBatchTemplateLooseIfNotExists(
     datas: {[P in keyof T]?: T[P]}[],
     columns: (keyof T)[],
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -523,7 +524,7 @@ export default abstract class <T> extends Service {
    */
   async replaceBatchTemplate(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName,
@@ -532,14 +533,14 @@ export default abstract class <T> extends Service {
     if (datas.length === 0) {
       return [];
     }
-    return await this.transction(async (conn: any) => {
+    return await this.transction(async (conn) => {
       const result = new Array<number>();
       const table = tableName(this.tableName);
       const length = Math.ceil(datas.length / this.max);
       for (let i = 0; i < length; i++) {
-        const ret = await conn.replace(
+        const ret = await conn.replace<T>(
           table,
-          this.filterEmptyAndTransients(datas.slice(i * this.max, (i + 1) * this.max), true, dealEmptyString),
+          this.filterEmptyAndTransients<T>(datas.slice(i * this.max, (i + 1) * this.max), true, dealEmptyString),
           {
             ids: this.idNames
           }
@@ -565,7 +566,7 @@ export default abstract class <T> extends Service {
    */
   async replaceBatchTemplateLoose(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -585,7 +586,7 @@ export default abstract class <T> extends Service {
    */
   async replaceBatchTemplateSafe(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName,
@@ -594,11 +595,11 @@ export default abstract class <T> extends Service {
     if (datas.length === 0) {
       return [];
     }
-    return await this.transction(async (conn: any) => {
+    return await this.transction(async (conn) => {
       const table = tableName(this.tableName);
       const result = new Array<number>();
       for (const data of datas) {
-        const ret = await conn.replace(table, [this.filterEmptyAndTransient(data, true, dealEmptyString)], {
+        const ret = await conn.replace<T>(table, [this.filterEmptyAndTransient<T>(data, true, dealEmptyString)], {
           ids: this.idNames
         });
 
@@ -620,7 +621,7 @@ export default abstract class <T> extends Service {
    */
   async replaceBatchTemplateLooseSafe(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -641,18 +642,18 @@ export default abstract class <T> extends Service {
    */
   async updateById(
     data: {[P in keyof T]?: T[P]},
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<number> {
-    return await this.transction(async (conn: any) => {
+    return await this.transction(async (conn) => {
       const where: {[P in keyof T]?: T[P]} = {};
       for (const idName of this.idNames) {
         this.app.throwIf(!data[idName], `id must be set!${ this.tableName }`);
         where[idName] = data[idName];
       }
-      const result = await conn.update(tableName(this.tableName), data, {
+      const result = await conn.update<T>(tableName(this.tableName), data, {
         where,
         columns: this.keys
       });
@@ -671,22 +672,22 @@ export default abstract class <T> extends Service {
    */
   async updateTemplateById(
     data: {[P in keyof T]?: T[P]},
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName,
     dealEmptyString = true
   ): Promise<number> {
-    return await this.transction(async (conn: any) => {
+    return await this.transction(async (conn) => {
       const where: {[P in keyof T]?: T[P]} = {};
       for (const idName of this.idNames) {
         this.app.throwIf(!data[idName], `id must be set!${ this.tableName }`);
         where[idName] = data[idName];
       }
-      const realdata = this.filterEmptyAndTransient(data, true, dealEmptyString);
-      const result = await conn.update(tableName(this.tableName), realdata, {
+      const realdata = this.filterEmptyAndTransient<T>(data, true, dealEmptyString);
+      const result = await conn.update<T>(tableName(this.tableName), realdata, {
         where,
-        columns: Object.keys(realdata)
+        columns: Object.keys(realdata) as any
       });
       return result.affectedRows;
     }, transaction);
@@ -703,7 +704,7 @@ export default abstract class <T> extends Service {
    */
   async updateTemplateLooseById(
     data: {[P in keyof T]?: T[P]},
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -722,7 +723,7 @@ export default abstract class <T> extends Service {
    */
   async updateBatchById(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -733,7 +734,7 @@ export default abstract class <T> extends Service {
     const options: {
       [name: string]: any;
     } = [];
-    return await this.transction(async (conn: any) => {
+    return await this.transction(async (conn) => {
       for (const data of datas) {
         const where: {[P in keyof T]?: T[P]} = {};
         for (const idName of this.idNames) {
@@ -750,7 +751,7 @@ export default abstract class <T> extends Service {
       const table = tableName(this.tableName);
       const length = Math.ceil(options.length / this.max);
       for (let i = 0; i < length; i++) {
-        result += (await conn.updateRows(
+        result += (await conn.updateRows<T>(
           table,
           options.slice(i * this.max, (i + 1) * this.max)
         )).affectedRows;
@@ -771,7 +772,7 @@ export default abstract class <T> extends Service {
    */
   async updateBatchTemplateById(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName,
@@ -783,7 +784,7 @@ export default abstract class <T> extends Service {
     const options: {
       [name: string]: any;
     } = [];
-    return await this.transction(async (conn: any) => {
+    return await this.transction(async (conn) => {
       for (const data of datas) {
         const where: {[P in keyof T]?: T[P]} = {};
         for (const idName of this.idNames) {
@@ -793,7 +794,7 @@ export default abstract class <T> extends Service {
           );
           where[idName] = data[idName];
         }
-        const realdata = this.filterEmptyAndTransient(data, true, dealEmptyString);
+        const realdata = this.filterEmptyAndTransient<T>(data, true, dealEmptyString);
         options.push({
           row: realdata,
           where,
@@ -804,7 +805,7 @@ export default abstract class <T> extends Service {
       const table = tableName(this.tableName);
       const length = Math.ceil(options.length / this.max);
       for (let i = 0; i < length; i++) {
-        result += (await conn.updateRows(
+        result += (await conn.updateRows<T>(
           table,
           options.slice(i * this.max, (i + 1) * this.max)
         )).affectedRows;
@@ -825,7 +826,7 @@ export default abstract class <T> extends Service {
    */
   async updateBatchTemplateLooseById(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -843,7 +844,7 @@ export default abstract class <T> extends Service {
    */
   async updateBatchTemplateByIdSafe(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName,
@@ -852,7 +853,7 @@ export default abstract class <T> extends Service {
     if (datas.length === 0) {
       return 0;
     }
-    return await this.transction(async (conn: any) => {
+    return await this.transction(async (conn) => {
       const table = tableName(this.tableName);
       let result = 0;
       for (const data of datas) {
@@ -861,10 +862,10 @@ export default abstract class <T> extends Service {
           this.app.throwIf(!data[idName], `id must be set!${ this.tableName }`);
           where[idName] = data[idName];
         }
-        const realdata = this.filterEmptyAndTransient(data, true, dealEmptyString);
-        result += (await conn.update(table, realdata, {
+        const realdata = this.filterEmptyAndTransient<T>(data, true, dealEmptyString);
+        result += (await conn.update<T>(table, realdata, {
           where,
-          columns: Object.keys(realdata)
+          columns: Object.keys(realdata) as any
         })).affectedRows;
       }
       return result;
@@ -881,7 +882,7 @@ export default abstract class <T> extends Service {
    */
   async updateBatchTemplateLooseByIdSafe(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -902,16 +903,16 @@ export default abstract class <T> extends Service {
   async updateBatch(
     data: {[P in keyof T]?: T[P]},
     where: {[P in keyof T]?: T[P]},
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<number> {
-    return await this.transction(async (conn: any) => {
-      const realData = this.filterEmptyAndTransient(data);
-      const result = await conn.updateUnSafe(tableName(this.tableName), realData, {
-        where: this.filterEmptyAndTransient(where),
-        columns: Object.keys(realData)
+    return await this.transction(async (conn) => {
+      const realData = this.filterEmptyAndTransient<T>(data);
+      const result = await conn.updateUnSafe<T>(tableName(this.tableName), realData, {
+        where: this.filterEmptyAndTransient<T>(where),
+        columns: Object.keys(realData) as any
       });
       return result.affectedRows;
     }, transaction);
@@ -930,25 +931,25 @@ export default abstract class <T> extends Service {
    */
   async deleteBatch(
     where: {[P in keyof T]?: T[P]},
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<number> {
-    return await this.transction(async (conn: any) => {
+    return await this.transction(async (conn) => {
       if (this.stateFileName) {
         const data = {
           [this.stateFileName]: this.deleteState
         };
-        const result = await conn.update(tableName(this.tableName), data, {
-          where: this.filterEmptyAndTransient(where),
-          columns: [this.stateFileName]
+        const result = await conn.update<T>(tableName(this.tableName), data as any, {
+          where: this.filterEmptyAndTransient<T>(where),
+          columns: [this.stateFileName as any]
         });
         return result.affectedRows;
       } else {
         const result = await conn.delete(
           tableName(this.tableName),
-          this.filterEmptyAndTransient(where)
+          this.filterEmptyAndTransient<T>(where)
         );
         return result.affectedRows;
       }
@@ -967,7 +968,7 @@ export default abstract class <T> extends Service {
    */
   async deleteByIdMuti(
     data: {[P in keyof T]?: T[P]},
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -999,7 +1000,7 @@ export default abstract class <T> extends Service {
    */
   async deleteById(
     id: any,
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -1009,7 +1010,7 @@ export default abstract class <T> extends Service {
       'this table is muti id(or not set id), please use deleteByIdMuti'
     );
     this.app.throwIf(!id, 'id must be set for deleteById');
-    return await this.transction(async (conn: any) => {
+    return await this.transction(async (conn) => {
       if (this.stateFileName) {
         const where: {[P in keyof T]?: T[P]} = {};
         for (const idName of this.idNames) {
@@ -1018,9 +1019,9 @@ export default abstract class <T> extends Service {
         const realdata = {
           [this.stateFileName]: this.deleteState
         };
-        const result = await conn.update(tableName(this.tableName), realdata, {
+        const result = await conn.update<T>(tableName(this.tableName), realdata as any, {
           where,
-          columns: [this.stateFileName]
+          columns: [this.stateFileName as any]
         });
         return result.affectedRows;
       } else {
@@ -1028,7 +1029,7 @@ export default abstract class <T> extends Service {
         for (const idName of this.idNames) {
           realdata[idName] = id;
         }
-        const result = conn.delete(tableName(this.tableName), realdata);
+        const result = await conn.delete(tableName(this.tableName), realdata);
         return result.affectedRows;
       }
     }, transaction);
@@ -1045,7 +1046,7 @@ export default abstract class <T> extends Service {
    */
   async deleteByIds(
     ids: any[],
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -1068,7 +1069,7 @@ export default abstract class <T> extends Service {
   async unique<L>(
     id: any,
     error?: string,
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -1077,14 +1078,14 @@ export default abstract class <T> extends Service {
       this.idNames.length === 1,
       'this table is muti id(or not set id), please use uniqueMuti'
     );
-    const realdata: {[P in keyof T]?: T[P]} = {};
-    realdata[this.idNames[0]] = id;
+    const realdata: {[P in keyof L]?: L[P]} = {};
+    realdata[this.idNames[0] as any] = id;
     let result;
     if (transaction === true) {
-      result = await this.app.mysql.get(tableName(this.tableName), realdata);
+      result = await this.app.mysql.get<L>(tableName(this.tableName), realdata);
     } else {
       await this.transction(async (conn) => {
-        result = await conn.get(tableName(this.tableName), realdata);
+        result = await conn.get<L>(tableName(this.tableName), realdata);
       });
     }
     this.app.throwIf(!result, error || `not found data! ${ this.tableName } > ${ id }`);
@@ -1102,7 +1103,7 @@ export default abstract class <T> extends Service {
   async uniqueMe(
     id: any,
     error?: string,
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -1122,7 +1123,7 @@ export default abstract class <T> extends Service {
   async uniqueMuti<L>(
     data: {[P in keyof T]?: T[P]},
     error?: string,
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -1130,15 +1131,15 @@ export default abstract class <T> extends Service {
     this.app.throwIf(this.idNames.length === 0, 'this table or not set id!');
     let result;
     if (transaction === true) {
-      result = await this.app.mysql.get(
+      result = await this.app.mysql.get<L>(
         tableName(this.tableName),
-        this.filterEmptyAndTransient(data)
+        this.filterEmptyAndTransient<L>(data)
       );
     } else {
       await this.transction(async (conn) => {
-        result = await conn.get(
+        result = await conn.get<L>(
           tableName(this.tableName),
-          this.filterEmptyAndTransient(data)
+          this.filterEmptyAndTransient<L>(data)
         );
       });
     }
@@ -1158,7 +1159,7 @@ export default abstract class <T> extends Service {
   async uniqueMutiMe(
     data: {[P in keyof T]?: T[P]},
     error?: string,
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -1177,7 +1178,7 @@ export default abstract class <T> extends Service {
    */
   async single<L>(
     id: any,
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -1186,13 +1187,13 @@ export default abstract class <T> extends Service {
       this.idNames.length === 1,
       'this table is muti id(or not set id), please use singleMuti'
     );
-    const realdata: {[P in keyof T]?: T[P]} = {};
-    realdata[this.idNames[0]] = id;
+    const realdata: {[P in keyof L]?: L[P]} = {};
+    realdata[this.idNames[0] as any] = id;
     if (transaction === true) {
-      return await this.app.mysql.get(tableName(this.tableName), realdata);
+      return await this.app.mysql.get<L>(tableName(this.tableName), realdata);
     } else {
       return await this.transction(
-        async (conn) => await conn.get(tableName(this.tableName), realdata)
+        async (conn) => await conn.get<L>(tableName(this.tableName), realdata)
       );
     }
   }
@@ -1209,7 +1210,7 @@ export default abstract class <T> extends Service {
    */
   async singleMe(
     id: any,
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -1226,24 +1227,24 @@ export default abstract class <T> extends Service {
    * @returns
    */
   async singleMuti<L>(
-    data: {[P in keyof T]?: T[P]},
-    transaction: any = true,
+    data: {[P in keyof L]?: L[P]},
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<L | null> {
     this.app.throwIf(this.idNames.length === 0, 'this table or not set id!');
     if (transaction === true) {
-      return await this.app.mysql.get(
+      return await this.app.mysql.get<L>(
         tableName(this.tableName),
-        this.filterEmptyAndTransient(data)
+        this.filterEmptyAndTransient<L>(data)
       );
     } else {
       return await this.transction(
         async (conn) =>
-          await conn.get(
+          await conn.get<L>(
             tableName(this.tableName),
-            this.filterEmptyAndTransient(data)
+            this.filterEmptyAndTransient<L>(data)
           )
       );
     }
@@ -1259,7 +1260,7 @@ export default abstract class <T> extends Service {
    */
   async singleMutiMe(
     data: {[P in keyof T]?: T[P]},
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -1275,16 +1276,16 @@ export default abstract class <T> extends Service {
    * @returns
    */
   async all<L>(
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<L[]> {
     if (transaction === true) {
-      return await this.app.mysql.select(tableName(this.tableName));
+      return await this.app.mysql.select<L>(tableName(this.tableName));
     } else {
       return await this.transction(
-        async (conn) => await conn.select(tableName(this.tableName))
+        async (conn) => await conn.select<L>(tableName(this.tableName))
       );
     }
   }
@@ -1297,7 +1298,7 @@ export default abstract class <T> extends Service {
    * @returns
    */
   async allMe(
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -1318,20 +1319,20 @@ export default abstract class <T> extends Service {
   async allPage<L>(
     start: number,
     size: number,
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<L[]> {
     if (transaction === true) {
-      return await this.app.mysql.select(tableName(this.tableName), {
+      return await this.app.mysql.select<L>(tableName(this.tableName), {
         limit: size,
         offset: start
       });
     } else {
       return await this.transction(
         async (conn) =>
-          await conn.select(tableName(this.tableName), {
+          await conn.select<L>(tableName(this.tableName), {
             limit: size,
             offset: start
           })
@@ -1352,7 +1353,7 @@ export default abstract class <T> extends Service {
   async allPageMe(
     start: number,
     size: number,
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -1369,16 +1370,16 @@ export default abstract class <T> extends Service {
    * @returns
    */
   async allCount(
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<number> {
     if (transaction === true) {
-      return await this.app.mysql.count(tableName(this.tableName));
+      return await this.app.mysql.count<T>(tableName(this.tableName));
     } else {
       return await this.transction(
-        async (conn) => await conn.count(tableName(this.tableName))
+        async (conn) => await conn.count<T>(tableName(this.tableName))
       );
     }
   }
@@ -1395,20 +1396,20 @@ export default abstract class <T> extends Service {
    */
   async template<L>(
     where: {[P in keyof L]?: L[P]},
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<L[]> {
     if (transaction === true) {
-      return await this.app.mysql.select(tableName(this.tableName), {
-        where: this.filterEmptyAndTransient(where)
+      return await this.app.mysql.select<L>(tableName(this.tableName), {
+        where: this.filterEmptyAndTransient<L>(where)
       });
     } else {
       return await this.transction(
         async (conn) =>
-          await conn.select(tableName(this.tableName), {
-            where: this.filterEmptyAndTransient(where)
+          await conn.select<L>(tableName(this.tableName), {
+            where: this.filterEmptyAndTransient<L>(where)
           })
       );
     }
@@ -1426,7 +1427,7 @@ export default abstract class <T> extends Service {
    */
   async templateMe(
     where: {[P in keyof T]?: T[P]},
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -1445,22 +1446,22 @@ export default abstract class <T> extends Service {
    */
   async templateOne<L>(
     data: {[P in keyof L]?: L[P]},
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<L> {
     if (transaction === true) {
-      return await this.app.mysql.get(
+      return await this.app.mysql.get<L>(
         tableName(this.tableName),
-        this.filterEmptyAndTransient(data)
+        this.filterEmptyAndTransient<L>(data)
       );
     } else {
       return await this.transction(
         async (conn) =>
-          await conn.get(
+          await conn.get<L>(
             tableName(this.tableName),
-            this.filterEmptyAndTransient(data)
+            this.filterEmptyAndTransient<L>(data)
           )
       );
     }
@@ -1477,7 +1478,7 @@ export default abstract class <T> extends Service {
    */
   async templateOneMe(
     data: {[P in keyof T]?: T[P]},
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -1501,22 +1502,22 @@ export default abstract class <T> extends Service {
     data: {[P in keyof L]?: L[P]},
     start: number,
     size: number,
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<L[]> {
     if (transaction === true) {
-      return await this.app.mysql.select(tableName(this.tableName), {
-        where: this.filterEmptyAndTransient(data),
+      return await this.app.mysql.select<L>(tableName(this.tableName), {
+        where: this.filterEmptyAndTransient<L>(data),
         limit: size,
         offset: start
       });
     } else {
       return await this.transction(
         async (conn) =>
-          await conn.select(tableName(this.tableName), {
-            where: this.filterEmptyAndTransient(data),
+          await conn.select<L>(tableName(this.tableName), {
+            where: this.filterEmptyAndTransient<L>(data),
             limit: size,
             offset: start
           })
@@ -1540,7 +1541,7 @@ export default abstract class <T> extends Service {
     data: {[P in keyof T]?: T[P]},
     start: number,
     size: number,
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -1560,22 +1561,22 @@ export default abstract class <T> extends Service {
    */
   async templateCount(
     data: {[P in keyof T]?: T[P]},
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<number> {
     if (transaction === true) {
-      return await this.app.mysql.count(
+      return await this.app.mysql.count<T>(
         tableName(this.tableName),
-        this.filterEmptyAndTransient(data)
+        this.filterEmptyAndTransient<T>(data)
       );
     } else {
       return await this.transction(
         async (conn) =>
-          await conn.count(
+          await conn.count<T>(
             tableName(this.tableName),
-            this.filterEmptyAndTransient(data)
+            this.filterEmptyAndTransient<T>(data)
           )
       );
     }
@@ -1592,12 +1593,12 @@ export default abstract class <T> extends Service {
   async executeBySqlId(
     sqlid: string,
     param?: {[propName: string]: any},
-    transaction: any = true
+    transaction: DbConnection | true = true
   ): Promise<number> {
-    const source: SQLSource = this.app.getSql(sqlid);
+    const source = this.app.getSql.call(this.ctx, sqlid, param);
     const buildParam = new Build(false, param);
-    const sql = Mustache.render(source.template, buildParam, this.app.getSqlFn());
-    return await this.transction(async (conn: any) => {
+    const sql = Mustache.render(source, buildParam, this.app.getSqlFn());
+    return await this.transction(async (conn) => {
       const result = await conn.query(sql, param);
       return result.affectedRows;
     }, transaction);
@@ -1614,7 +1615,7 @@ export default abstract class <T> extends Service {
   async executeBySql(
     sql: string,
     param?: {[propName: string]: any},
-    transaction: any = true
+    transaction: DbConnection | true = true
   ): Promise<number> {
     return await this.transction(async (conn: any) => {
       const result = await conn.query(sql, param);
@@ -1633,7 +1634,7 @@ export default abstract class <T> extends Service {
   async queryMeBySqlId(
     sqlid: string,
     param?: {[propName: string]: any},
-    transaction: any = true
+    transaction: DbConnection | true = true
   ): Promise<T[]> {
     return await this.queryMutiRowMutiColumnBySqlId<T>(sqlid, param, transaction);
   }
@@ -1649,7 +1650,7 @@ export default abstract class <T> extends Service {
   async queryBySql<L>(
     sql: string,
     param?: {[propName: string]: any},
-    transaction: any = true
+    transaction: DbConnection | true = true
   ): Promise<L[]> {
     return await this.queryMutiRowMutiColumnBySql<L>(sql, param, transaction);
   }
@@ -1665,7 +1666,7 @@ export default abstract class <T> extends Service {
   async queryBySqlId<L>(
     sqlid: string,
     param?: {[propName: string]: any},
-    transaction: any = true
+    transaction: DbConnection | true = true
   ): Promise<L[]> {
     return await this.queryMutiRowMutiColumnBySqlId<L>(sqlid, param, transaction);
   }
@@ -1681,7 +1682,7 @@ export default abstract class <T> extends Service {
   async queryMulitBySql<L>(
     sql: string,
     param?: {[propName: string]: any},
-    transaction: any = true
+    transaction: DbConnection | true = true
   ): Promise<L[][]> {
     if (transaction === true) {
       return await this.app.mysql.query(sql, param);
@@ -1701,11 +1702,11 @@ export default abstract class <T> extends Service {
   async queryMulitBySqlId<L>(
     sqlid: string,
     param?: {[propName: string]: any},
-    transaction: any = true
+    transaction: DbConnection | true = true
   ): Promise<L[][]> {
-    const source: SQLSource = this.app.getSql(sqlid);
+    const source = this.app.getSql.call(this.ctx, sqlid, param);
     const buildParam = new Build(false, param);
-    const sql = Mustache.render(source.template, buildParam, this.app.getSqlFn());
+    const sql = Mustache.render(source, buildParam, this.app.getSqlFn());
     if (transaction === true) {
       return await this.app.mysql.query(sql, param);
     } else {
@@ -1724,7 +1725,7 @@ export default abstract class <T> extends Service {
   async queryMeBySql(
     sql: string,
     param?: {[propName: string]: any},
-    transaction: any = true
+    transaction: DbConnection | true = true
   ): Promise<T[]> {
     return await this.queryMutiRowMutiColumnBySql<T>(sql, param, transaction);
   }
@@ -1739,11 +1740,11 @@ export default abstract class <T> extends Service {
   async queryMutiRowMutiColumnBySqlId<L>(
     sqlid: string,
     param?: {[propName: string]: any},
-    transaction: any = true
+    transaction: DbConnection | true = true
   ): Promise<L[]> {
-    const source: SQLSource = this.app.getSql(sqlid);
+    const source = this.app.getSql.call(this.ctx, sqlid, param);
     const buildParam = new Build(false, param);
-    const sql = Mustache.render(source.template, buildParam, this.app.getSqlFn());
+    const sql = Mustache.render(source, buildParam, this.app.getSqlFn());
     return await this.queryMutiRowMutiColumnBySql<L>(sql, param, transaction);
   }
 
@@ -1758,7 +1759,7 @@ export default abstract class <T> extends Service {
   async queryMutiRowMutiColumnBySql<L>(
     sql: string,
     param?: {[propName: string]: any},
-    transaction: any = true
+    transaction: DbConnection | true = true
   ): Promise<L[]> {
     if (transaction === true) {
       return await this.app.mysql.query(sql, param);
@@ -1778,7 +1779,7 @@ export default abstract class <T> extends Service {
   async querySingelRowMutiColumnBySqlId<L>(
     sqlid: string,
     param?: {[propName: string]: any},
-    transaction: any = true
+    transaction: DbConnection | true = true
   ): Promise<L | null> {
     const data = await this.queryMutiRowMutiColumnBySqlId<L>(sqlid, param, transaction);
     if (data) {
@@ -1799,7 +1800,7 @@ export default abstract class <T> extends Service {
   async querySingelRowMutiColumnBySql<L>(
     sql: string,
     param?: {[propName: string]: any},
-    transaction: any = true
+    transaction: DbConnection | true = true
   ): Promise<L | null> {
     const data = await this.queryMutiRowMutiColumnBySql<L>(sql, param, transaction);
     return data && data.length > 0 ? null : data[0];
@@ -1816,7 +1817,7 @@ export default abstract class <T> extends Service {
   async queryMutiRowSingelColumnBySqlId<M>(
     sqlid: string,
     param?: {[propName: string]: any},
-    transaction: any = true
+    transaction: DbConnection | true = true
   ): Promise<M[]> {
     const data = await this.queryMutiRowMutiColumnBySqlId<{[name: string]: any}>(sqlid, param, transaction);
     const result: M[] = [];
@@ -1838,7 +1839,7 @@ export default abstract class <T> extends Service {
   async queryMutiRowSingelColumnBySql<L>(
     sql: string,
     param?: {[propName: string]: any},
-    transaction: any = true
+    transaction: DbConnection | true = true
   ): Promise<L[]> {
     const data = await this.queryMutiRowMutiColumnBySql<{[name: string]: any}>(sql, param, transaction);
     const result: L[] = [];
@@ -1860,7 +1861,7 @@ export default abstract class <T> extends Service {
   async querySingelRowSingelColumnBySqlId<M>(
     sqlid: string,
     param?: {[propName: string]: any},
-    transaction: any = true
+    transaction: DbConnection | true = true
   ): Promise<M | null> {
     const data: {
       [name: string]: any;
@@ -1881,7 +1882,7 @@ export default abstract class <T> extends Service {
   async querySingelRowSingelColumnBySql<M>(
     sql: string,
     param?: {[propName: string]: any},
-    transaction: any = true
+    transaction: DbConnection | true = true
   ): Promise<M | null> {
     const data: {
       [name: string]: any;
@@ -1896,8 +1897,7 @@ export default abstract class <T> extends Service {
    * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns {PageQuery}
    */
-  pageQuery<L>(sqlid: string, transaction: any = true): PageQuery<L> {
-    const source: SQLSource = this.app.getSql(sqlid);
+  pageQuery<L>(sqlid: string, transaction: DbConnection | true = true): PageQuery<L> {
     return new PageQuery(
       async (
         param: Empty,
@@ -1907,12 +1907,19 @@ export default abstract class <T> extends Service {
         query: PageQuery<L>,
         orderBy?: string
       ) => {
+        const source = this.app.getSql.call(this.ctx, sqlid, {
+          ...param,
+          pageSize,
+          pageNumber,
+          limitSelf,
+          orderBy
+        });
         let buildParam: Build;
         let sql: string;
         if (limitSelf === false) {
           buildParam = new Build(false, param);
           sql = `SELECT _a.* FROM (${ Mustache.render(
-            source.template,
+            source,
             buildParam,
             this.app.getSqlFn()
           ) }) _a `;
@@ -1927,7 +1934,7 @@ export default abstract class <T> extends Service {
           }
           if (pageSize > 0) {
             const buildParamPage = new Build(true, param);
-            const sqlPage = Mustache.render(source.template, buildParamPage, this.app.getSqlFn());
+            const sqlPage = Mustache.render(source, buildParamPage, this.app.getSqlFn());
             const totalRow = await this.querySingelRowSingelColumnBySql<number>(
               sqlPage,
               param,
@@ -1950,10 +1957,10 @@ export default abstract class <T> extends Service {
             orderBy
           });
           buildParam = new Build(false, param);
-          sql = Mustache.render(source.template, buildParam, this.app.getSqlFn());
+          sql = Mustache.render(source, buildParam, this.app.getSqlFn());
           if (pageSize > 0) {
             const buildParamPage = new Build(true, param);
-            const sqlPage = Mustache.render(source.template, buildParamPage, this.app.getSqlFn());
+            const sqlPage = Mustache.render(source, buildParamPage, this.app.getSqlFn());
             const totalRow = await this.querySingelRowSingelColumnBySql<number>(
               sqlPage,
               param,
@@ -1978,7 +1985,7 @@ export default abstract class <T> extends Service {
    * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns {PageQuery}
    */
-  pageQueryMe(sqlid: string, transaction: any = true): PageQuery<T> {
+  pageQueryMe(sqlid: string, transaction: DbConnection | true = true): PageQuery<T> {
     return this.pageQuery<T>(sqlid, transaction);
   }
 
@@ -1995,7 +2002,7 @@ export default abstract class <T> extends Service {
    * @returns {LambdaQuery<L>}
    */
   lambdaQuery<L>(
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -2020,7 +2027,7 @@ export default abstract class <T> extends Service {
    * @returns {LambdaQuery<L>}
    */
   lambdaQueryMe(
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -2053,13 +2060,13 @@ export default abstract class <T> extends Service {
       pageSize?: number;
       orders?: [keyof L, 'asc' | 'desc'][];
     },
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<L[]> {
     if (transaction === true) {
-      return await this.app.mysql.select(tableName(this.tableName), {
+      return await this.app.mysql.select<L>(tableName(this.tableName), {
         where: x.where,
         columns: x.columns,
         offset: x.startRow,
@@ -2069,7 +2076,7 @@ export default abstract class <T> extends Service {
     } else {
       return await this.transction(
         async (conn) =>
-          await conn.select(tableName(this.tableName), {
+          await conn.select<L>(tableName(this.tableName), {
             where: x.where,
             columns: x.columns,
             offset: x.startRow,
@@ -2105,7 +2112,7 @@ export default abstract class <T> extends Service {
       pageSize?: number;
       orders?: [keyof T, 'asc' | 'desc'][];
     },
-    transaction: any = true,
+    transaction: DbConnection | true = true,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -2121,12 +2128,12 @@ export default abstract class <T> extends Service {
    * @returns
    */
   protected async transction(
-    fn: (conn: any) => Promise<any>,
-    transaction: any = true
+    fn: (conn: DbConnection) => Promise<any>,
+    transaction: DbConnection | true = true
   ): Promise<any> {
     if (transaction === true) {
       return await this.app.mysql.beginTransactionScope(
-        (conn: any) => fn(conn),
+        conn => fn(conn),
         this.ctx
       );
     } else {
@@ -2141,15 +2148,15 @@ export default abstract class <T> extends Service {
    * @param {*} source
    * @returns {T}
    */
-  private filterEmptyAndTransient(source: any, skipEmpty = true, dealEmptyString = true): {[P in keyof T]?: T[P]} {
-    const result: {[P in keyof T]?: T[P]} = {};
+  private filterEmptyAndTransient<L>(source: any, skipEmpty = true, dealEmptyString = true): {[P in keyof L]?: L[P]} {
+    const result: {[P in keyof L]?: L[P]} = {};
     this.keys.forEach((key) => {
       if (skipEmpty === true) {
         if (notEmptyString(source[key], dealEmptyString)) {
-          result[key] = source[key];
+          result[key as any] = source[key];
         }
       } else {
-        result[key] = source[key];
+        result[key as any] = source[key];
       }
     });
     return result;
@@ -2162,10 +2169,10 @@ export default abstract class <T> extends Service {
    * @param {*} source
    * @returns {T}
    */
-  private filterEmptyAndTransients(source: any[], skipEmpty = true, dealEmptyString = true): {[P in keyof T]?: T[P]}[] {
-    const result = new Array<{[P in keyof T]?: T[P]}>();
+  private filterEmptyAndTransients<L>(source: any[], skipEmpty = true, dealEmptyString = true): {[P in keyof L]?: L[P]}[] {
+    const result = new Array<{[P in keyof L]?: L[P]}>();
     source.forEach((item) => {
-      result.push(this.filterEmptyAndTransient(item, skipEmpty, dealEmptyString));
+      result.push(this.filterEmptyAndTransient<L>(item, skipEmpty, dealEmptyString));
     });
     return result;
   }

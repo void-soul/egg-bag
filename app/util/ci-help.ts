@@ -72,12 +72,13 @@ export const ci = async (serviceDistDir: string, resources?: string[], dirs?: st
     new Resource(`./${ serviceDistDir }/`, `../${ serviceDistDir }/`, true),
     new Resource('./package.json', `../${ serviceDistDir }/package.json`, false),
     new Resource('./yarn.lock', `../${ serviceDistDir }/yarn.lock`, false),
+    new Resource('./tslint.json', `../${ serviceDistDir }/tslint.json`, false),
     new Resource('./.npmrc', `../${ serviceDistDir }/.npmrc`, false),
     new Resource('./app/sql/', `../${ serviceDistDir }/app/sql/`, true),
     new Resource('./app/sql-fn/', `../${ serviceDistDir }/app/sql-fn/`, true),
     new Resource('./app/public/', `../${ serviceDistDir }/app/public/`, true),
     new Resource('./app/views/', `../${ serviceDistDir }/app/views/`, true),
-    new Resource('./app/cert/', `../${ serviceDistDir }/app/cert/`, true),
+    new Resource('./app/cert/', `../${ serviceDistDir }/app/cert/`, true)
   ];
   if (resources) {
     for (const res of resources) {

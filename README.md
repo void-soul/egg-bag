@@ -118,12 +118,12 @@ export default function(this: Context){
 异步消息发送：
 
 `app.emitSyncRandom(event, ...args)`: 随机找一个线程发送
-`app.emitSyncAll(event, ...args)`: 发送所有线程
-`app.emit(event, ...args)`: 发送给自己
+`app.emitSyncAll(event, ...args)`: 发送给所有线程
+`app.emit(event, ...args)`: 发送给本线程
 
 同步消息发送：
 
-> app 中发送时，this 指向的 context 是一个虚拟的上下文，不包含用户会话
+> app 中发送时，this 指向的 context 是一个虚拟的上下文，不包含用户会话。如果有需要用户信息，则需要自行 login
 
 > ctx 中发送时，this 指向的 context 会沿用当前上下文
 
@@ -179,3 +179,120 @@ export default function (this: Context, order: WxRefHook) {
 
 1. 增加 BaseContent 的方法缓存
 2. 增加一些注释
+
+# 1.26.0
+
+增加方法缓存注解，适用于 context 类（controller、service、ctx）的 public、private 方法。有 3 个参数：
+
+`key` : 方法，结果返回值作为缓存 key,参数同方法的参数。可以用来清空缓存
+`clearKey` : 方法，结果返回值作为缓存清除 key,参数同方法的参数。可以用来批量清空缓存
+`autoClearTime`: 自动清空缓存的时间，单位分钟
+
+举例：
+
+```
+  @ContextMethodCache({
+    key: (pdid: number) => `pd-detail-${ pdid }`,
+    clearKey: (pdid: number) => [`pd-${ pdid }`]
+  })
+  async test(pdid: number){
+
+  }
+```
+
+# 1.27.0
+
+增加建议工作流配置。
+
+
+## 路径 `app/flow`
+
+实现接口 `FlowAction`,必须声明 `flowConfig`,如:
+
+例如文件名为 `order-create.ts`
+
+```
+export default class implements FlowAction{
+  flowConfig = [
+    // 访问方式=2/3/order-create
+    {flowCode: '2', nodeCode: '3'}
+  ];
+  ...
+}
+```
+
+### 入口
+
+这个流程访问的入口是 `/do-flow/${flow}/${node}/order-create.json` ，
+需要传入参数 `bizParam`、`flowParam`,其中`bizParam` 是业务参数，`flowParam`是流程参数，目前只有 remark 一个属性
+
+## 代码调用
+
+> app 中调用时，this 指向的 context 是一个虚拟的上下文，不包含用户会话。如果有需要用户信息，则需要自行 login
+
+> ctx 中调用时，this 指向的 context 会沿用当前上下文
+
+`app.doFlow('${flow}/${node}/${action}', flowParam, bizParam)`
+
+`ctx.doFlow('${flow}/${node}/${action}', flowParam, bizParam)`
+
+## 操作过滤器
+
+使用注解
+
+```
+// 流程操作过滤配置,进行操作时，顺序：beforeAll>before>extendInit>toNode>执行操作>after>afterAll,是按照声明文件的顺序来的 */
+export const FlowActionFilter: (config: {
+  before?: Array<{
+    flowCode?: string | string[];
+    nodeCode?: string | string[];
+    alias?: string | string[];
+
+    /** 发生异常才进行调用? */
+    exception?: boolean;
+    /** 先扩展dataFlow，然后再调用handler */
+    dataFlow?: {[key: string]: any};
+    /** 先扩展dataFlow，然后再调用handler */
+    handler?: Array<(this: FlowContext<P, F, R>) => Promise<void>> | (this: FlowContext<P, F, R>) => Promise<void>;
+  }>;
+  after?: Array<{
+    flowCode?: string | string[];
+    nodeCode?: string | string[];
+    alias?: string | string[];
+
+    /** 发生异常才进行调用? */
+    exception?: boolean;
+    /** 先扩展dataFlow，然后再调用handler */
+    dataFlow?: {[key: string]: any};
+    /** 先扩展dataFlow，然后再调用handler */
+    handler?: Array<(this: FlowContext<P, F, R>) => Promise<void>> | (this: FlowContext<P, F, R>) => Promise<void>;
+  }>;
+}) => Decorator;
+```
+
+# 1.28.0
+
+增加脚本 sql 库
+
+读取目录 `sql-script`,例如
+
+`msOrder.ts`
+
+```
+export function selectList(this:Context, param1, param2){
+  return `select * from ...`;
+}
+```
+
+使用方式和 mu 是一样的
+
+
+# 1.30.0
+
+增加导出interface: DbConnection,以后:
+```
+this.transction(async conn => {
+  ...
+  // conn 类型是 DbConnection，不再是any了
+});
+```

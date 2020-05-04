@@ -170,6 +170,7 @@ const socketRoomOut = {
     this.app.coreLogger.info(`${ this.ctx.me.userid } leave from ${ roomid }`);
   }
 };
+
 export const routes = [
   now, phoneCode, picCode, getConfigJson, today, getWxIds, getWxQr, wxDecrypt
 ];
