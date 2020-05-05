@@ -3232,6 +3232,18 @@ export interface SqlSession {
 }
 
 export type MongoSession = ClientSession;
+export interface MongoFilter<T> {
+  query: {[P in keyof T]?: L[P] | FilterQuery<T>};
+  options: {
+    limit?: number;
+    skip?: number;
+    sort?: {[P in keyof T]: 1 | -1};
+    projection?: {[P in keyof T]: 1};
+  };
+  tableName: string;
+}
+
+export type SqlScript = (this: Context, param?: {[k: string]: any}) => string | MongoFilter<any>;
 declare module 'egg' {
   interface Application {
     _wxMini: {[appCode: string]: WxMini};
@@ -3268,6 +3280,8 @@ declare module 'egg' {
      * 推荐使用NUXT注解而不是此方法
      */
     _nuxt?: (req: IncomingMessage, res: ServerResponse, cb: () => void) => Promise<void>;
+    /** 加载sql模板，位于 app/sql、app/sql-script */
+    _getSql<T>(ctx: Context, count: boolean, id: string, param?: {[key: string]: any}): string | MongoFilter<T>;
     stringifyUser: (user: BaseUser) => string;
     throwNow(message: string, status?: number): never;
     throwIf(test: boolean, message: string, status?: number);
@@ -3275,18 +3289,6 @@ declare module 'egg' {
     throwErrorNow(error: Enum): never;
     throwErrorIf(test: boolean, error: Enum);
     throwErrorIfNot(test: boolean, error: Enum);
-    /**
-     *
-     * 加载sql模板，位于 app/sql
-     * @memberof Application
-     */
-    getSql(this: Context, id: string, ...args: any[]): string;
-    /**
-     *
-     * 加载sql模板函数，位于 app/sql-fn
-     * @memberof Application
-     */
-    getSqlFn();
     /**
      *
      * socket 发送

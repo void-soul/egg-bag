@@ -296,3 +296,61 @@ this.transction(async conn => {
   // conn 类型是 DbConnection，不再是any了
 });
 ```
+
+# 1.31.0
+
+`app/sql-script`目录中格式如下:
+
+`mdOrder.ts`
+
+``` javascript
+import {SqlScript, Context} from 'egg-bag';
+
+// 直接返回sql语句，用于查询 mysql
+export const queryList: SqlScript = function () {
+  return 'SELECT * FROM md_order';
+};
+
+// 直接返回sql语句，用于查询 mysql
+export const queryList: SqlScript = function (this: Context, param: {[k:string]:any}) {
+  // 依然支持两种参数，1：直接拼接，2：:参数名
+  return `SELECT * FROM md_order WHERE userid = '${this.me.userid}' AND id = '${param.id}' AND time < :time`;
+};
+
+// 直接返回mongoFilter对象，用于查询 mongo
+export const queryList: SqlScript = function<MdOrder> (this: Context) {
+  return {
+      query: {[P in keyof T]?: L[P] | FilterQuery<T>};
+      options: {
+        limit?: number;
+        skip?: number;
+        sort?: {[P in keyof T]: 1 | -1};
+        projection?: {[P in keyof T]: 1};
+      };
+      tableName: string;
+  }
+};
+```
+
+
+# 1.32.0
+
+支持ts的路径别名了
+
+`tsconfig.json`
+
+```
+{
+  "compilerOptions": {
+    "paths": {
+      "app/*": ["app/*"]
+    }
+  }
+}
+```
+
+在项目中：
+
+```javascript
+import initDataFlow from 'app/flow-help/init-data-flow';
+```

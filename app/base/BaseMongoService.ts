@@ -3,10 +3,10 @@ import {calc} from '../util/math';
 import LambdaQueryMongo from '../util/sql/LambdaQueryMongo';
 import {Service} from 'egg';
 import {notEmptyString} from '../util/string';
-import * as vm from 'vm';
-import {StatusError} from '../util/shell';
+// import * as vm from 'vm';
+// import {StatusError} from '../util/shell';
 import {FilterQuery} from 'mongodb';
-import {MongoSession} from '../../typings';
+import {MongoSession, MongoFilter} from '../../typings';
 
 export default abstract class <T> extends Service {
   private tableName: string;
@@ -1333,8 +1333,7 @@ export default abstract class <T> extends Service {
     param?: {[propName: string]: any},
     transction?: MongoSession
   ): Promise<number> {
-    const source = this.app.getSql.call(this.ctx, sqlid, param);
-    const item = this.getSqlItem<T>(source, param);
+    const item = this.app._getSql<T>(this.ctx, false, sqlid, param) as MongoFilter<T>;
     return await this.countBySql<T>(item, transction);
   }
   /**
@@ -1360,8 +1359,7 @@ export default abstract class <T> extends Service {
     param?: {[propName: string]: any},
     transction?: MongoSession
   ): Promise<L[]> {
-    const source = this.app.getSql.call(this.ctx, sqlid, param);
-    const item = this.getSqlItem<L>(source, param);
+    const item = this.app._getSql<L>(this.ctx, false, sqlid, param) as MongoFilter<L>;
     return await this.queryMutiRowMutiColumnBySql(item, transction);
   }
   /**
@@ -1630,16 +1628,9 @@ export default abstract class <T> extends Service {
         _orderBy?: string,
         orderMongo?: {[P in keyof L]: 1 | -1}
       ) => {
-        const source = this.app.getSql.call(this.ctx, sqlid, {
-          ...param,
-          pageSize,
-          pageNumber,
-          limitSelf,
-          orderMongo
-        });
         if (limitSelf === false) {
           if (pageSize > 0) {
-            const pageItem = this.getSqlItem<L>(source, param);
+            const pageItem = this.app._getSql<L>(this.ctx, false, sqlid, param) as MongoFilter<L>;
             const totalRow = await this.countBySql(
               pageItem,
               transction
@@ -1660,7 +1651,13 @@ export default abstract class <T> extends Service {
             skip: pageSize
           });
         }
-        const item = this.getSqlItem<L>(source, param);
+        const item = this.app._getSql<L>(this.ctx, false, sqlid, {
+          ...param,
+          pageSize,
+          pageNumber,
+          limitSelf,
+          orderMongo
+        }) as MongoFilter<L>;
         if (orderMongo) {
           if (!item.options.sort) {
             item.options.sort = orderMongo;
@@ -1773,36 +1770,36 @@ export default abstract class <T> extends Service {
     return this.app.mongo.db(this.db);
   }
 
-  private getSqlItem<L>(sql: string, params: {[key: string]: any} = {}) {
-    const sandbox: {
-      db: {
-        query: {[P in keyof L]?: L[P] | FilterQuery<L>};
-        options: {
-          limit?: number;
-          skip?: number;
-          sort?: {[P in keyof L]: 1 | -1};
-          projection?: {[P in keyof L]: 1};
-        };
-        tableName: string;
-      };
-      $regex: (s: string) => RegExp;
-      [key: string]: any;
-    } = {
-      db: {
-        query: {},
-        options: {},
-        tableName: this.tableName
-      },
-      $regex: (s: string) => (new RegExp(s)),
-      $: params
-    };
-    vm.createContext(sandbox);
-    try {
-      vm.runInContext(sql, sandbox);
-    } catch (error) {
-      throw new StatusError(`render error ${ sql } => ${ error }`);
-    }
-    this.app.throwIf(!sandbox.db.tableName, `not set tableName ${ sql }`);
-    return sandbox.db;
-  }
+  // private getSqlItem<L>(sql: string, params: {[key: string]: any} = {}) {
+  //   const sandbox: {
+  //     db: {
+  //       query: {[P in keyof L]?: L[P] | FilterQuery<L>};
+  //       options: {
+  //         limit?: number;
+  //         skip?: number;
+  //         sort?: {[P in keyof L]: 1 | -1};
+  //         projection?: {[P in keyof L]: 1};
+  //       };
+  //       tableName: string;
+  //     };
+  //     $regex: (s: string) => RegExp;
+  //     [key: string]: any;
+  //   } = {
+  //     db: {
+  //       query: {},
+  //       options: {},
+  //       tableName: this.tableName
+  //     },
+  //     $regex: (s: string) => (new RegExp(s)),
+  //     $: params
+  //   };
+  //   vm.createContext(sandbox);
+  //   try {
+  //     vm.runInContext(sql, sandbox);
+  //   } catch (error) {
+  //     throw new StatusError(`render error ${ sql } => ${ error }`);
+  //   }
+  //   this.app.throwIf(!sandbox.db.tableName, `not set tableName ${ sql }`);
+  //   return sandbox.db;
+  // }
 }

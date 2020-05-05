@@ -4,6 +4,9 @@ import * as path from 'path';
 import SQLSource from './sql/SQLSource';
 import MUParser from './sql/MUParser';
 import {MongoClient} from 'mongodb';
+import Build from '../util/sql/Build';
+import * as Mustache from 'mustache';
+import {MongoFilter, SqlScript} from '../../typings';
 
 const debug = require('debug')('egg-bag');
 
@@ -47,7 +50,7 @@ export function loadSql(this: Application) {
     sqlFiles.forEach(item => {
       const name = item.replace(/.js|.ts/, '');
       const scriptReq = require(path.join(sqlJSPath, item));
-      const script = scriptReq as {[key: string]: (this: Context, ...args: any[]) => string};
+      const script = scriptReq as {[key: string]: SqlScript};
       for (const [k, fn] of Object.entries(script)) {
         sqlSourceMap[`${ name }.${ k }`] = new SQLSource(`${ name }.${ k }`, fn, true);
       }
@@ -63,19 +66,17 @@ export function loadSql(this: Application) {
     });
   }
 
-  this.getSql = function (this: Context, id: string, ...args: any[]): string {
+  this._getSql = function <T>(ctx: Context, count: boolean, id: string, param?: {[key: string]: any}): string | MongoFilter<T> {
     const source: SQLSource = sqlSourceMap[id];
     if (source === undefined) {
       throw new Error(`sql-file ${ id } not found!`);
     }
     if (typeof source.template === 'string') {
-      return source.template;
+      const buildParam = new Build(count, param);
+      return Mustache.render(source, buildParam, fnMap);
     } else {
-      return source.template.call(this, ...args);
+      return source.template.call(ctx, param);
     }
-  };
-  this.getSqlFn = (): {[key: string]: string} => {
-    return fnMap;
   };
   debug('sql files read over');
 }

@@ -1,7 +1,5 @@
 import {Service} from 'egg';
-import * as Mustache from 'mustache';
 import {calc} from '../util/math';
-import Build from '../util/sql/Build';
 import LambdaQuery from '../util/sql/LambdaQuery';
 import PageQuery from '../util/sql/PageQuery';
 import {Empty} from '../util/empty';
@@ -1606,11 +1604,9 @@ export default abstract class <T> extends Service {
     param?: {[propName: string]: any},
     transction?: SqlSession
   ): Promise<number> {
-    const source = this.app.getSql.call(this.ctx, sqlid, param);
-    const buildParam = new Build(false, param);
-    const sql = Mustache.render(source, buildParam, this.app.getSqlFn());
+    const sql = this.app._getSql(this.ctx, false, sqlid, param);
     return await this.transction(async (conn) => {
-      const result = await conn.query(sql, param);
+      const result = await conn.query(sql as string, param);
       return result.affectedRows;
     }, transction);
   }
@@ -1715,13 +1711,11 @@ export default abstract class <T> extends Service {
     param?: {[propName: string]: any},
     transction?: SqlSession
   ): Promise<L[][]> {
-    const source = this.app.getSql.call(this.ctx, sqlid, param);
-    const buildParam = new Build(false, param);
-    const sql = Mustache.render(source, buildParam, this.app.getSqlFn());
+    const sql = this.app._getSql(this.ctx, false, sqlid, param);
     if (transction === undefined) {
-      return await this.app.mysql.query(sql, param);
+      return await this.app.mysql.query(sql as string, param);
     } else {
-      return await this.transction((conn) => conn.query(sql, param), transction);
+      return await this.transction((conn) => conn.query(sql as string, param), transction);
     }
   }
 
@@ -1753,10 +1747,8 @@ export default abstract class <T> extends Service {
     param?: {[propName: string]: any},
     transction?: SqlSession
   ): Promise<L[]> {
-    const source = this.app.getSql.call(this.ctx, sqlid, param);
-    const buildParam = new Build(false, param);
-    const sql = Mustache.render(source, buildParam, this.app.getSqlFn());
-    return await this.queryMutiRowMutiColumnBySql<L>(sql, param, transction);
+    const sql = this.app._getSql(this.ctx, false, sqlid, param);
+    return await this.queryMutiRowMutiColumnBySql<L>(sql as string, param, transction);
   }
 
   /**
@@ -1918,22 +1910,15 @@ export default abstract class <T> extends Service {
         query: PageQuery<L>,
         orderBy?: string
       ) => {
-        const source = this.app.getSql.call(this.ctx, sqlid, {
+        let sql = this.app._getSql(this.ctx, false, sqlid, {
           ...param,
           pageSize,
           pageNumber,
           limitSelf,
           orderBy
         });
-        let buildParam: Build;
-        let sql: string;
         if (limitSelf === false) {
-          buildParam = new Build(false, param);
-          sql = `SELECT _a.* FROM (${ Mustache.render(
-            source,
-            buildParam,
-            this.app.getSqlFn()
-          ) }) _a `;
+          sql = `SELECT _a.* FROM (${ sql }) _a `;
           if (orderBy) {
             sql = `${ sql } ORDER BY ${ orderBy }`;
           }
@@ -1944,10 +1929,9 @@ export default abstract class <T> extends Service {
               .over() }, ${ pageSize }`;
           }
           if (pageSize > 0) {
-            const buildParamPage = new Build(true, param);
-            const sqlPage = Mustache.render(source, buildParamPage, this.app.getSqlFn());
+            const sqlPage = this.app._getSql(this.ctx, true, sqlid, param);
             const totalRow = await this.querySingelRowSingelColumnBySql<number>(
-              sqlPage,
+              sqlPage as string,
               param,
               transction
             );
@@ -1967,13 +1951,11 @@ export default abstract class <T> extends Service {
             limitEnd: calc(pageSize).over(),
             orderBy
           });
-          buildParam = new Build(false, param);
-          sql = Mustache.render(source, buildParam, this.app.getSqlFn());
+          sql = this.app._getSql(this.ctx, false, sqlid, param);
           if (pageSize > 0) {
-            const buildParamPage = new Build(true, param);
-            const sqlPage = Mustache.render(source, buildParamPage, this.app.getSqlFn());
+            const sqlPage = this.app._getSql(this.ctx, true, sqlid, param);
             const totalRow = await this.querySingelRowSingelColumnBySql<number>(
-              sqlPage,
+              sqlPage as string,
               param,
               transction
             );
@@ -1985,7 +1967,7 @@ export default abstract class <T> extends Service {
               .over();
           }
         }
-        query.list = await this.queryMutiRowMutiColumnBySql<L>(sql, param, transction);
+        query.list = await this.queryMutiRowMutiColumnBySql<L>(sql as string, param, transction);
       }
     );
   }

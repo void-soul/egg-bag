@@ -1,5 +1,6 @@
 import lodash = require('lodash');
 import {Empty} from '../empty';
+import {SqlScript} from 'typings';
 const _pageNumber = Symbol('pageNumber');
 const _pageSize = Symbol('pageSize');
 const _orderBy = Symbol('orderBy');
@@ -89,3 +90,7 @@ export default class PageQuery<T> {
     return this;
   }
 }
+
+export const test: SqlScript = function () {
+  return '1';
+};
