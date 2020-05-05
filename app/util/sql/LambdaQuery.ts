@@ -1,4 +1,4 @@
-import {Empty} from '../../util/empty';
+import {Empty} from '../empty';
 export default class LambdaQuery<T> {
   private andQuerys: LambdaQuery<T>[] = [];
   private orQuerys: LambdaQuery<T>[] = [];

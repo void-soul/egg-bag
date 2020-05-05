@@ -5,6 +5,7 @@ import {Builder, Nuxt} from 'nuxt';
 import {merge} from 'lodash';
 import {nuxtDefaultConfig} from '../util/ci-help';
 import {IncomingMessage, ServerResponse} from 'http';
+const debug = require('debug')('egg-bag');
 
 export function loadNuxt(this: Application) {
   // 此时 config 文件已经被读取并合并，但是还并未生效
@@ -28,7 +29,7 @@ export function loadNuxt(this: Application) {
       }
     }
     nuxtReady = true;
-    this.coreLogger.warn('[egg-bag] config merge over');
+    debug('config merge over');
     this.config.coreMiddleware.unshift('nuxt');
   }
   return {
@@ -43,9 +44,9 @@ export function initNuxt(this: Application, nuxtReady: boolean, srcDir: string) 
     if (process.env.NODE_ENV !== 'production') {
       nuxt = new Nuxt(merge({}, nuxtDefaultConfig(srcDir, this.config.baseDir, true), this.config.nuxt));
       const builder = new Builder(nuxt);
-      this.coreLogger.warn('[egg-bag] build dev mode start');
+      debug('build dev mode start');
       builder.build().then(() => {
-        this.coreLogger.warn('[egg-bag] Build dev mode done');
+        debug('Build dev mode done');
       }).catch((error) => {
         this.coreLogger.error('[egg-bag] Build dev mode error', error);
         process.exit(1);

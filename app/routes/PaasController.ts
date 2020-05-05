@@ -3,6 +3,7 @@ import ILogin from '../middleware/ILogin';
 import * as dayjs from 'dayjs';
 import {dateTime, date} from '../util/now';
 import lodash = require('lodash');
+const debug = require('debug')('egg-bag');
 const query = {
   path: '/query.json',
   method: 'get',
@@ -160,14 +161,14 @@ const socketRoomIn = {
   before: [ILogin],
   handel(this: Controller, roomid: string) {
     this.ctx.socket.join(roomid);
-    this.app.coreLogger.info(`${ this.ctx.me.userid } join to ${ roomid }`);
+    debug(`${ this.ctx.me.userid } join to ${ roomid }`);
   }
 };
 const socketRoomOut = {
   path: '/logout',
   handel(this: Controller, roomid: string) {
     this.ctx.socket.leave(roomid);
-    this.app.coreLogger.info(`${ this.ctx.me.userid } leave from ${ roomid }`);
+    debug(`${ this.ctx.me.userid } leave from ${ roomid }`);
   }
 };
 

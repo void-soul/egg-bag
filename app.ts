@@ -11,6 +11,7 @@ import {loadGlobal} from './app/loader/global-load';
 import {loadView} from './app/loader/view-load';
 import {loadCache, flushRedis} from './app/loader/cache-load';
 import {loadRouter} from './app/loader/route-load';
+const debug = require('debug')('egg-bag');
 export default class {
   app: Application;
   nuxtReady = false;
@@ -19,7 +20,7 @@ export default class {
     this.app = app;
   }
   configWillLoad() {
-    this.app.coreLogger.warn('[egg-bag] start load config!');
+    debug('start load config!');
     const start = +new Date();
     // nuxt检测配置
     const {nuxtReady, srcDir} = loadNuxt.call(this.app);
@@ -53,7 +54,7 @@ export default class {
     loadGlobal.call(this.app);
     loadView.call(this.app);
 
-    this.app.coreLogger.warn(`[egg-bag] over load config, +${ +new Date() - start }ms`);
+    debug(` over load config, +${ +new Date() - start }ms`);
   }
 
   didLoad() {

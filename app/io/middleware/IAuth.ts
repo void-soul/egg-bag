@@ -1,5 +1,6 @@
 import {Context} from 'egg';
 import SocketConfig from '../../enums/SocketConfig';
+const debug = require('debug')('egg-bag');
 export default (): any => {
   return async (ctx: Context, next: () => Promise<void>) => {
     const {app, socket} = ctx;
@@ -28,7 +29,7 @@ export default (): any => {
         if (roomId) {
           // 当前id
           socket.join(roomId);
-          app.coreLogger.info(`${ me.userid } join to ${ roomId }`);
+          debug(`${ me.userid } join to ${ roomId }`);
         }
       }
     }

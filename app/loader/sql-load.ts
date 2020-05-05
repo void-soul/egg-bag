@@ -1,17 +1,18 @@
 import {Application, Context} from 'egg';
 import * as fs from 'fs';
 import * as path from 'path';
-
-import {SQLSource} from './sql';
+import SQLSource from './sql/SQLSource';
 import MUParser from './sql/MUParser';
 import {MongoClient} from 'mongodb';
+
+const debug = require('debug')('egg-bag');
 
 export function loadMongo(this: Application) {
   if (this.config.mongo && this.config.mongo.uri) {
     Object.assign(this.config.mongo.options, {
       useNewUrlParser: true
     });
-    this.coreLogger.warn('[egg-bag] mongodb read and config over');
+    debug('mongodb read and config over');
   }
 }
 export function loadSql(this: Application) {
@@ -76,17 +77,17 @@ export function loadSql(this: Application) {
   this.getSqlFn = (): {[key: string]: string} => {
     return fnMap;
   };
-  this.coreLogger.warn('[egg-bag] sql files read over');
+  debug('sql files read over');
 }
 export async function connMongo(this: Application) {
   if (this.config.mongo && this.config.mongo.uri) {
     this.mongo = new MongoClient(`mongodb://${ this.config.mongo.uri }`, this.config.mongo.options);
-    this.coreLogger.warn('[egg-bag] Connecting MongoDB...');
+    debug('Connecting MongoDB...');
     try {
       await this.mongo.connect();
-      this.coreLogger.warn(`[egg-bag] Connect success on ${ this.config.mongo.uri }.`);
+      debug(`Connect success on ${ this.config.mongo.uri }.`);
     } catch (error) {
-      this.coreLogger.warn(`[egg-bag] Connect fail on ${ this.config.mongo.uri }.`);
+      debug(`Connect fail on ${ this.config.mongo.uri }.`);
       this.coreLogger.error(error);
     }
   }

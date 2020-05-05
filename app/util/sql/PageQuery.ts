@@ -1,5 +1,5 @@
 import lodash = require('lodash');
-import {Empty} from '../../util/empty';
+import {Empty} from '../empty';
 const _pageNumber = Symbol('pageNumber');
 const _pageSize = Symbol('pageSize');
 const _orderBy = Symbol('orderBy');

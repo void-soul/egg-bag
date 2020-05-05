@@ -4,6 +4,7 @@ import {Empty} from '../util/empty';
 import {randomNumber, uuid} from '../util/string';
 import {FlowContext} from '../../typings';
 import svgCaptcha = require('svg-captcha');
+const debug = require('debug')('egg-bag');
 /**
  * 说明：PAASservice
  * 作者：dedede
@@ -21,7 +22,7 @@ export default class extends BaseService<Empty> {
     if (this.config.smsDebug === false) {
       await this.sendSms(phone, this.config.ali.CommonCode, {code});
     } else {
-      this.app.coreLogger.info(`${ phone }=>${ code }`);
+      debug(`${ phone }=>${ code }`);
     }
     await this.ctx.setCache(`${ id }-${ phone }`, code, 'other', 5);
     return id;

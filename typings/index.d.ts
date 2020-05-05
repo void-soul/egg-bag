@@ -1,5 +1,5 @@
 import {Application, Service, Subscription, Context, BaseContextClass, IService} from 'egg';
-import {MongoClient, MongoClientOptions, FilterQuery} from 'mongodb';
+import {MongoClient, MongoClientOptions, FilterQuery, ClientSession, SessionOptions} from 'mongodb';
 // tslint:disable-next-line:no-implicit-dependencies
 import {Redis} from 'ioredis';
 import {Schema} from 'fast-json-stringify';
@@ -1120,23 +1120,23 @@ export class Empty {
 
 export abstract class BaseMongoService<T> extends Service {
   /**
-     * 插入
-     * 返回成功插入行数
-     * @param {{[P in keyof T]?: T[P]}} data
-     * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
-     * @param {(serviceTableName: string) => string} [tableName=(
-     *       serviceTableName: string
-     *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
-     * @returns
-     */
+      * 插入
+      * 返回成功插入行数
+      * @param {{[P in keyof T]?: T[P]}} data
+      * @param {*} [transction] 独立事务
+      * @param {(serviceTableName: string) => string} [tableName=(
+      *       serviceTableName: string
+      *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+      * @returns
+      */
   insert(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 如果指定列名不存在数据库中，则插入所有列
    * 返回成功插入行数
    * @param {{[P in keyof T]?: T[P]}} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1144,12 +1144,12 @@ export abstract class BaseMongoService<T> extends Service {
    */
   insertIfNotExists(data: {
     [P in keyof T]?: T[P];
-  }, columns: (keyof T)[], transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, columns: (keyof T)[], transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 插入或修改所有列
    * 返回成功插入行数
    * @param {{[P in keyof T]?: T[P]}} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1157,13 +1157,13 @@ export abstract class BaseMongoService<T> extends Service {
    */
   replace(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    *
    * 只插入非空字段(undefined、null、空字符串)
    * 返回成功插入行数
    * @param {{[P in keyof T]?: T[P]}} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1171,13 +1171,13 @@ export abstract class BaseMongoService<T> extends Service {
    */
   insertTemplate(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: any, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  }, transction?: MongoSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
   /**
    *
    * 只插入非空字段(undefined、null)
    * 返回成功插入行数
    * @param {{[P in keyof T]?: T[P]}} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1185,12 +1185,12 @@ export abstract class BaseMongoService<T> extends Service {
    */
   insertTemplateLoose(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 如果指定列名不存在数据库中，则插入非空列(undefined、null、空字符串)
    * 返回成功插入行数
    * @param {{[P in keyof T]?: T[P]}} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1198,12 +1198,12 @@ export abstract class BaseMongoService<T> extends Service {
    */
   insertTemplateIfNotExists(data: {
     [P in keyof T]?: T[P];
-  }, columns: (keyof T)[], transaction?: any, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  }, columns: (keyof T)[], transction?: MongoSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
   /**
    * 如果指定列名不存在数据库中，则插入非空列(undefined、null)
    * 返回成功插入行数
    * @param {{[P in keyof T]?: T[P]}} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1211,12 +1211,12 @@ export abstract class BaseMongoService<T> extends Service {
    */
   insertTemplateIfNotExistsLoose(data: {
     [P in keyof T]?: T[P];
-  }, columns: (keyof T)[], transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, columns: (keyof T)[], transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 只插入或修改非空字段(undefined、null、空字符串)
    * 返回成功插入行数
    * @param {{[P in keyof T]?: T[P]}} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1224,12 +1224,12 @@ export abstract class BaseMongoService<T> extends Service {
    */
   replaceTemplate(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: any, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  }, transction?: MongoSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
   /**
    * 只插入或修改非空字段(undefined、null)
    * 返回成功插入行数
    * @param {{[P in keyof T]?: T[P]}} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1237,12 +1237,12 @@ export abstract class BaseMongoService<T> extends Service {
    */
   replaceTemplateLoose(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 批量插入所有列
    * 返回成功插入行数
    * @param {Array<{[P in keyof T]?: T[P]}>} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1250,12 +1250,12 @@ export abstract class BaseMongoService<T> extends Service {
    */
   insertBatch(datas: {
     [P in keyof T]?: T[P];
-  }[], transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }[], transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 如果指定列名不存在数据库中，则批量插入所有列
    * 返回成功插入行数
    * @param {{[P in keyof T]?: T[P]}} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1263,12 +1263,12 @@ export abstract class BaseMongoService<T> extends Service {
    */
   insertBatchIfNotExists(datas: {
     [P in keyof T]?: T[P];
-  }[], columns: (keyof T)[], transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }[], columns: (keyof T)[], transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 批量插入或修改所有列
    * 返回成功插入行数
    * @param {Array<{[P in keyof T]?: T[P]}>} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1276,13 +1276,13 @@ export abstract class BaseMongoService<T> extends Service {
    */
   replaceBatch(datas: {
     [P in keyof T]?: T[P];
-  }[], transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }[], transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    *
    * 批量插入非空字段(undefined、null、空字符串)
    * 返回成功插入行数
    * @param {Array<{[P in keyof T]?: T[P]}>} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1290,13 +1290,13 @@ export abstract class BaseMongoService<T> extends Service {
    */
   insertBatchTemplate(datas: {
     [P in keyof T]?: T[P];
-  }[], transaction?: any, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  }[], transction?: MongoSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
   /**
    *
    * 批量插入非空字段(undefined、null、空字符串)
    * 返回成功插入行数
    * @param {Array<{[P in keyof T]?: T[P]}>} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1304,12 +1304,12 @@ export abstract class BaseMongoService<T> extends Service {
    */
   insertBatchTemplateLoose(datas: {
     [P in keyof T]?: T[P];
-  }[], transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }[], transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 如果指定列名不存在数据库中，则批量插入所有非空列
    * 返回成功插入行数
    * @param {{[P in keyof T]?: T[P]}} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1317,12 +1317,12 @@ export abstract class BaseMongoService<T> extends Service {
    */
   insertBatchTemplateIfNotExists(datas: {
     [P in keyof T]?: T[P];
-  }[], columns: (keyof T)[], transaction?: any, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  }[], columns: (keyof T)[], transction?: MongoSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
   /**
     * 如果指定列名不存在数据库中，则批量插入所有非空列
     * 返回成功插入行数
     * @param {{[P in keyof T]?: T[P]}} data
-    * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+    * @param {*} [transction] 独立事务
     * @param {(serviceTableName: string) => string} [tableName=(
     *       serviceTableName: string
     *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1330,12 +1330,12 @@ export abstract class BaseMongoService<T> extends Service {
     */
   insertBatchTemplateLooseIfNotExists(datas: {
     [P in keyof T]?: T[P];
-  }[], columns: (keyof T)[], transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }[], columns: (keyof T)[], transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 快速批量插入或修改非空字段(undefined、null、空字符串)
    * 返回成功插入行数
    * @param {Array<{[P in keyof T]?: T[P]}>} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1343,12 +1343,12 @@ export abstract class BaseMongoService<T> extends Service {
    */
   replaceBatchTemplate(datas: {
     [P in keyof T]?: T[P];
-  }[], transaction?: any, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  }[], transction?: MongoSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
   /**
    * 快速批量插入或修改非空字段(undefined、null、空字符串)
    * 返回成功插入行数
    * @param {Array<{[P in keyof T]?: T[P]}>} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1356,11 +1356,11 @@ export abstract class BaseMongoService<T> extends Service {
    */
   replaceBatchTemplateLoose(datas: {
     [P in keyof T]?: T[P];
-  }[], transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }[], transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 根据主键修改全部字段
    * @param {{[P in keyof T]?: T[P]}} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1368,12 +1368,12 @@ export abstract class BaseMongoService<T> extends Service {
    */
   updateById(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 根据主键修改非空字段(undefined、null、空字符串)
    *
    * @param {{[P in keyof T]?: T[P]}} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1381,12 +1381,12 @@ export abstract class BaseMongoService<T> extends Service {
    */
   updateTemplateById(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: any, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  }, transction?: MongoSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
   /**
    * 根据主键修改非空字段(undefined、null、空字符串)
    *
    * @param {{[P in keyof T]?: T[P]}} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1394,12 +1394,12 @@ export abstract class BaseMongoService<T> extends Service {
    */
   updateTemplateLooseById(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    *
    * 根据主键批量修改全部字段
    * @param {Array<{[P in keyof T]?: T[P]}>} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1407,13 +1407,13 @@ export abstract class BaseMongoService<T> extends Service {
    */
   updateBatchById(datas: {
     [P in keyof T]?: T[P];
-  }[], transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }[], transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 根据主键修改所有非空字段(null、undefined、空字符串)
    * 注意：此方法操作的列是所有记录的串集，若某条记录中不存在字段，则会重置为null
    * 若想安全的修改，请使用updateBatchTemplateByIdSafe(较慢，但每条都会完整保存)
    * @param {Array<{[P in keyof T]?: T[P]}>} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1421,13 +1421,13 @@ export abstract class BaseMongoService<T> extends Service {
    */
   updateBatchTemplateById(datas: {
     [P in keyof T]?: T[P];
-  }[], transaction?: any, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  }[], transction?: MongoSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
   /**
    * 根据主键修改所有非空字段(null、undefined、空字符串)
    * 注意：此方法操作的列是所有记录的串集，若某条记录中不存在字段，则会重置为null
    * 若想安全的修改，请使用updateBatchTemplateByIdSafe(较慢，但每条都会完整保存)
    * @param {Array<{[P in keyof T]?: T[P]}>} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1435,13 +1435,13 @@ export abstract class BaseMongoService<T> extends Service {
    */
   updateBatchTemplateLooseById(datas: {
     [P in keyof T]?: T[P];
-  }[], transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }[], transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    *
    * 根据自定义条件修改
    * @param {{[P in keyof T]?: T[P]}} data
    * @param {{[P in keyof T]?: T[P]}} where
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1451,12 +1451,12 @@ export abstract class BaseMongoService<T> extends Service {
     [P in keyof T]?: T[P];
   }, where: {
     [P in keyof T]?: T[P];
-  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    *
    * 自定义条件删除,如果service开启注解：logicDelete,那么将逻辑删除
    * @param {{[P in keyof T]?: T[P]}} where
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {boolean} [fixTransient=true] 是否过滤一遍transient标记的字段?
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
@@ -1465,116 +1465,116 @@ export abstract class BaseMongoService<T> extends Service {
    */
   deleteBatch(where: {
     [P in keyof T]?: T[P];
-  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    *
    * 根据主键删除
    * @param {*} id
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  deleteById(id: any, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  deleteById(id: any, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 根据主键查询，若查询不到结果，抛出异常
    * @param {*} id
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  unique<L>(id: any, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<L>;
+  unique<L>(id: any, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<L>;
   /**
    * 根据主键查询，若查询不到结果，抛出异常
    * @param {*} id
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  uniqueMe(id: any, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<T>;
+  uniqueMe(id: any, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<T>;
   /**
    *
    * 根据主键查询，若查询不到结果，不抛出异常
    * @param {*} id
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  single<L>(id: any, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<L | null>;
+  single<L>(id: any, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<L | null>;
   /**
    *
    * 根据主键查询，若查询不到结果，不抛出异常
    * @param {*} id
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  singleMe(id: any, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<T | null>;
+  singleMe(id: any, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<T | null>;
   /**
    * 返回全部数据
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  all<L>(transaction?: any, tableName?: (serviceTableName: string) => string): Promise<L[]>;
+  all<L>(transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<L[]>;
   /**
    * 返回全部数据
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  allMe(transaction?: any, tableName?: (serviceTableName: string) => string): Promise<T[]>;
+  allMe(transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<T[]>;
   /**
    *
    * 分页方式返回全部数据
    * @param {number} start 起始记录
    * @param {number} size 返回条数
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  allPage<L>(start: number, size: number, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<L[]>;
+  allPage<L>(start: number, size: number, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<L[]>;
   /**
    *
    * 分页方式返回全部数据
    * @param {number} start 起始记录
    * @param {number} size 返回条数
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  allPageMe(start: number, size: number, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<T[]>;
+  allPageMe(start: number, size: number, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<T[]>;
   /**
    * 返回总条数
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  allCount(transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  allCount(transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 根据模版查询所有数据
    *
    * @param {{[P in keyof T]?: T[P]}} data 模版，仅支持 = 操作符
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1582,12 +1582,12 @@ export abstract class BaseMongoService<T> extends Service {
    */
   template<L>(where: {
     [P in keyof L]?: L[P];
-  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<L[]>;
+  }, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<L[]>;
   /**
    * 根据模版查询所有数据
    *
    * @param {{[P in keyof T]?: T[P]}} data 模版，仅支持 = 操作符
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1595,11 +1595,11 @@ export abstract class BaseMongoService<T> extends Service {
    */
   templateMe(where: {
     [P in keyof T]?: T[P];
-  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<T[]>;
+  }, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<T[]>;
   /**
    * 根据模版查询所有一条数据
    * @param {{[P in keyof T]?: T[P]}} data ，仅支持 = 操作符
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1607,11 +1607,11 @@ export abstract class BaseMongoService<T> extends Service {
    */
   templateOne<L>(data: {
     [P in keyof L]?: L[P];
-  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<L>;
+  }, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<L>;
   /**
    * 根据模版查询所有一条数据
    * @param {{[P in keyof T]?: T[P]}} data ，仅支持 = 操作符
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1619,14 +1619,14 @@ export abstract class BaseMongoService<T> extends Service {
    */
   templateOneMe(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<T>;
+  }, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<T>;
   /**
    *
    * 根据模版分页查询数据
    * @param {{[P in keyof T]?: T[P]}} data ，仅支持 = 操作符
    * @param {number} start
    * @param {number} size
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1634,14 +1634,14 @@ export abstract class BaseMongoService<T> extends Service {
    */
   templatePage<L>(data: {
     [P in keyof L]?: L[P];
-  }, start: number, size: number, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<L[]>;
+  }, start: number, size: number, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<L[]>;
   /**
    *
    * 根据模版分页查询数据
    * @param {{[P in keyof T]?: T[P]}} data ，仅支持 = 操作符
    * @param {number} start
    * @param {number} size
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1649,12 +1649,12 @@ export abstract class BaseMongoService<T> extends Service {
    */
   templatePageMe(data: {
     [P in keyof T]?: T[P];
-  }, start: number, size: number, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<T[]>;
+  }, start: number, size: number, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<T[]>;
   /**
    *
    * 根据模版查询条数
    * @param {{[P in keyof T]?: T[P]}} data，仅支持 = 操作符
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1662,33 +1662,33 @@ export abstract class BaseMongoService<T> extends Service {
    */
   templateCount(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 创建复杂查询对象
    * 例如: lambdaQueryMe()
    *       .andEq(CpResource.resourcecode, 'xxx')
    *       .select(CpResource.resourcename)
    *
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns {LambdaQueryMongo<L>}
    */
-  lambdaQuery<L>(transaction?: any, tableName?: (serviceTableName: string) => string): LambdaQueryMongo<L>;
+  lambdaQuery<L>(transction?: MongoSession, tableName?: (serviceTableName: string) => string): LambdaQueryMongo<L>;
   /**
    * 创建复杂查询对象
    * 例如: lambdaQueryMe()
    *       .andEq(CpResource.resourcecode, 'xxx')
    *       .select(CpResource.resourcename)
    *
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns {LambdaQueryMongo<L>}
    */
-  lambdaQueryMe(transaction?: any, tableName?: (serviceTableName: string) => string): LambdaQueryMongo<T>;
+  lambdaQueryMe(transction?: MongoSession, tableName?: (serviceTableName: string) => string): LambdaQueryMongo<T>;
   /**
    * 简单自定义查询
    * @param {{
@@ -1700,7 +1700,7 @@ export abstract class BaseMongoService<T> extends Service {
    *     pageSize?: number
    *     orders?: string[]
    *   }} x
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1716,12 +1716,12 @@ export abstract class BaseMongoService<T> extends Service {
     orders?: {
       [P in keyof L]: 1 | -1;
     };
-  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<L[]>;
+  }, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<L[]>;
   customQueryCount<L>(x: {
     where?: {
       [P in keyof L]?: L[P];
     };
-  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<L[]>;
+  }, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<L[]>;
   /**
    * 简单自定义查询
    * @param {{
@@ -1733,7 +1733,7 @@ export abstract class BaseMongoService<T> extends Service {
    *     pageSize?: number
    *     orders?: {[key: string]: number}
    *   }} x
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1749,7 +1749,7 @@ export abstract class BaseMongoService<T> extends Service {
     orders?: {
       [P in keyof T]: 1 | -1;
     };
-  }, transaction?: any, tableName?: (serviceTableName: string) => string): Promise<T[]>;
+  }, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<T[]>;
   /**
    *
    * 执行数据库查询 多列多行
@@ -1765,12 +1765,12 @@ export abstract class BaseMongoService<T> extends Service {
         tableName?: string
    * }
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction] 独立事务
    * @returns 指定类型数组
    */
   queryBySqlId<L>(sqlid: string, param?: {
     [propName: string]: any;
-  }, transaction?: any): Promise<L[]>;
+  }, transction?: MongoSession): Promise<L[]>;
   /**
    *
    * 执行数据库查询 多列多行
@@ -1786,12 +1786,12 @@ export abstract class BaseMongoService<T> extends Service {
         tableName?: string
    * }
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction] 独立事务
    * @returns 本service对象数组
    */
   queryMeBySqlId(sqlid: string, param?: {
     [propName: string]: any;
-  }, transaction?: any): Promise<T[]>;
+  }, transction?: MongoSession): Promise<T[]>;
   /**
    *
    * 执行数据库查询 条数
@@ -1807,12 +1807,12 @@ export abstract class BaseMongoService<T> extends Service {
         tableName?: string
    * }
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction] 独立事务
    * @returns 列名 =key的json数组
    */
   countBySqlId(sqlid: string, param?: {
     [propName: string]: any;
-  }, transaction?: any): Promise<number>;
+  }, transction?: MongoSession): Promise<number>;
   /**
    *
    * 执行数据库查询 多列多行
@@ -1828,17 +1828,17 @@ export abstract class BaseMongoService<T> extends Service {
         tableName?: string
    * }
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction] 独立事务
    * @returns 列名 =key的json数组
    */
   queryMutiRowMutiColumnBySqlId<L>(sqlid: string, param?: {
     [propName: string]: any;
-  }, transaction?: any): Promise<L[]>;
+  }, transction?: MongoSession): Promise<L[]>;
   /**
    *
    * 根据条件返回条数
    * @param {{[propName: string]: any}} item 查询对象,格式：https://docs.mongodb.com/manual/reference/operator/query/
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction] 独立事务
    * @returns 列名 =key的json数组
    */
   countBySql<L>(item: {
@@ -1846,12 +1846,12 @@ export abstract class BaseMongoService<T> extends Service {
       [P in keyof L]?: L[P] | FilterQuery<L>;
     };
     tableName?: string;
-  }, transaction?: any): Promise<number>;
+  }, transction?: MongoSession): Promise<number>;
   /**
    *
    * 执行数据库查询 多列多行
    * @param {{[propName: string]: any}} item 查询对象,格式：https://docs.mongodb.com/manual/reference/operator/query/
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction] 独立事务
    * @returns 列名 =key的json数组
    */
   queryMutiRowMutiColumnBySql<L>(item: {
@@ -1869,7 +1869,7 @@ export abstract class BaseMongoService<T> extends Service {
       };
     };
     tableName?: string;
-  }, transaction?: any): Promise<L[]>;
+  }, transction?: MongoSession): Promise<L[]>;
   /**
    *
    * 执行数据库查询 多列单行
@@ -1885,18 +1885,18 @@ export abstract class BaseMongoService<T> extends Service {
         tableName?: string
    * }
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction] 独立事务
    * @returns
    */
   querySingelRowMutiColumnBySqlId<L>(sqlid: string, param?: {
     [propName: string]: any;
-  }, transaction?: any): Promise<L | null>;
+  }, transction?: MongoSession): Promise<L | null>;
   /**
    *
    * 执行数据库查询 多列单行
    * @param {{[propName: string]: any}} item 查询对象,格式：https://docs.mongodb.com/manual/reference/operator/query/
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction] 独立事务
    * @returns
    */
   querySingelRowMutiColumnBySql<L>(item: {
@@ -1914,13 +1914,13 @@ export abstract class BaseMongoService<T> extends Service {
       };
     };
     tableName?: string;
-  }, transaction?: any): Promise<L | null>;
+  }, transction?: MongoSession): Promise<L | null>;
   /**
    *
    * 执行数据库查询 单列多行
    * @param {{[propName: string]: any}} item 查询对象,格式：https://docs.mongodb.com/manual/reference/operator/query/
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction] 独立事务
    * @returns
    */
   queryMutiRowSingelColumnBySql<M>(item: {
@@ -1938,7 +1938,7 @@ export abstract class BaseMongoService<T> extends Service {
       };
     };
     tableName?: string;
-  }, transaction?: any): Promise<M[]>;
+  }, transction?: MongoSession): Promise<M[]>;
   /**
    *
    * 执行数据库查询 单列多行
@@ -1954,18 +1954,18 @@ export abstract class BaseMongoService<T> extends Service {
         tableName?: string
    * }
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction] 独立事务
    * @returns
    */
   queryMutiRowSingelColumnBySqlId<M>(sqlid: string, param?: {
     [propName: string]: any;
-  }, transaction?: any): Promise<M[]>;
+  }, transction?: MongoSession): Promise<M[]>;
   /**
    *
    * 执行数据库查询 单列单行
    * @param {{[propName: string]: any}} item 查询对象,格式：https://docs.mongodb.com/manual/reference/operator/query/
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction] 独立事务
    * @returns
    */
   querySingelRowSingelColumnBySql<M>(item: {
@@ -1983,7 +1983,7 @@ export abstract class BaseMongoService<T> extends Service {
       };
     };
     tableName?: string;
-  }, transaction?: any): Promise<M | null>;
+  }, transction?: MongoSession): Promise<M | null>;
   /**
    *
    * 执行数据库查询 单列单行
@@ -1999,12 +1999,12 @@ export abstract class BaseMongoService<T> extends Service {
         tableName?: string
    * }
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction] 独立事务
    * @returns
    */
   querySingelRowSingelColumnBySqlId<M>(sqlid: string, param?: {
     [propName: string]: any;
-  }, transaction?: any): Promise<M | null>;
+  }, transction?: MongoSession): Promise<M | null>;
   /**
    *
    * 创建分页查询语句
@@ -2019,10 +2019,10 @@ export abstract class BaseMongoService<T> extends Service {
         },
         tableName?: string
    * }
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction] 独立事务
    * @returns {PageQuery}
    */
-  pageQuery<L>(sqlid: string, transaction?: any): PageQuery<L>;
+  pageQuery<L>(sqlid: string, transction?: MongoSession): PageQuery<L>;
   /**
    *
    * 创建分页查询语句
@@ -2037,18 +2037,18 @@ export abstract class BaseMongoService<T> extends Service {
         },
         tableName?: string
    * }
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction] 独立事务
    * @returns {PageQuery}
    */
-  pageQueryMe(sqlid: string, transaction?: any): PageQuery<T>;
+  pageQueryMe(sqlid: string, transction?: MongoSession): PageQuery<T>;
   /**
     *
     * 事务执行方法
     * @param {() => Promise<any>} fn 方法主体
-    * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+    * @param {*} [transction] 独立事务
     * @returns
     */
-  protected transction(fn: (transaction: any) => Promise<any>, transaction?: any): Promise<any>;
+  protected transction(fn: (transction?: MongoSession) => Promise<any>, transction?: MongoSession): Promise<any>;
 }
 export abstract class BaseService<T> extends Service {
   /**
@@ -2063,7 +2063,7 @@ export abstract class BaseService<T> extends Service {
    */
   insert(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 如果指定列名不存在数据库中，则插入所有列
    * 返回自增主键或者0
@@ -2076,7 +2076,7 @@ export abstract class BaseService<T> extends Service {
    */
   insertIfNotExists(data: {
     [P in keyof T]?: T[P];
-  }, columns: (keyof T)[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, columns: (keyof T)[], transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 插入或修改所有列
    * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
@@ -2090,7 +2090,7 @@ export abstract class BaseService<T> extends Service {
    */
   replace(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    *
    * 只插入非空字段(排除undefined、null、空字符串)
@@ -2104,7 +2104,7 @@ export abstract class BaseService<T> extends Service {
    */
   insertTemplate(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  }, transaction?: SqlSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
   /**
    *
    * 只插入非空字段(排除undefined、null)
@@ -2118,7 +2118,7 @@ export abstract class BaseService<T> extends Service {
    */
   insertTemplateLoose(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 如果指定列名不存在数据库中，则插入非空列(排除undefined、null、空字符串)
    * 返回自增主键或者0
@@ -2131,7 +2131,7 @@ export abstract class BaseService<T> extends Service {
    */
   insertTemplateIfNotExists(data: {
     [P in keyof T]?: T[P];
-  }, columns: (keyof T)[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  }, columns: (keyof T)[], transaction?: SqlSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
   /**
  * 如果指定列名不存在数据库中，则插入非空列(排除undefined、null)
  * 返回自增主键或者0
@@ -2144,7 +2144,7 @@ export abstract class BaseService<T> extends Service {
  */
   insertTemplateLooseIfNotExists(data: {
     [P in keyof T]?: T[P];
-  }, columns: (keyof T)[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, columns: (keyof T)[], transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 只插入或修改非空字段(排除undefined、null、空字符串)
    * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
@@ -2158,7 +2158,7 @@ export abstract class BaseService<T> extends Service {
    */
   replaceTemplate(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  }, transaction?: SqlSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
   /**
    * 只插入或修改非空字段(排除undefined、null)
    * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
@@ -2172,7 +2172,7 @@ export abstract class BaseService<T> extends Service {
    */
   replaceTemplateLoose(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 批量插入所有列,返回自增主键或者0
    * @param {T[]} datas
@@ -2184,7 +2184,7 @@ export abstract class BaseService<T> extends Service {
    */
   insertBatch(datas: {
     [P in keyof T]?: T[P];
-  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
+  }[], transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number[]>;
   /**
    * 如果指定列名不存在数据库中，则批量插入所有列
    * 返回自增主键或者0
@@ -2197,7 +2197,7 @@ export abstract class BaseService<T> extends Service {
    */
   insertBatchIfNotExists(datas: {
     [P in keyof T]?: T[P];
-  }[], columns: (keyof T)[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
+  }[], columns: (keyof T)[], transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number[]>;
   /**
    * 批量插入或修改所有列
    * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
@@ -2211,7 +2211,7 @@ export abstract class BaseService<T> extends Service {
    */
   replaceBatch(datas: {
     [P in keyof T]?: T[P];
-  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
+  }[], transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number[]>;
   /**
    *
    * 批量插入非空字段(排除undefined、null、空字符串)
@@ -2225,7 +2225,7 @@ export abstract class BaseService<T> extends Service {
    */
   insertBatchTemplate(datas: {
     [P in keyof T]?: T[P];
-  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number[]>;
+  }[], transaction?: SqlSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number[]>;
   /**
    *
    * 批量插入非空字段(排除undefined、null)
@@ -2239,7 +2239,7 @@ export abstract class BaseService<T> extends Service {
    */
   insertBatchTemplateLoose(datas: {
     [P in keyof T]?: T[P];
-  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
+  }[], transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number[]>;
   /**
    * 如果指定列名不存在数据库中，则批量插入所有非空列(排除undefined、null、空字符串)
    * 返回自增主键或者0
@@ -2252,7 +2252,7 @@ export abstract class BaseService<T> extends Service {
    */
   insertBatchTemplateIfNotExists(datas: {
     [P in keyof T]?: T[P];
-  }[], columns: (keyof T)[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number[]>;
+  }[], columns: (keyof T)[], transaction?: SqlSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number[]>;
   /**
     * 如果指定列名不存在数据库中，则批量插入所有非空列(排除undefined、null)
     * 返回自增主键或者0
@@ -2265,7 +2265,7 @@ export abstract class BaseService<T> extends Service {
     */
   insertBatchTemplateLooseIfNotExists(datas: {
     [P in keyof T]?: T[P];
-  }[], columns: (keyof T)[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
+  }[], columns: (keyof T)[], transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number[]>;
   /**
    * 快速批量插入或修改非空字段(排除undefined、null、空字符串)
    * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
@@ -2281,7 +2281,7 @@ export abstract class BaseService<T> extends Service {
    */
   replaceBatchTemplate(datas: {
     [P in keyof T]?: T[P];
-  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number[]>;
+  }[], transaction?: SqlSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number[]>;
   /**
    * 快速批量插入或修改非空字段(排除undefined、null)
    * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
@@ -2297,7 +2297,7 @@ export abstract class BaseService<T> extends Service {
    */
   replaceBatchTemplateLoose(datas: {
     [P in keyof T]?: T[P];
-  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
+  }[], transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number[]>;
   /**
    * 安全的批量插入或修改非空字段(排除undefined、null、空字符串)
    * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
@@ -2311,7 +2311,7 @@ export abstract class BaseService<T> extends Service {
    */
   replaceBatchTemplateSafe(datas: {
     [P in keyof T]?: T[P];
-  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number[]>;
+  }[], transaction?: SqlSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number[]>;
   /**
    * 安全的批量插入或修改非空字段(排除undefined、null)
    * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
@@ -2325,7 +2325,7 @@ export abstract class BaseService<T> extends Service {
    */
   replaceBatchTemplateLooseSafe(datas: {
     [P in keyof T]?: T[P];
-  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
+  }[], transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number[]>;
   /**
    * 根据主键修改全部字段
    * @param {T} data
@@ -2337,7 +2337,7 @@ export abstract class BaseService<T> extends Service {
    */
   updateById(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 根据主键修改非空字段(排除undefined、null、空字符串)
    *
@@ -2350,7 +2350,7 @@ export abstract class BaseService<T> extends Service {
    */
   updateTemplateById(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  }, transaction?: SqlSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
   /**
    * 根据主键修改非空字段(排除undefined、null)
    *
@@ -2363,7 +2363,7 @@ export abstract class BaseService<T> extends Service {
    */
   updateTemplateLooseById(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    *
    * 根据主键批量修改全部字段
@@ -2376,7 +2376,7 @@ export abstract class BaseService<T> extends Service {
    */
   updateBatchById(datas: {
     [P in keyof T]?: T[P];
-  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }[], transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 根据主键修改所有非空字段(null、undefined、空字符串)
    * 注意：此方法操作的列是所有记录的串集，若某条记录中不存在字段，则会重置为null
@@ -2390,7 +2390,7 @@ export abstract class BaseService<T> extends Service {
    */
   updateBatchTemplateById(datas: {
     [P in keyof T]?: T[P];
-  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  }[], transaction?: SqlSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
   /**
    * 根据主键修改所有非空字段(null、undefined、空字符串)
    * 注意：此方法操作的列是所有记录的串集，若某条记录中不存在字段，则会重置为null
@@ -2404,7 +2404,7 @@ export abstract class BaseService<T> extends Service {
    */
   updateBatchTemplateLooseById(datas: {
     [P in keyof T]?: T[P];
-  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }[], transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 安全的根据主键修改所有非空字段(null、undefined、空字符串)
    * @param {T[]} datas
@@ -2416,7 +2416,7 @@ export abstract class BaseService<T> extends Service {
    */
   updateBatchTemplateByIdSafe(datas: {
     [P in keyof T]?: T[P];
-  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
+  }[], transaction?: SqlSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
   /**
    * 安全的根据主键修改所有非空字段(null、undefined)
    * @param {T[]} datas
@@ -2428,7 +2428,7 @@ export abstract class BaseService<T> extends Service {
    */
   updateBatchTemplateLooseByIdSafe(datas: {
     [P in keyof T]?: T[P];
-  }[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }[], transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    *
    * 根据自定义条件修改
@@ -2444,7 +2444,7 @@ export abstract class BaseService<T> extends Service {
     [P in keyof T]?: T[P];
   }, where: {
     [P in keyof T]?: T[P];
-  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    *
    * 自定义条件删除,如果service开启注解：logicDelete,那么将逻辑删除
@@ -2458,7 +2458,7 @@ export abstract class BaseService<T> extends Service {
    */
   deleteBatch(where: {
     [P in keyof T]?: T[P];
-  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    *
    * 根据复合主键删除
@@ -2471,7 +2471,7 @@ export abstract class BaseService<T> extends Service {
    */
   deleteByIdMuti(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    *
    * 根据主键删除
@@ -2482,7 +2482,7 @@ export abstract class BaseService<T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  deleteById(id: any, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  deleteById(id: any, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    *
    * 一次性删除多个主键
@@ -2493,7 +2493,7 @@ export abstract class BaseService<T> extends Service {
    *     ) => serviceTableName]
    * @returns {Promise<number[]>}
    */
-  deleteByIds(ids: any[], transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number[]>;
+  deleteByIds(ids: any[], transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number[]>;
   /**
    * 根据主键查询，若查询不到结果，抛出异常
    * @param {*} id
@@ -2503,7 +2503,7 @@ export abstract class BaseService<T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  unique<L>(id: any, error?: string, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<L>;
+  unique<L>(id: any, error?: string, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<L>;
   /**
    * 根据主键查询，若查询不到结果，抛出异常
    * @param {*} id
@@ -2513,7 +2513,7 @@ export abstract class BaseService<T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  uniqueMe(id: any, error?: string, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<T>;
+  uniqueMe(id: any, error?: string, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<T>;
   /**
    * 根据复合主键查询，若查询不到结果，抛出异常
    * @param {T} data
@@ -2525,7 +2525,7 @@ export abstract class BaseService<T> extends Service {
    */
   uniqueMuti<L>(data: {
     [P in keyof T]?: T[P];
-  }, error?: string, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<L>;
+  }, error?: string, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<L>;
   /**
    * 根据复合主键查询，若查询不到结果，抛出异常
    * @param {T} data
@@ -2537,7 +2537,7 @@ export abstract class BaseService<T> extends Service {
    */
   uniqueMutiMe(data: {
     [P in keyof T]?: T[P];
-  }, error?: string, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<T>;
+  }, error?: string, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<T>;
   /**
    *
    * 根据主键查询，若查询不到结果，不抛出异常
@@ -2548,7 +2548,7 @@ export abstract class BaseService<T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  single<L>(id: any, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<L | null>;
+  single<L>(id: any, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<L | null>;
   /**
    *
    * 根据主键查询，若查询不到结果，不抛出异常
@@ -2559,7 +2559,7 @@ export abstract class BaseService<T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  singleMe(id: any, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<T | null>;
+  singleMe(id: any, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<T | null>;
   /**
    * 根据复合主键查询，若查询不到结果，不抛出异常
    * @param {T} data
@@ -2571,7 +2571,7 @@ export abstract class BaseService<T> extends Service {
    */
   singleMuti<L>(data: {
     [P in keyof L]?: L[P];
-  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<L | null>;
+  }, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<L | null>;
   /**
    * 根据复合主键查询，若查询不到结果，不抛出异常
    * @param {T} data
@@ -2583,7 +2583,7 @@ export abstract class BaseService<T> extends Service {
    */
   singleMutiMe(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<T | null>;
+  }, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<T | null>;
   /**
    * 返回全部数据
    * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
@@ -2592,7 +2592,7 @@ export abstract class BaseService<T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  all<L>(transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<L[]>;
+  all<L>(transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<L[]>;
   /**
    * 返回全部数据
    * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
@@ -2601,7 +2601,7 @@ export abstract class BaseService<T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  allMe(transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<T[]>;
+  allMe(transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<T[]>;
   /**
    *
    * 分页方式返回全部数据
@@ -2613,7 +2613,7 @@ export abstract class BaseService<T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  allPage<L>(start: number, size: number, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<L[]>;
+  allPage<L>(start: number, size: number, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<L[]>;
   /**
    *
    * 分页方式返回全部数据
@@ -2625,7 +2625,7 @@ export abstract class BaseService<T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  allPageMe(start: number, size: number, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<T[]>;
+  allPageMe(start: number, size: number, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<T[]>;
   /**
    * 返回总条数
    * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
@@ -2634,7 +2634,7 @@ export abstract class BaseService<T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  allCount(transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  allCount(transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 根据模版查询所有数据
    *
@@ -2647,7 +2647,7 @@ export abstract class BaseService<T> extends Service {
    */
   template<L>(where: {
     [P in keyof L]?: L[P];
-  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<L[]>;
+  }, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<L[]>;
   /**
    * 根据模版查询所有数据
    *
@@ -2660,7 +2660,7 @@ export abstract class BaseService<T> extends Service {
    */
   templateMe(where: {
     [P in keyof T]?: T[P];
-  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<T[]>;
+  }, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<T[]>;
   /**
    * 根据模版查询所有一条数据
    * @param {T} data ，仅支持 = 操作符
@@ -2672,7 +2672,7 @@ export abstract class BaseService<T> extends Service {
    */
   templateOne<L>(data: {
     [P in keyof L]?: L[P];
-  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<L>;
+  }, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<L>;
   /**
    * 根据模版查询所有一条数据
    * @param {T} data ，仅支持 = 操作符
@@ -2684,7 +2684,7 @@ export abstract class BaseService<T> extends Service {
    */
   templateOneMe(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<T>;
+  }, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<T>;
   /**
    *
    * 根据模版分页查询数据
@@ -2699,7 +2699,7 @@ export abstract class BaseService<T> extends Service {
    */
   templatePage<L>(data: {
     [P in keyof L]?: L[P];
-  }, start: number, size: number, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<L[]>;
+  }, start: number, size: number, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<L[]>;
   /**
    *
    * 根据模版分页查询数据
@@ -2714,7 +2714,7 @@ export abstract class BaseService<T> extends Service {
    */
   templatePageMe(data: {
     [P in keyof T]?: T[P];
-  }, start: number, size: number, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<T[]>;
+  }, start: number, size: number, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<T[]>;
   /**
    *
    * 根据模版查询条数
@@ -2727,7 +2727,7 @@ export abstract class BaseService<T> extends Service {
    */
   templateCount(data: {
     [P in keyof T]?: T[P];
-  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    * 执行数据库操作
    *
@@ -2738,7 +2738,7 @@ export abstract class BaseService<T> extends Service {
    */
   executeBySqlId(sqlid: string, param?: {
     [propName: string]: any;
-  }, transaction?: DbConnection | true): Promise<number>;
+  }, transaction?: SqlSession): Promise<number>;
   /**
    *
    * 执行数据库操作
@@ -2749,7 +2749,7 @@ export abstract class BaseService<T> extends Service {
    */
   executeBySql(sql: string, param?: {
     [propName: string]: any;
-  }, transaction?: DbConnection | true): Promise<number>;
+  }, transaction?: SqlSession): Promise<number>;
   /**
    *
    * 执行数据库查询 多列多行
@@ -2760,7 +2760,7 @@ export abstract class BaseService<T> extends Service {
    */
   queryMeBySqlId(sqlid: string, param?: {
     [propName: string]: any;
-  }, transaction?: DbConnection | true): Promise<T[]>;
+  }, transaction?: SqlSession): Promise<T[]>;
   /**
    *
    * 执行数据库查询 多列多行
@@ -2771,7 +2771,7 @@ export abstract class BaseService<T> extends Service {
    */
   queryBySql<L>(sql: string, param?: {
     [propName: string]: any;
-  }, transaction?: DbConnection | true): Promise<L[]>;
+  }, transaction?: SqlSession): Promise<L[]>;
   /**
    *
    * 执行数据库查询 多列多行
@@ -2782,7 +2782,7 @@ export abstract class BaseService<T> extends Service {
    */
   queryBySqlId<L>(sqlid: string, param?: {
     [propName: string]: any;
-  }, transaction?: DbConnection | true): Promise<L[]>;
+  }, transaction?: SqlSession): Promise<L[]>;
   /**
    *
    * 执行数据库查询 ,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组,与sql语句的顺序对应
@@ -2793,7 +2793,7 @@ export abstract class BaseService<T> extends Service {
    */
   queryMulitBySql<L>(sql: string, param?: {
     [propName: string]: any;
-  }, transaction?: DbConnection | true): Promise<L[][]>;
+  }, transaction?: SqlSession): Promise<L[][]>;
   /**
    *
    * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
@@ -2804,7 +2804,7 @@ export abstract class BaseService<T> extends Service {
    */
   queryMulitBySqlId<L>(sqlid: string, param?: {
     [propName: string]: any;
-  }, transaction?: DbConnection | true): Promise<L[][]>;
+  }, transaction?: SqlSession): Promise<L[][]>;
   /**
    *
    * 执行数据库查询 多列多行
@@ -2815,7 +2815,7 @@ export abstract class BaseService<T> extends Service {
    */
   queryMeBySql(sql: string, param?: {
     [propName: string]: any;
-  }, transaction?: DbConnection | true): Promise<T[]>;
+  }, transaction?: SqlSession): Promise<T[]>;
   /**
    *
    * 执行数据库查询 多列多行
@@ -2826,7 +2826,7 @@ export abstract class BaseService<T> extends Service {
    */
   queryMutiRowMutiColumnBySqlId<L>(sqlid: string, param?: {
     [propName: string]: any;
-  }, transaction?: DbConnection | true): Promise<L[]>;
+  }, transaction?: SqlSession): Promise<L[]>;
   /**
    *
    * 执行数据库查询 多列多行
@@ -2837,7 +2837,7 @@ export abstract class BaseService<T> extends Service {
    */
   queryMutiRowMutiColumnBySql<L>(sql: string, param?: {
     [propName: string]: any;
-  }, transaction?: DbConnection | true): Promise<L[]>;
+  }, transaction?: SqlSession): Promise<L[]>;
   /**
    *
    * 执行数据库查询 多列单行
@@ -2848,7 +2848,7 @@ export abstract class BaseService<T> extends Service {
    */
   querySingelRowMutiColumnBySqlId<L>(sqlid: string, param?: {
     [propName: string]: any;
-  }, transaction?: DbConnection | true): Promise<L | null>;
+  }, transaction?: SqlSession): Promise<L | null>;
   /**
    *
    * 执行数据库查询 多列单行
@@ -2859,7 +2859,7 @@ export abstract class BaseService<T> extends Service {
    */
   querySingelRowMutiColumnBySql<L>(sql: string, param?: {
     [propName: string]: any;
-  }, transaction?: DbConnection | true): Promise<L | null>;
+  }, transaction?: SqlSession): Promise<L | null>;
   /**
    *
    * 执行数据库查询 单列多行
@@ -2870,7 +2870,7 @@ export abstract class BaseService<T> extends Service {
    */
   queryMutiRowSingelColumnBySqlId<M>(sqlid: string, param?: {
     [propName: string]: any;
-  }, transaction?: DbConnection | true): Promise<M[]>;
+  }, transaction?: SqlSession): Promise<M[]>;
   /**
    *
    * 执行数据库查询 单列多行
@@ -2881,7 +2881,7 @@ export abstract class BaseService<T> extends Service {
    */
   queryMutiRowSingelColumnBySql<L>(sql: string, param?: {
     [propName: string]: any;
-  }, transaction?: DbConnection | true): Promise<L[]>;
+  }, transaction?: SqlSession): Promise<L[]>;
   /**
    *
    * 执行数据库查询 单列单行
@@ -2892,7 +2892,7 @@ export abstract class BaseService<T> extends Service {
    */
   querySingelRowSingelColumnBySqlId<M>(sqlid: string, param?: {
     [propName: string]: any;
-  }, transaction?: DbConnection | true): Promise<M | null>;
+  }, transaction?: SqlSession): Promise<M | null>;
   /**
    *
    * 执行数据库查询 单列单行
@@ -2903,7 +2903,7 @@ export abstract class BaseService<T> extends Service {
    */
   querySingelRowSingelColumnBySql<M>(sql: string, param?: {
     [propName: string]: any;
-  }, transaction?: DbConnection | true): Promise<M | null>;
+  }, transaction?: SqlSession): Promise<M | null>;
   /**
    *
    * 创建分页查询语句
@@ -2911,7 +2911,7 @@ export abstract class BaseService<T> extends Service {
    * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns {PageQuery}
    */
-  pageQuery<L>(sqlid: string, transaction?: DbConnection | true): PageQuery<L>;
+  pageQuery<L>(sqlid: string, transaction?: SqlSession): PageQuery<L>;
   /**
    *
    * 创建分页查询语句
@@ -2919,7 +2919,7 @@ export abstract class BaseService<T> extends Service {
    * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns {PageQuery}
    */
-  pageQueryMe(sqlid: string, transaction?: DbConnection | true): PageQuery<T>;
+  pageQueryMe(sqlid: string, transaction?: SqlSession): PageQuery<T>;
   /**
    * 创建复杂查询、修改、删除对象
    * 例如: lambdaQuery()
@@ -2932,7 +2932,7 @@ export abstract class BaseService<T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns {LambdaQuery<L>}
    */
-  lambdaQuery<L>(transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): LambdaQuery<L>;
+  lambdaQuery<L>(transaction?: SqlSession, tableName?: (serviceTableName: string) => string): LambdaQuery<L>;
   /**
    * 创建复杂查询对象
    * 例如: lambdaQueryMe()
@@ -2945,7 +2945,7 @@ export abstract class BaseService<T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns {LambdaQuery<L>}
    */
-  lambdaQueryMe(transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): LambdaQuery<T>;
+  lambdaQueryMe(transaction?: SqlSession, tableName?: (serviceTableName: string) => string): LambdaQuery<T>;
   /**
    * 简单自定义查询
    * @param {{
@@ -2971,7 +2971,7 @@ export abstract class BaseService<T> extends Service {
     startRow?: number;
     pageSize?: number;
     orders?: [keyof L, 'asc' | 'desc'][];
-  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<L[]>;
+  }, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<L[]>;
   /**
    * 简单自定义查询
    * @param {{
@@ -2997,7 +2997,7 @@ export abstract class BaseService<T> extends Service {
     startRow?: number;
     pageSize?: number;
     orders?: [keyof T, 'asc' | 'desc'][];
-  }, transaction?: DbConnection | true, tableName?: (serviceTableName: string) => string): Promise<T[]>;
+  }, transaction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<T[]>;
   /**
    *
    * 事务执行方法
@@ -3005,7 +3005,7 @@ export abstract class BaseService<T> extends Service {
    * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @returns
    */
-  protected transction(fn: (conn: DbConnection) => Promise<any>, transaction?: DbConnection | true): Promise<any>;
+  protected transction(fn: (conn: SqlSession) => Promise<any>, transaction?: SqlSession): Promise<any>;
 }
 export abstract class BaseSchedule extends Subscription {
   /** 此定时任务唯一标识 */
@@ -3189,7 +3189,7 @@ declare class PaasService extends BaseService<Empty> {
   ): Promise<any>;
 }
 
-export interface DbConnection {
+export interface SqlSession {
   query: (sql: string, param?: {[key: string]: any}) => Promise<any>;
   count: <T>(tableName: string, where?: {[P in keyof T]?: T[P]}) => Promise<number>;
   select: <T>(tableName: string, options?: {
@@ -3228,8 +3228,10 @@ export interface DbConnection {
     columns: (keyof T)[];
   }) => Promise<{affectedRows: number}>;
   delete: (tableName: string, where?: {[P in keyof T]?: T[P]}) => Promise<{affectedRows: number}>;
-  beginTransactionScope: (fn: (conn: DbConnection) => Promise<any>, ctx: Context) => Promise<any>;
+  beginTransactionScope: (fn: (conn: SqlSession) => Promise<any>, ctx: Context) => Promise<any>;
 }
+
+export type MongoSession = ClientSession;
 declare module 'egg' {
   interface Application {
     _wxMini: {[appCode: string]: WxMini};
@@ -3245,7 +3247,7 @@ declare module 'egg' {
      */
     _cache: {[key: string]: any};
     _globalValues: EnmuJson;
-    mysql: DbConnection;
+    mysql: SqlSession;
     redis: {get: (name: 'user' | 'other') => Redis};
     io: EggIOServer & EggSocketNameSpace & EggSocketIO;
     mongo: MongoClient;
@@ -3484,7 +3486,12 @@ declare module 'egg' {
      * @memberof EggAppConfig
      */
     keys?: string;
-    mongo?: {uri: string; options: MongoClientOptions; replica: boolean};
+    mongo?: {
+      uri: string;
+      options: MongoClientOptions;
+      replica: boolean;
+      sessionOptions: SessionOptions;
+    };
     userScheam: {[key: string]: Schema};
     queryDefaultParam?: {[key: string]: string};
     /** socket相关配置 */

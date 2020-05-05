@@ -1,6 +1,7 @@
 import {BaseContextClass} from 'egg';
 import {FlowContext, FlowActionConfigParam, FlowActionConfigFilter, FlowCodeFilter, FlowAction} from '../../typings';
 import {merge, isArray} from 'lodash';
+const debug = require('debug')('egg-bag');
 
 export function ContextMethodCache(config: {
   /** 返回缓存key,参数同方法的参数。可以用来清空缓存。 */
@@ -19,8 +20,10 @@ export function ContextMethodCache(config: {
         const key = config.key.call(this, ...args);
         const cache = await this.app.redis.get('other').get(key);
         if (cache) {
+          debug(`cache ${ key } hit!`);
           return JSON.parse(cache);
         } else {
+          debug(`cache ${ key } miss!`);
           const result = await fn.call(this, ...args);
           if (config.autoClearTime) {
             this.app.redis.get('other').set(key, JSON.stringify(result), 'EX', config.autoClearTime * 60);

@@ -1,10 +1,12 @@
 import {Service} from 'egg';
 import * as Mustache from 'mustache';
 import {calc} from '../util/math';
-import {Build, LambdaQuery, PageQuery} from '../loader/sql';
+import Build from '../util/sql/Build';
+import LambdaQuery from '../util/sql/LambdaQuery';
+import PageQuery from '../util/sql/PageQuery';
 import {Empty} from '../util/empty';
 import {notEmptyString} from '../util/string';
-import {DbConnection} from '../../typings';
+import {SqlSession} from '../../typings';
 export default abstract class <T> extends Service {
   private max = 500;
   private tableName: string;
@@ -17,7 +19,7 @@ export default abstract class <T> extends Service {
    * 插入所有列
    * 返回自增主键或者0
    * @param {T} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -25,7 +27,7 @@ export default abstract class <T> extends Service {
    */
   async insert(
     data: {[P in keyof T]?: T[P]},
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -36,13 +38,13 @@ export default abstract class <T> extends Service {
       });
 
       return result.insertId;
-    }, transaction);
+    }, transction);
   }
   /**
    * 如果指定列名不存在数据库中，则插入所有列
    * 返回自增主键或者0
    * @param {T} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -51,7 +53,7 @@ export default abstract class <T> extends Service {
   async insertIfNotExists(
     data: {[P in keyof T]?: T[P]},
     columns: (keyof T)[],
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -70,14 +72,14 @@ export default abstract class <T> extends Service {
       );
 
       return result.insertId;
-    }, transaction);
+    }, transction);
   }
   /**
    * 插入或修改所有列
    * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
    * 此方法是数据库级别的函数，先删除再插入
    * @param {T} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -85,7 +87,7 @@ export default abstract class <T> extends Service {
    */
   async replace(
     data: {[P in keyof T]?: T[P]},
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -100,14 +102,14 @@ export default abstract class <T> extends Service {
       });
 
       return result.insertId;
-    }, transaction);
+    }, transction);
   }
   /**
    *
    * 只插入非空字段(排除undefined、null、空字符串)
    * 返回自增主键或者0
    * @param {T} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -115,7 +117,7 @@ export default abstract class <T> extends Service {
    */
   async insertTemplate(
     data: {[P in keyof T]?: T[P]},
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName,
@@ -130,14 +132,14 @@ export default abstract class <T> extends Service {
         }
       );
       return result.insertId;
-    }, transaction);
+    }, transction);
   }
   /**
    *
    * 只插入非空字段(排除undefined、null)
    * 返回自增主键或者0
    * @param {T} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -145,18 +147,18 @@ export default abstract class <T> extends Service {
    */
   async insertTemplateLoose(
     data: {[P in keyof T]?: T[P]},
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<number> {
-    return await this.insertTemplate(data, transaction, tableName, false);
+    return await this.insertTemplate(data, transction, tableName, false);
   }
   /**
    * 如果指定列名不存在数据库中，则插入非空列(排除undefined、null、空字符串)
    * 返回自增主键或者0
    * @param {T} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -165,7 +167,7 @@ export default abstract class <T> extends Service {
   async insertTemplateIfNotExists(
     data: {[P in keyof T]?: T[P]},
     columns: (keyof T)[],
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName,
@@ -186,13 +188,13 @@ export default abstract class <T> extends Service {
       );
 
       return result.insertId;
-    }, transaction);
+    }, transction);
   }
   /**
  * 如果指定列名不存在数据库中，则插入非空列(排除undefined、null)
  * 返回自增主键或者0
  * @param {T} data
- * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+ * @param {*} [transction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
  * @param {(serviceTableName: string) => string} [tableName=(
  *       serviceTableName: string
  *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -201,19 +203,19 @@ export default abstract class <T> extends Service {
   async insertTemplateLooseIfNotExists(
     data: {[P in keyof T]?: T[P]},
     columns: (keyof T)[],
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<number> {
-    return await this.insertTemplateIfNotExists(data, columns, transaction, tableName, false);
+    return await this.insertTemplateIfNotExists(data, columns, transction, tableName, false);
   }
   /**
    * 只插入或修改非空字段(排除undefined、null、空字符串)
    * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
    * 此方法是数据库级别的函数，先删除再插入
    * @param {T} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -221,7 +223,7 @@ export default abstract class <T> extends Service {
    */
   async replaceTemplate(
     data: {[P in keyof T]?: T[P]},
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName,
@@ -236,14 +238,14 @@ export default abstract class <T> extends Service {
         ids: this.idNames
       });
       return result.insertId;
-    }, transaction);
+    }, transction);
   }
   /**
    * 只插入或修改非空字段(排除undefined、null)
    * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
    * 此方法是数据库级别的函数，先删除再插入
    * @param {T} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -251,17 +253,17 @@ export default abstract class <T> extends Service {
    */
   async replaceTemplateLoose(
     data: {[P in keyof T]?: T[P]},
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<number> {
-    return await this.replaceTemplate(data, transaction, tableName, false);
+    return await this.replaceTemplate(data, transction, tableName, false);
   }
   /**
    * 批量插入所有列,返回自增主键或者0
    * @param {T[]} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -269,7 +271,7 @@ export default abstract class <T> extends Service {
    */
   async insertBatch(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -288,13 +290,13 @@ export default abstract class <T> extends Service {
         result.push(ret.insertId);
       }
       return result;
-    }, transaction);
+    }, transction);
   }
   /**
    * 如果指定列名不存在数据库中，则批量插入所有列
    * 返回自增主键或者0
    * @param {T} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -303,7 +305,7 @@ export default abstract class <T> extends Service {
   async insertBatchIfNotExists(
     datas: {[P in keyof T]?: T[P]}[],
     columns: (keyof T)[],
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -337,14 +339,14 @@ export default abstract class <T> extends Service {
         result.push(ret.insertId);
       }
       return result;
-    }, transaction);
+    }, transction);
   }
   /**
    * 批量插入或修改所有列
    * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
    * 此方法是数据库级别的函数，先删除再插入
    * @param {T[]} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -352,7 +354,7 @@ export default abstract class <T> extends Service {
    */
   async replaceBatch(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -376,14 +378,14 @@ export default abstract class <T> extends Service {
         result.push(ret.insertId);
       }
       return result;
-    }, transaction);
+    }, transction);
   }
   /**
    *
    * 批量插入非空字段(排除undefined、null、空字符串)
    * 返回自增主键或者0
    * @param {T[]} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -391,7 +393,7 @@ export default abstract class <T> extends Service {
    */
   async insertBatchTemplate(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName,
@@ -415,14 +417,14 @@ export default abstract class <T> extends Service {
         result.push(ret.insertId);
       }
       return result;
-    }, transaction);
+    }, transction);
   }
   /**
    *
    * 批量插入非空字段(排除undefined、null)
    * 返回自增主键或者0
    * @param {T[]} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -430,18 +432,18 @@ export default abstract class <T> extends Service {
    */
   async insertBatchTemplateLoose(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<number[]> {
-    return await this.insertBatchTemplate(datas, transaction, tableName, false);
+    return await this.insertBatchTemplate(datas, transction, tableName, false);
   }
   /**
    * 如果指定列名不存在数据库中，则批量插入所有非空列(排除undefined、null、空字符串)
    * 返回自增主键或者0
    * @param {T} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -450,7 +452,7 @@ export default abstract class <T> extends Service {
   async insertBatchTemplateIfNotExists(
     datas: {[P in keyof T]?: T[P]}[],
     columns: (keyof T)[],
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName,
@@ -487,13 +489,13 @@ export default abstract class <T> extends Service {
         result.push(ret.insertId);
       }
       return result;
-    }, transaction);
+    }, transction);
   }
   /**
     * 如果指定列名不存在数据库中，则批量插入所有非空列(排除undefined、null)
     * 返回自增主键或者0
     * @param {T} data
-    * @param {*} [transaction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+    * @param {*} [transction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
     * @param {(serviceTableName: string) => string} [tableName=(
     *       serviceTableName: string
     *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -502,12 +504,12 @@ export default abstract class <T> extends Service {
   async insertBatchTemplateLooseIfNotExists(
     datas: {[P in keyof T]?: T[P]}[],
     columns: (keyof T)[],
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<number[]> {
-    return await this.insertBatchTemplateIfNotExists(datas, columns, transaction, tableName, false);
+    return await this.insertBatchTemplateIfNotExists(datas, columns, transction, tableName, false);
   }
   /**
    * 快速批量插入或修改非空字段(排除undefined、null、空字符串)
@@ -516,7 +518,7 @@ export default abstract class <T> extends Service {
    * 若想安全的修改，请使用replaceBatchTemplateSafe(较慢，但每条都会完整保存)
    * 此方法是数据库级别的函数，先删除再插入
    * @param {T[]} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -524,7 +526,7 @@ export default abstract class <T> extends Service {
    */
   async replaceBatchTemplate(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName,
@@ -549,7 +551,7 @@ export default abstract class <T> extends Service {
         result.push(ret.insertId);
       }
       return result;
-    }, transaction);
+    }, transction);
   }
   /**
    * 快速批量插入或修改非空字段(排除undefined、null)
@@ -558,7 +560,7 @@ export default abstract class <T> extends Service {
    * 若想安全的修改，请使用replaceBatchTemplateSafe(较慢，但每条都会完整保存)
    * 此方法是数据库级别的函数，先删除再插入
    * @param {T[]} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -566,19 +568,19 @@ export default abstract class <T> extends Service {
    */
   async replaceBatchTemplateLoose(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<number[]> {
-    return await this.replaceBatchTemplate(datas, transaction, tableName, false);
+    return await this.replaceBatchTemplate(datas, transction, tableName, false);
   }
   /**
    * 安全的批量插入或修改非空字段(排除undefined、null、空字符串)
    * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
    * 此方法是数据库级别的函数，先删除再插入
    * @param {T[]} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -586,7 +588,7 @@ export default abstract class <T> extends Service {
    */
   async replaceBatchTemplateSafe(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName,
@@ -606,14 +608,14 @@ export default abstract class <T> extends Service {
         result.push(ret.insertId);
       }
       return result;
-    }, transaction);
+    }, transction);
   }
   /**
    * 安全的批量插入或修改非空字段(排除undefined、null)
    * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
    * 此方法是数据库级别的函数，先删除再插入
    * @param {T[]} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -621,7 +623,7 @@ export default abstract class <T> extends Service {
    */
   async replaceBatchTemplateLooseSafe(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -629,12 +631,12 @@ export default abstract class <T> extends Service {
     if (datas.length === 0) {
       return [];
     }
-    return await this.replaceBatchTemplateSafe(datas, transaction, tableName, false);
+    return await this.replaceBatchTemplateSafe(datas, transction, tableName, false);
   }
   /**
    * 根据主键修改全部字段
    * @param {T} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -642,7 +644,7 @@ export default abstract class <T> extends Service {
    */
   async updateById(
     data: {[P in keyof T]?: T[P]},
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -658,13 +660,13 @@ export default abstract class <T> extends Service {
         columns: this.keys
       });
       return result.affectedRows;
-    }, transaction);
+    }, transction);
   }
   /**
    * 根据主键修改非空字段(排除undefined、null、空字符串)
    *
    * @param {T} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -672,7 +674,7 @@ export default abstract class <T> extends Service {
    */
   async updateTemplateById(
     data: {[P in keyof T]?: T[P]},
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName,
@@ -690,13 +692,13 @@ export default abstract class <T> extends Service {
         columns: Object.keys(realdata) as any
       });
       return result.affectedRows;
-    }, transaction);
+    }, transction);
   }
   /**
    * 根据主键修改非空字段(排除undefined、null)
    *
    * @param {T} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -704,18 +706,18 @@ export default abstract class <T> extends Service {
    */
   async updateTemplateLooseById(
     data: {[P in keyof T]?: T[P]},
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<number> {
-    return await this.updateTemplateById(data, transaction, tableName, false);
+    return await this.updateTemplateById(data, transction, tableName, false);
   }
   /**
    *
    * 根据主键批量修改全部字段
    * @param {T[]} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -723,7 +725,7 @@ export default abstract class <T> extends Service {
    */
   async updateBatchById(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -757,14 +759,14 @@ export default abstract class <T> extends Service {
         )).affectedRows;
       }
       return result;
-    }, transaction);
+    }, transction);
   }
   /**
    * 根据主键修改所有非空字段(null、undefined、空字符串)
    * 注意：此方法操作的列是所有记录的串集，若某条记录中不存在字段，则会重置为null
    * 若想安全的修改，请使用updateBatchTemplateByIdSafe(较慢，但每条都会完整保存)
    * @param {T[]} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -772,7 +774,7 @@ export default abstract class <T> extends Service {
    */
   async updateBatchTemplateById(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName,
@@ -811,14 +813,14 @@ export default abstract class <T> extends Service {
         )).affectedRows;
       }
       return result;
-    }, transaction);
+    }, transction);
   }
   /**
    * 根据主键修改所有非空字段(null、undefined、空字符串)
    * 注意：此方法操作的列是所有记录的串集，若某条记录中不存在字段，则会重置为null
    * 若想安全的修改，请使用updateBatchTemplateByIdSafe(较慢，但每条都会完整保存)
    * @param {T[]} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -826,17 +828,17 @@ export default abstract class <T> extends Service {
    */
   async updateBatchTemplateLooseById(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<number> {
-    return await this.updateBatchTemplateById(datas, transaction, tableName, false);
+    return await this.updateBatchTemplateById(datas, transction, tableName, false);
   }
   /**
    * 安全的根据主键修改所有非空字段(null、undefined、空字符串)
    * @param {T[]} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -844,7 +846,7 @@ export default abstract class <T> extends Service {
    */
   async updateBatchTemplateByIdSafe(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName,
@@ -869,12 +871,12 @@ export default abstract class <T> extends Service {
         })).affectedRows;
       }
       return result;
-    }, transaction);
+    }, transction);
   }
   /**
    * 安全的根据主键修改所有非空字段(null、undefined)
    * @param {T[]} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -882,19 +884,19 @@ export default abstract class <T> extends Service {
    */
   async updateBatchTemplateLooseByIdSafe(
     datas: {[P in keyof T]?: T[P]}[],
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<number> {
-    return await this.updateBatchTemplateByIdSafe(datas, transaction, tableName, false);
+    return await this.updateBatchTemplateByIdSafe(datas, transction, tableName, false);
   }
   /**
    *
    * 根据自定义条件修改
    * @param {T} data
    * @param {T} where
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -903,7 +905,7 @@ export default abstract class <T> extends Service {
   async updateBatch(
     data: {[P in keyof T]?: T[P]},
     where: {[P in keyof T]?: T[P]},
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -915,14 +917,14 @@ export default abstract class <T> extends Service {
         columns: Object.keys(realData) as any
       });
       return result.affectedRows;
-    }, transaction);
+    }, transction);
   }
 
   /**
    *
    * 自定义条件删除,如果service开启注解：logicDelete,那么将逻辑删除
    * @param {T} where
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {boolean} [fixTransient=true] 是否过滤一遍transient标记的字段?
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
@@ -931,7 +933,7 @@ export default abstract class <T> extends Service {
    */
   async deleteBatch(
     where: {[P in keyof T]?: T[P]},
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -953,14 +955,14 @@ export default abstract class <T> extends Service {
         );
         return result.affectedRows;
       }
-    }, transaction);
+    }, transction);
   }
 
   /**
    *
    * 根据复合主键删除
    * @param {T[]} datas
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -968,7 +970,7 @@ export default abstract class <T> extends Service {
    */
   async deleteByIdMuti(
     data: {[P in keyof T]?: T[P]},
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -976,7 +978,7 @@ export default abstract class <T> extends Service {
     return await this.transction(async (conn: any) => {
       if (this.stateFileName) {
         data[this.stateFileName] = this.deleteState;
-        await this.updateById(data, transaction, tableName);
+        await this.updateById(data, transction, tableName);
       } else {
         const realdata: {[P in keyof T]?: T[P]} = {};
         for (const idName of this.idNames) {
@@ -986,13 +988,13 @@ export default abstract class <T> extends Service {
         const result = await conn.delete(tableName(this.tableName), realdata);
         return result.affectedRows;
       }
-    }, transaction);
+    }, transction);
   }
   /**
    *
    * 根据主键删除
    * @param {*} id
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1000,7 +1002,7 @@ export default abstract class <T> extends Service {
    */
   async deleteById(
     id: any,
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -1032,13 +1034,13 @@ export default abstract class <T> extends Service {
         const result = await conn.delete(tableName(this.tableName), realdata);
         return result.affectedRows;
       }
-    }, transaction);
+    }, transction);
   }
   /**
    *
    * 一次性删除多个主键
    * @param {any[]} ids
-   * @param {*} [transaction=true]
+   * @param {*} [transction=true]
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName]
@@ -1046,21 +1048,21 @@ export default abstract class <T> extends Service {
    */
   async deleteByIds(
     ids: any[],
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<number[]> {
     const result = new Array<number>();
     for (const id of ids) {
-      result.push(await this.deleteById(id, transaction, tableName));
+      result.push(await this.deleteById(id, transction, tableName));
     }
     return result;
   }
   /**
    * 根据主键查询，若查询不到结果，抛出异常
    * @param {*} id
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1069,7 +1071,7 @@ export default abstract class <T> extends Service {
   async unique<L>(
     id: any,
     error?: string,
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -1081,12 +1083,12 @@ export default abstract class <T> extends Service {
     const realdata: {[P in keyof L]?: L[P]} = {};
     realdata[this.idNames[0] as any] = id;
     let result;
-    if (transaction === true) {
+    if (transction === undefined) {
       result = await this.app.mysql.get<L>(tableName(this.tableName), realdata);
     } else {
       await this.transction(async (conn) => {
         result = await conn.get<L>(tableName(this.tableName), realdata);
-      });
+      }, transction);
     }
     this.app.throwIf(!result, error || `not found data! ${ this.tableName } > ${ id }`);
     return result;
@@ -1094,7 +1096,7 @@ export default abstract class <T> extends Service {
   /**
    * 根据主键查询，若查询不到结果，抛出异常
    * @param {*} id
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1103,18 +1105,18 @@ export default abstract class <T> extends Service {
   async uniqueMe(
     id: any,
     error?: string,
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<T> {
-    return await this.unique<T>(id, error, transaction, tableName);
+    return await this.unique<T>(id, error, transction, tableName);
   }
 
   /**
    * 根据复合主键查询，若查询不到结果，抛出异常
    * @param {T} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1123,14 +1125,14 @@ export default abstract class <T> extends Service {
   async uniqueMuti<L>(
     data: {[P in keyof T]?: T[P]},
     error?: string,
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<L> {
     this.app.throwIf(this.idNames.length === 0, 'this table or not set id!');
     let result;
-    if (transaction === true) {
+    if (transction === undefined) {
       result = await this.app.mysql.get<L>(
         tableName(this.tableName),
         this.filterEmptyAndTransient<L>(data)
@@ -1141,7 +1143,7 @@ export default abstract class <T> extends Service {
           tableName(this.tableName),
           this.filterEmptyAndTransient<L>(data)
         );
-      });
+      }, transction);
     }
     this.app.throwIf(!result, error || 'not found data!');
     return result;
@@ -1150,7 +1152,7 @@ export default abstract class <T> extends Service {
   /**
    * 根据复合主键查询，若查询不到结果，抛出异常
    * @param {T} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1159,18 +1161,18 @@ export default abstract class <T> extends Service {
   async uniqueMutiMe(
     data: {[P in keyof T]?: T[P]},
     error?: string,
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<T> {
-    return await this.uniqueMuti<T>(data, error, transaction, tableName);
+    return await this.uniqueMuti<T>(data, error, transction, tableName);
   }
   /**
    *
    * 根据主键查询，若查询不到结果，不抛出异常
    * @param {*} id
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1178,7 +1180,7 @@ export default abstract class <T> extends Service {
    */
   async single<L>(
     id: any,
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
@@ -1189,11 +1191,12 @@ export default abstract class <T> extends Service {
     );
     const realdata: {[P in keyof L]?: L[P]} = {};
     realdata[this.idNames[0] as any] = id;
-    if (transaction === true) {
+    if (transction === undefined) {
       return await this.app.mysql.get<L>(tableName(this.tableName), realdata);
     } else {
       return await this.transction(
-        async (conn) => await conn.get<L>(tableName(this.tableName), realdata)
+        async (conn) => await conn.get<L>(tableName(this.tableName), realdata),
+        transction
       );
     }
   }
@@ -1202,7 +1205,7 @@ export default abstract class <T> extends Service {
    *
    * 根据主键查询，若查询不到结果，不抛出异常
    * @param {*} id
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1210,17 +1213,17 @@ export default abstract class <T> extends Service {
    */
   async singleMe(
     id: any,
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<T | null> {
-    return await this.single<T>(id, transaction, tableName);
+    return await this.single<T>(id, transction, tableName);
   }
   /**
    * 根据复合主键查询，若查询不到结果，不抛出异常
    * @param {T} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1228,13 +1231,13 @@ export default abstract class <T> extends Service {
    */
   async singleMuti<L>(
     data: {[P in keyof L]?: L[P]},
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<L | null> {
     this.app.throwIf(this.idNames.length === 0, 'this table or not set id!');
-    if (transaction === true) {
+    if (transction === undefined) {
       return await this.app.mysql.get<L>(
         tableName(this.tableName),
         this.filterEmptyAndTransient<L>(data)
@@ -1245,14 +1248,15 @@ export default abstract class <T> extends Service {
           await conn.get<L>(
             tableName(this.tableName),
             this.filterEmptyAndTransient<L>(data)
-          )
+          ),
+        transction
       );
     }
   }
   /**
    * 根据复合主键查询，若查询不到结果，不抛出异常
    * @param {T} data
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1260,57 +1264,58 @@ export default abstract class <T> extends Service {
    */
   async singleMutiMe(
     data: {[P in keyof T]?: T[P]},
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<T | null> {
-    return await this.singleMuti<T>(data, transaction, tableName);
+    return await this.singleMuti<T>(data, transction, tableName);
   }
   /**
    * 返回全部数据
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
   async all<L>(
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<L[]> {
-    if (transaction === true) {
+    if (transction === undefined) {
       return await this.app.mysql.select<L>(tableName(this.tableName));
     } else {
       return await this.transction(
-        async (conn) => await conn.select<L>(tableName(this.tableName))
+        async (conn) => await conn.select<L>(tableName(this.tableName)),
+        transction
       );
     }
   }
   /**
    * 返回全部数据
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
   async allMe(
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<T[]> {
-    return await this.all<T>(transaction, tableName);
+    return await this.all<T>(transction, tableName);
   }
   /**
    *
    * 分页方式返回全部数据
    * @param {number} start 起始记录
    * @param {number} size 返回条数
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1319,12 +1324,12 @@ export default abstract class <T> extends Service {
   async allPage<L>(
     start: number,
     size: number,
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<L[]> {
-    if (transaction === true) {
+    if (transction === undefined) {
       return await this.app.mysql.select<L>(tableName(this.tableName), {
         limit: size,
         offset: start
@@ -1335,7 +1340,8 @@ export default abstract class <T> extends Service {
           await conn.select<L>(tableName(this.tableName), {
             limit: size,
             offset: start
-          })
+          }),
+        transction
       );
     }
   }
@@ -1344,7 +1350,7 @@ export default abstract class <T> extends Service {
    * 分页方式返回全部数据
    * @param {number} start 起始记录
    * @param {number} size 返回条数
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1353,33 +1359,34 @@ export default abstract class <T> extends Service {
   async allPageMe(
     start: number,
     size: number,
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<T[]> {
-    return await this.allPage<T>(start, size, transaction, tableName);
+    return await this.allPage<T>(start, size, transction, tableName);
   }
 
   /**
    * 返回总条数
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
   async allCount(
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<number> {
-    if (transaction === true) {
+    if (transction === undefined) {
       return await this.app.mysql.count<T>(tableName(this.tableName));
     } else {
       return await this.transction(
-        async (conn) => await conn.count<T>(tableName(this.tableName))
+        async (conn) => await conn.count<T>(tableName(this.tableName)),
+        transction
       );
     }
   }
@@ -1396,12 +1403,12 @@ export default abstract class <T> extends Service {
    */
   async template<L>(
     where: {[P in keyof L]?: L[P]},
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<L[]> {
-    if (transaction === true) {
+    if (transction === undefined) {
       return await this.app.mysql.select<L>(tableName(this.tableName), {
         where: this.filterEmptyAndTransient<L>(where)
       });
@@ -1410,7 +1417,8 @@ export default abstract class <T> extends Service {
         async (conn) =>
           await conn.select<L>(tableName(this.tableName), {
             where: this.filterEmptyAndTransient<L>(where)
-          })
+          }),
+        transction
       );
     }
   }
@@ -1419,7 +1427,7 @@ export default abstract class <T> extends Service {
    * 根据模版查询所有数据
    *
    * @param {T} data 模版，仅支持 = 操作符
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1427,18 +1435,18 @@ export default abstract class <T> extends Service {
    */
   async templateMe(
     where: {[P in keyof T]?: T[P]},
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<T[]> {
-    return await this.template<T>(where, transaction, tableName);
+    return await this.template<T>(where, transction, tableName);
   }
 
   /**
    * 根据模版查询所有一条数据
    * @param {T} data ，仅支持 = 操作符
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1446,12 +1454,12 @@ export default abstract class <T> extends Service {
    */
   async templateOne<L>(
     data: {[P in keyof L]?: L[P]},
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<L> {
-    if (transaction === true) {
+    if (transction === undefined) {
       return await this.app.mysql.get<L>(
         tableName(this.tableName),
         this.filterEmptyAndTransient<L>(data)
@@ -1462,7 +1470,8 @@ export default abstract class <T> extends Service {
           await conn.get<L>(
             tableName(this.tableName),
             this.filterEmptyAndTransient<L>(data)
-          )
+          ),
+        transction
       );
     }
   }
@@ -1470,7 +1479,7 @@ export default abstract class <T> extends Service {
   /**
    * 根据模版查询所有一条数据
    * @param {T} data ，仅支持 = 操作符
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1478,12 +1487,12 @@ export default abstract class <T> extends Service {
    */
   async templateOneMe(
     data: {[P in keyof T]?: T[P]},
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<T> {
-    return await this.templateOne<T>(data, transaction, tableName);
+    return await this.templateOne<T>(data, transction, tableName);
   }
 
   /**
@@ -1492,7 +1501,7 @@ export default abstract class <T> extends Service {
    * @param {T} data ，仅支持 = 操作符
    * @param {number} start
    * @param {number} size
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1502,12 +1511,12 @@ export default abstract class <T> extends Service {
     data: {[P in keyof L]?: L[P]},
     start: number,
     size: number,
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<L[]> {
-    if (transaction === true) {
+    if (transction === undefined) {
       return await this.app.mysql.select<L>(tableName(this.tableName), {
         where: this.filterEmptyAndTransient<L>(data),
         limit: size,
@@ -1520,7 +1529,8 @@ export default abstract class <T> extends Service {
             where: this.filterEmptyAndTransient<L>(data),
             limit: size,
             offset: start
-          })
+          }),
+        transction
       );
     }
   }
@@ -1531,7 +1541,7 @@ export default abstract class <T> extends Service {
    * @param {T} data ，仅支持 = 操作符
    * @param {number} start
    * @param {number} size
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1541,19 +1551,19 @@ export default abstract class <T> extends Service {
     data: {[P in keyof T]?: T[P]},
     start: number,
     size: number,
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<T[]> {
-    return await this.templatePage<T>(data, start, size, transaction, tableName);
+    return await this.templatePage<T>(data, start, size, transction, tableName);
   }
 
   /**
    *
    * 根据模版查询条数
    * @param {T} data，仅支持 = 操作符
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1561,12 +1571,12 @@ export default abstract class <T> extends Service {
    */
   async templateCount(
     data: {[P in keyof T]?: T[P]},
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<number> {
-    if (transaction === true) {
+    if (transction === undefined) {
       return await this.app.mysql.count<T>(
         tableName(this.tableName),
         this.filterEmptyAndTransient<T>(data)
@@ -1577,7 +1587,8 @@ export default abstract class <T> extends Service {
           await conn.count<T>(
             tableName(this.tableName),
             this.filterEmptyAndTransient<T>(data)
-          )
+          ),
+        transction
       );
     }
   }
@@ -1587,13 +1598,13 @@ export default abstract class <T> extends Service {
    *
    * @param {string} sqlid sql语句编码
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @returns
    */
   async executeBySqlId(
     sqlid: string,
     param?: {[propName: string]: any},
-    transaction: DbConnection | true = true
+    transction?: SqlSession
   ): Promise<number> {
     const source = this.app.getSql.call(this.ctx, sqlid, param);
     const buildParam = new Build(false, param);
@@ -1601,7 +1612,7 @@ export default abstract class <T> extends Service {
     return await this.transction(async (conn) => {
       const result = await conn.query(sql, param);
       return result.affectedRows;
-    }, transaction);
+    }, transction);
   }
 
   /**
@@ -1609,18 +1620,18 @@ export default abstract class <T> extends Service {
    * 执行数据库操作
    * @param {string} sql sql语句
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @returns
    */
   async executeBySql(
     sql: string,
     param?: {[propName: string]: any},
-    transaction: DbConnection | true = true
+    transction?: SqlSession
   ): Promise<number> {
     return await this.transction(async (conn: any) => {
       const result = await conn.query(sql, param);
       return result.affectedRows;
-    }, transaction);
+    }, transction);
   }
 
   /**
@@ -1628,15 +1639,15 @@ export default abstract class <T> extends Service {
    * 执行数据库查询 多列多行
    * @param {string} sqlid sql语句编码
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns 本service对象数组
    */
   async queryMeBySqlId(
     sqlid: string,
     param?: {[propName: string]: any},
-    transaction: DbConnection | true = true
+    transction?: SqlSession
   ): Promise<T[]> {
-    return await this.queryMutiRowMutiColumnBySqlId<T>(sqlid, param, transaction);
+    return await this.queryMutiRowMutiColumnBySqlId<T>(sqlid, param, transction);
   }
 
   /**
@@ -1644,15 +1655,15 @@ export default abstract class <T> extends Service {
    * 执行数据库查询 多列多行
    * @param {string} sql sql语句
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns 指定类型数组
    */
   async queryBySql<L>(
     sql: string,
     param?: {[propName: string]: any},
-    transaction: DbConnection | true = true
+    transction?: SqlSession
   ): Promise<L[]> {
-    return await this.queryMutiRowMutiColumnBySql<L>(sql, param, transaction);
+    return await this.queryMutiRowMutiColumnBySql<L>(sql, param, transction);
   }
 
   /**
@@ -1660,15 +1671,15 @@ export default abstract class <T> extends Service {
    * 执行数据库查询 多列多行
    * @param {string} sqlid sql语句编码
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns 指定类型数组
    */
   async queryBySqlId<L>(
     sqlid: string,
     param?: {[propName: string]: any},
-    transaction: DbConnection | true = true
+    transction?: SqlSession
   ): Promise<L[]> {
-    return await this.queryMutiRowMutiColumnBySqlId<L>(sqlid, param, transaction);
+    return await this.queryMutiRowMutiColumnBySqlId<L>(sqlid, param, transction);
   }
 
   /**
@@ -1676,18 +1687,18 @@ export default abstract class <T> extends Service {
    * 执行数据库查询 ,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组,与sql语句的顺序对应
    * @param {string} sql sql语句
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns 指定类型数组
    */
   async queryMulitBySql<L>(
     sql: string,
     param?: {[propName: string]: any},
-    transaction: DbConnection | true = true
+    transction?: SqlSession
   ): Promise<L[][]> {
-    if (transaction === true) {
+    if (transction === undefined) {
       return await this.app.mysql.query(sql, param);
     } else {
-      return await this.transction((conn) => conn.query(sql, param));
+      return await this.transction((conn) => conn.query(sql, param), transction);
     }
   }
 
@@ -1696,21 +1707,21 @@ export default abstract class <T> extends Service {
    * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
    * @param {string} sqlid sql语句编码
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns 指定类型数组
    */
   async queryMulitBySqlId<L>(
     sqlid: string,
     param?: {[propName: string]: any},
-    transaction: DbConnection | true = true
+    transction?: SqlSession
   ): Promise<L[][]> {
     const source = this.app.getSql.call(this.ctx, sqlid, param);
     const buildParam = new Build(false, param);
     const sql = Mustache.render(source, buildParam, this.app.getSqlFn());
-    if (transaction === true) {
+    if (transction === undefined) {
       return await this.app.mysql.query(sql, param);
     } else {
-      return await this.transction((conn) => conn.query(sql, param));
+      return await this.transction((conn) => conn.query(sql, param), transction);
     }
   }
 
@@ -1719,33 +1730,33 @@ export default abstract class <T> extends Service {
    * 执行数据库查询 多列多行
    * @param {string} sql sql语句
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns 本service对象数组
    */
   async queryMeBySql(
     sql: string,
     param?: {[propName: string]: any},
-    transaction: DbConnection | true = true
+    transction?: SqlSession
   ): Promise<T[]> {
-    return await this.queryMutiRowMutiColumnBySql<T>(sql, param, transaction);
+    return await this.queryMutiRowMutiColumnBySql<T>(sql, param, transction);
   }
   /**
    *
    * 执行数据库查询 多列多行
    * @param {string} sqlid sql语句编码
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns 列名 =key的json数组
    */
   async queryMutiRowMutiColumnBySqlId<L>(
     sqlid: string,
     param?: {[propName: string]: any},
-    transaction: DbConnection | true = true
+    transction?: SqlSession
   ): Promise<L[]> {
     const source = this.app.getSql.call(this.ctx, sqlid, param);
     const buildParam = new Build(false, param);
     const sql = Mustache.render(source, buildParam, this.app.getSqlFn());
-    return await this.queryMutiRowMutiColumnBySql<L>(sql, param, transaction);
+    return await this.queryMutiRowMutiColumnBySql<L>(sql, param, transction);
   }
 
   /**
@@ -1753,18 +1764,18 @@ export default abstract class <T> extends Service {
    * 执行数据库查询 多列多行
    * @param {string} sql sql语句
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns 列名 =key的json数组
    */
   async queryMutiRowMutiColumnBySql<L>(
     sql: string,
     param?: {[propName: string]: any},
-    transaction: DbConnection | true = true
+    transction?: SqlSession
   ): Promise<L[]> {
-    if (transaction === true) {
+    if (transction === undefined) {
       return await this.app.mysql.query(sql, param);
     } else {
-      return await this.transction((conn) => conn.query(sql, param));
+      return await this.transction((conn) => conn.query(sql, param), transction);
     }
   }
 
@@ -1773,15 +1784,15 @@ export default abstract class <T> extends Service {
    * 执行数据库查询 多列单行
    * @param {string} sqlid sql语句编码
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns
    */
   async querySingelRowMutiColumnBySqlId<L>(
     sqlid: string,
     param?: {[propName: string]: any},
-    transaction: DbConnection | true = true
+    transction?: SqlSession
   ): Promise<L | null> {
-    const data = await this.queryMutiRowMutiColumnBySqlId<L>(sqlid, param, transaction);
+    const data = await this.queryMutiRowMutiColumnBySqlId<L>(sqlid, param, transction);
     if (data) {
       return data[0] || null;
     } else {
@@ -1794,15 +1805,15 @@ export default abstract class <T> extends Service {
    * 执行数据库查询 多列单行
    * @param {string} sql sql语句
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns 列名 =key的json数组
    */
   async querySingelRowMutiColumnBySql<L>(
     sql: string,
     param?: {[propName: string]: any},
-    transaction: DbConnection | true = true
+    transction?: SqlSession
   ): Promise<L | null> {
-    const data = await this.queryMutiRowMutiColumnBySql<L>(sql, param, transaction);
+    const data = await this.queryMutiRowMutiColumnBySql<L>(sql, param, transction);
     return data && data.length > 0 ? null : data[0];
   }
 
@@ -1811,15 +1822,15 @@ export default abstract class <T> extends Service {
    * 执行数据库查询 单列多行
    * @param {string} sqlid sql语句编码
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns
    */
   async queryMutiRowSingelColumnBySqlId<M>(
     sqlid: string,
     param?: {[propName: string]: any},
-    transaction: DbConnection | true = true
+    transction?: SqlSession
   ): Promise<M[]> {
-    const data = await this.queryMutiRowMutiColumnBySqlId<{[name: string]: any}>(sqlid, param, transaction);
+    const data = await this.queryMutiRowMutiColumnBySqlId<{[name: string]: any}>(sqlid, param, transction);
     const result: M[] = [];
     data.forEach((item: {[name: string]: any}) => {
       const key: string = Object.keys(item)[0];
@@ -1833,15 +1844,15 @@ export default abstract class <T> extends Service {
    * 执行数据库查询 单列多行
    * @param {string} sql sql语句
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns 列名 =key的json数组
    */
   async queryMutiRowSingelColumnBySql<L>(
     sql: string,
     param?: {[propName: string]: any},
-    transaction: DbConnection | true = true
+    transction?: SqlSession
   ): Promise<L[]> {
-    const data = await this.queryMutiRowMutiColumnBySql<{[name: string]: any}>(sql, param, transaction);
+    const data = await this.queryMutiRowMutiColumnBySql<{[name: string]: any}>(sql, param, transction);
     const result: L[] = [];
     data.forEach((item: {[name: string]: any}) => {
       const key: string = Object.keys(item)[0];
@@ -1855,17 +1866,17 @@ export default abstract class <T> extends Service {
    * 执行数据库查询 单列单行
    * @param {string} sqlid sql语句编码
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns
    */
   async querySingelRowSingelColumnBySqlId<M>(
     sqlid: string,
     param?: {[propName: string]: any},
-    transaction: DbConnection | true = true
+    transction?: SqlSession
   ): Promise<M | null> {
     const data: {
       [name: string]: any;
-    } = await this.queryMutiRowMutiColumnBySqlId(sqlid, param, transaction);
+    } = await this.queryMutiRowMutiColumnBySqlId(sqlid, param, transction);
     return data.length === 0
       ? null
       : (Object.values(data[data.length - 1])[0] as M);
@@ -1876,17 +1887,17 @@ export default abstract class <T> extends Service {
    * 执行数据库查询 单列单行
    * @param {string} sql sql语句
    * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns 列名 =key的json数组
    */
   async querySingelRowSingelColumnBySql<M>(
     sql: string,
     param?: {[propName: string]: any},
-    transaction: DbConnection | true = true
+    transction?: SqlSession
   ): Promise<M | null> {
     const data: {
       [name: string]: any;
-    } = await this.queryMutiRowMutiColumnBySql(sql, param, transaction);
+    } = await this.queryMutiRowMutiColumnBySql(sql, param, transction);
     return data.length === 0 ? null : (Object.values(data[0])[0] as M);
   }
 
@@ -1894,10 +1905,10 @@ export default abstract class <T> extends Service {
    *
    * 创建分页查询语句
    * @param {string} sqlid sql语句编码
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns {PageQuery}
    */
-  pageQuery<L>(sqlid: string, transaction: DbConnection | true = true): PageQuery<L> {
+  pageQuery<L>(sqlid: string, transction?: SqlSession): PageQuery<L> {
     return new PageQuery(
       async (
         param: Empty,
@@ -1938,7 +1949,7 @@ export default abstract class <T> extends Service {
             const totalRow = await this.querySingelRowSingelColumnBySql<number>(
               sqlPage,
               param,
-              transaction
+              transction
             );
             query.totalRow = totalRow || 0;
             query.totalPage = calc(query.totalRow)
@@ -1964,7 +1975,7 @@ export default abstract class <T> extends Service {
             const totalRow = await this.querySingelRowSingelColumnBySql<number>(
               sqlPage,
               param,
-              transaction
+              transction
             );
             query.totalRow = totalRow || 0;
             query.totalPage = calc(query.totalRow)
@@ -1974,7 +1985,7 @@ export default abstract class <T> extends Service {
               .over();
           }
         }
-        query.list = await this.queryMutiRowMutiColumnBySql<L>(sql, param, transaction);
+        query.list = await this.queryMutiRowMutiColumnBySql<L>(sql, param, transction);
       }
     );
   }
@@ -1982,11 +1993,11 @@ export default abstract class <T> extends Service {
    *
    * 创建分页查询语句
    * @param {string} sqlid sql语句编码
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns {PageQuery}
    */
-  pageQueryMe(sqlid: string, transaction: DbConnection | true = true): PageQuery<T> {
-    return this.pageQuery<T>(sqlid, transaction);
+  pageQueryMe(sqlid: string, transction?: SqlSession): PageQuery<T> {
+    return this.pageQuery<T>(sqlid, transction);
   }
 
   /**
@@ -1995,23 +2006,23 @@ export default abstract class <T> extends Service {
    *       .andEq(CpResource.resourcecode, 'xxx')
    *       .select(CpResource.resourcename)
    *
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns {LambdaQuery<L>}
    */
   lambdaQuery<L>(
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): LambdaQuery<L> {
     return new LambdaQuery(
       tableName(this.tableName),
-      async (sql: string, params: Empty) => await this.queryMutiRowMutiColumnBySql<L>(sql, params, transaction),
-      async (sql: string, params: Empty) => (await this.querySingelRowSingelColumnBySql<number>(sql, params, transaction)) || 0,
-      async (sql: string, params: Empty) => await this.executeBySql(sql, params, transaction)
+      async (sql: string, params: Empty) => await this.queryMutiRowMutiColumnBySql<L>(sql, params, transction),
+      async (sql: string, params: Empty) => (await this.querySingelRowSingelColumnBySql<number>(sql, params, transction)) || 0,
+      async (sql: string, params: Empty) => await this.executeBySql(sql, params, transction)
     );
   }
   /**
@@ -2020,19 +2031,19 @@ export default abstract class <T> extends Service {
    *       .andEq(CpResource.resourcecode, 'xxx')
    *       .select(CpResource.resourcename)
    *
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns {LambdaQuery<L>}
    */
   lambdaQueryMe(
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): LambdaQuery<T> {
-    return this.lambdaQuery<T>(transaction, tableName);
+    return this.lambdaQuery<T>(transction, tableName);
   }
 
   /**
@@ -2046,7 +2057,7 @@ export default abstract class <T> extends Service {
    *     pageSize?: number
    *     orders?: string[] 例如 orders: [['id', 'desc'], ['name', 'asc']]
    *   }} x
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -2060,12 +2071,12 @@ export default abstract class <T> extends Service {
       pageSize?: number;
       orders?: [keyof L, 'asc' | 'desc'][];
     },
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<L[]> {
-    if (transaction === true) {
+    if (transction === undefined) {
       return await this.app.mysql.select<L>(tableName(this.tableName), {
         where: x.where,
         columns: x.columns,
@@ -2082,7 +2093,8 @@ export default abstract class <T> extends Service {
             offset: x.startRow,
             limit: x.pageSize,
             orders: x.orders || []
-          })
+          }),
+        transction
       );
     }
   }
@@ -2098,7 +2110,7 @@ export default abstract class <T> extends Service {
    *     pageSize?: number
    *     orders?: string[] 例如 orders: [['id', 'desc'], ['name', 'asc']]
    *   }} x
-   * @param {*} [transaction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -2112,32 +2124,32 @@ export default abstract class <T> extends Service {
       pageSize?: number;
       orders?: [keyof T, 'asc' | 'desc'][];
     },
-    transaction: DbConnection | true = true,
+    transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
   ): Promise<T[]> {
-    return await this.customQuery<T>(x, transaction, tableName);
+    return await this.customQuery<T>(x, transction, tableName);
   }
 
   /**
    *
    * 事务执行方法
    * @param {(conn: any) => void} fn 方法主体
-   * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @returns
    */
   protected async transction(
-    fn: (conn: DbConnection) => Promise<any>,
-    transaction: DbConnection | true = true
+    fn: (conn: SqlSession) => Promise<any>,
+    transction?: SqlSession
   ): Promise<any> {
-    if (transaction === true) {
+    if (transction === undefined) {
       return await this.app.mysql.beginTransactionScope(
         conn => fn(conn),
         this.ctx
       );
     } else {
-      return await fn(transaction);
+      return await fn(transction);
     }
   }
 

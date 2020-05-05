@@ -3,6 +3,7 @@ import {uuid} from '../util/string';
 import lodash = require('lodash');
 import {BaseUser} from '../../typings';
 import SocketConfig from '../enums/SocketConfig';
+const debug = require('debug')('egg-bag');
 const USER = 'Context#user';
 export default {
   get me(this: Context): BaseUser {
@@ -200,7 +201,7 @@ export default {
   },
   async emitASync(this: Context, name: string, ...args: any[]) {
     if (this.app._asyncSubClient[name]) {
-      this.coreLogger.info(`[egg-bag] async-sub named ${ name } has been called`);
+      debug(` async-sub named ${ name } has been called`);
       return await this._asyncSubClient[name].call(this, ...args);
     }
   },
@@ -216,7 +217,7 @@ export default {
       conn?: any;
     }
   ): Promise<any> {
-    this.coreLogger.info(`[egg-bag] flow named ${ param.flowPath } has been called`);
+    debug(` flow named ${ param.flowPath } has been called`);
     return await this.service.paasService.doFlow(param);
   }
 };

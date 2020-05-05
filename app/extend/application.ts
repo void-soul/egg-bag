@@ -2,6 +2,7 @@ import Enum from '../enums/Enum';
 import {StatusError} from '../util/shell';
 import {Application} from 'egg';
 import md5Util = require('md5');
+const debug = require('debug')('egg-bag');
 export default {
   /**
  * 立即抛出一个异常
@@ -156,7 +157,7 @@ export default {
     return this._wxPay[appCode!];
   },
   async emitASync(this: Application, name: string, ...args: any[]) {
-    this.coreLogger.info(`[egg-bag] async-sub named ${ name } has been called`);
+    debug(`async-sub named ${ name } has been called`);
     return await this.createAnonymousContext().emitASync(name, ...args);
   },
   async doFlow(
@@ -184,9 +185,11 @@ export default {
     const keys = await this.redis.get('other').smembers(clearKey);
     if (keys) {
       for (const key of keys) {
+        debug(`cache ${ key } cleared!`);
         await this.redis.get('other').del(key);
       }
     }
+    debug(`cache ${ clearKey } cleared!`);
     await this.redis.get('other').del(clearKey);
   }
 };
