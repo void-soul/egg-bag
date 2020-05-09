@@ -374,3 +374,8 @@ import initDataFlow from 'app/flow-help/init-data-flow';
 1. 修复`mongodb`的`update`错误
 2. 增加`base-service`的debug日志输出
 3. 修复打包`nuxt`配置时，因ts别名导致找不到用户自定义配置的问题
+4. 增加`app.emitASyncWithDevid`，可携带用户token进行发送异步消息，此时所有异步消息执行上下文会自动携带用户信息
+
+
+# 1.33.5
+1. 方法缓存的key、clearKey方法都必须定义为箭头函数，不会再传入this（为了提高效率）

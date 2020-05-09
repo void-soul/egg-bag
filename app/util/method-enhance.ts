@@ -97,7 +97,7 @@ export function ContextMethodCache(config: {
       descriptor.value = async function (this: BaseContextClass) {
         // eslint-disable-next-line prefer-rest-params
         const args = Array.from(arguments);
-        const key = config.key.call(this, ...args, this.ctx.me);
+        const key = config.key(...args, this.ctx.me);
         const cache = await this.app.redis.get('other').get(`cache-${ key }`);
         if (cache) {
           debug(`cache ${ key } hit!`);
@@ -105,7 +105,7 @@ export function ContextMethodCache(config: {
         } else {
           debug(`cache ${ key } miss!`);
           const result = await fn.call(this, ...args);
-          const clearKey = config.clearKey ? config.clearKey.call(this, ...args, this.ctx.me) : undefined;
+          const clearKey = config.clearKey ? config.clearKey(...args, this.ctx.me) : undefined;
           await setCache.call(this, {
             key,
             clearKey,
