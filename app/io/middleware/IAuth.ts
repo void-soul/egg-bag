@@ -44,6 +44,11 @@ export default (): any => {
     await next();
     // 退出
     if (app.config.session && app.config.session.socketLogout === true) {
+      // 更新本 io 缓存的用户信息
+      // me = await ctx.getUser(devid);
+      // if (me) {
+      //   ctx.login(me, false);
+      // }
       ctx.logout();
     }
   };

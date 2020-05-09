@@ -55,7 +55,7 @@ export class WxPay {
     this.certBuffer = fs.readFileSync(this.option.cert);
     this.installRoute(app, appCode);
   }
-  async unifiedorder(wxOrderOption: WxCreatedorder, dataCache?: {[key: string]: any}): Promise<WxCreateOrderResult> {
+  async unifiedorder(wxOrderOption: WxCreatedorder, dataCache?: {[key: string]: any}, devid?: string): Promise<WxCreateOrderResult> {
     const params = this.buildParam({
       ...wxOrderOption,
       fee_type: 'CNY',
@@ -66,6 +66,9 @@ export class WxPay {
     });
     if (dataCache) {
       await this.app.setCache(`${ wxOrderOption.out_trade_no }-wx-pay-${ this.appCode }`, JSON.stringify(dataCache), 'other');
+    }
+    if (devid) {
+      await this.app.setCache(`${ wxOrderOption.out_trade_no }-wx-pay-${ this.appCode }-devid`, devid, 'other');
     }
 
     const response = await this.request('unifiedorder', params);
@@ -124,11 +127,14 @@ export class WxPay {
       this.app.coreLogger.error(error);
     }
   }
-  async refund(option: WxCreateRefundOrder) {
+  async refund(option: WxCreateRefundOrder, devid?: string) {
     const params = this.buildParam({
       ...option,
       notify_url: `${ this.app.config.baseUri }ref-hook/wx/${ this.appCode }.html`,
     });
+    if (devid) {
+      await this.app.setCache(`${ option.out_refund_no }-wx-ref-${ this.appCode }-devid`, devid, 'other');
+    }
     return await this.request('refund', params, true);
   }
   async refundquery(option: WxRefundOrderQuery): Promise<WxRefundOrder> {
@@ -257,15 +263,22 @@ export class WxPay {
             }
             await this.app.setCache(`${ data.transaction_id }-wx-pay-hook`, `${ appCode }-${ nowTime() }`, 'other');
             let dataCache: any;
+            let devid: string | null | undefined;
             if (data.attach) {
               const dataCacheStr = await this.app.getCache(`${ data.attach }-wx-pay-${ appCode }`, 'other');
               if (dataCacheStr) {
                 dataCache = JSON.parse(dataCacheStr);
               }
+              devid = await this.app.getCache(`${ data.attach }-wx-pay-${ appCode }-devid`, 'other');
             }
-            await this.app.emitASync(`${ appCode }-pay-hook`, data as WxPayHook, dataCache);
+            if (devid) {
+              await this.app.emitASyncWithDevid(`${ appCode }-pay-hook`, devid, data as WxPayHook, dataCache);
+            } else {
+              await this.app.emitASync(`${ appCode }-pay-hook`, data as WxPayHook, dataCache);
+            }
             if (data.attach) {
-              await this.app.delCache(data.attach, 'other');
+              await this.app.delCache(`${ data.attach }-wx-pay-${ appCode }`, 'other');
+              await this.app.delCache(`${ data.attach }-wx-pay-${ appCode }-devid`, 'other');
             }
             return builder.buildObject({return_code: 'SUCCESS', return_msg: 'OK'});
           } catch (error) {
@@ -296,7 +309,13 @@ export class WxPay {
               return builder.buildObject({return_code: 'FAIL', return_msg: `locked-${ lock }`});
             }
             await this.app.setCache(`${ data.refund_id }-wx-ref-hook`, `${ appCode }-${ nowTime() }`, 'other');
-            await this.app.emitASync(`${ appCode }-ref-hook`, data as WxRefHook);
+            const devid = await this.app.getCache(`${ data.out_refund_no }-wx-ref-${ appCode }-devid`, 'other');
+            if (devid) {
+              await this.app.emitASyncWithDevid(`${ appCode }-ref-hook`, devid, data as WxRefHook);
+            } else {
+              await this.app.emitASync(`${ appCode }-ref-hook`, data as WxRefHook);
+            }
+            await this.app.delCache(`${ data.out_refund_no }-wx-ref-${ appCode }-devid`, 'other');
             return builder.buildObject({return_code: 'SUCCESS', return_msg: 'OK'});
           } catch (error) {
             this.app.coreLogger.error(error);

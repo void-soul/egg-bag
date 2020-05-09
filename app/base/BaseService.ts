@@ -5,7 +5,21 @@ import PageQuery from '../util/sql/PageQuery';
 import {Empty} from '../util/empty';
 import {notEmptyString} from '../util/string';
 import {SqlSession} from '../../typings';
-export default abstract class <T> extends Service {
+const debug = require('debug')('egg-bag');
+const MethodDebug = function <T>() {
+  return function (_target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    const fn = descriptor.value;
+    descriptor.value = async function (this: BaseService<T>) {
+      // eslint-disable-next-line prefer-rest-params
+      const args = Array.from(arguments);
+      const result = await fn.call(this, ...args);
+      debug(`${ propertyKey }:${ this['tableName'] }`);
+      return result;
+    };
+  };
+};
+
+export default abstract class BaseService<T> extends Service {
   private max = 500;
   private tableName: string;
   private idNames: (keyof T)[];
@@ -23,6 +37,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async insert(
     data: {[P in keyof T]?: T[P]},
     transction?: SqlSession,
@@ -48,6 +63,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async insertIfNotExists(
     data: {[P in keyof T]?: T[P]},
     columns: (keyof T)[],
@@ -83,6 +99,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async replace(
     data: {[P in keyof T]?: T[P]},
     transction?: SqlSession,
@@ -113,6 +130,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async insertTemplate(
     data: {[P in keyof T]?: T[P]},
     transction?: SqlSession,
@@ -143,6 +161,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async insertTemplateLoose(
     data: {[P in keyof T]?: T[P]},
     transction?: SqlSession,
@@ -162,6 +181,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async insertTemplateIfNotExists(
     data: {[P in keyof T]?: T[P]},
     columns: (keyof T)[],
@@ -198,6 +218,7 @@ export default abstract class <T> extends Service {
  *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
  * @returns
  */
+  @MethodDebug()
   async insertTemplateLooseIfNotExists(
     data: {[P in keyof T]?: T[P]},
     columns: (keyof T)[],
@@ -219,6 +240,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async replaceTemplate(
     data: {[P in keyof T]?: T[P]},
     transction?: SqlSession,
@@ -249,6 +271,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async replaceTemplateLoose(
     data: {[P in keyof T]?: T[P]},
     transction?: SqlSession,
@@ -267,6 +290,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async insertBatch(
     datas: {[P in keyof T]?: T[P]}[],
     transction?: SqlSession,
@@ -300,6 +324,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async insertBatchIfNotExists(
     datas: {[P in keyof T]?: T[P]}[],
     columns: (keyof T)[],
@@ -350,6 +375,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async replaceBatch(
     datas: {[P in keyof T]?: T[P]}[],
     transction?: SqlSession,
@@ -389,6 +415,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async insertBatchTemplate(
     datas: {[P in keyof T]?: T[P]}[],
     transction?: SqlSession,
@@ -428,6 +455,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async insertBatchTemplateLoose(
     datas: {[P in keyof T]?: T[P]}[],
     transction?: SqlSession,
@@ -447,6 +475,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async insertBatchTemplateIfNotExists(
     datas: {[P in keyof T]?: T[P]}[],
     columns: (keyof T)[],
@@ -499,6 +528,7 @@ export default abstract class <T> extends Service {
     *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
     * @returns
     */
+  @MethodDebug()
   async insertBatchTemplateLooseIfNotExists(
     datas: {[P in keyof T]?: T[P]}[],
     columns: (keyof T)[],
@@ -522,6 +552,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async replaceBatchTemplate(
     datas: {[P in keyof T]?: T[P]}[],
     transction?: SqlSession,
@@ -564,6 +595,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async replaceBatchTemplateLoose(
     datas: {[P in keyof T]?: T[P]}[],
     transction?: SqlSession,
@@ -584,6 +616,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async replaceBatchTemplateSafe(
     datas: {[P in keyof T]?: T[P]}[],
     transction?: SqlSession,
@@ -619,6 +652,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async replaceBatchTemplateLooseSafe(
     datas: {[P in keyof T]?: T[P]}[],
     transction?: SqlSession,
@@ -640,6 +674,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async updateById(
     data: {[P in keyof T]?: T[P]},
     transction?: SqlSession,
@@ -670,6 +705,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async updateTemplateById(
     data: {[P in keyof T]?: T[P]},
     transction?: SqlSession,
@@ -702,6 +738,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async updateTemplateLooseById(
     data: {[P in keyof T]?: T[P]},
     transction?: SqlSession,
@@ -721,6 +758,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async updateBatchById(
     datas: {[P in keyof T]?: T[P]}[],
     transction?: SqlSession,
@@ -770,6 +808,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async updateBatchTemplateById(
     datas: {[P in keyof T]?: T[P]}[],
     transction?: SqlSession,
@@ -824,6 +863,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async updateBatchTemplateLooseById(
     datas: {[P in keyof T]?: T[P]}[],
     transction?: SqlSession,
@@ -842,6 +882,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async updateBatchTemplateByIdSafe(
     datas: {[P in keyof T]?: T[P]}[],
     transction?: SqlSession,
@@ -880,6 +921,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async updateBatchTemplateLooseByIdSafe(
     datas: {[P in keyof T]?: T[P]}[],
     transction?: SqlSession,
@@ -900,6 +942,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async updateBatch(
     data: {[P in keyof T]?: T[P]},
     where: {[P in keyof T]?: T[P]},
@@ -929,6 +972,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async deleteBatch(
     where: {[P in keyof T]?: T[P]},
     transction?: SqlSession,
@@ -966,6 +1010,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async deleteByIdMuti(
     data: {[P in keyof T]?: T[P]},
     transction?: SqlSession,
@@ -998,6 +1043,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async deleteById(
     id: any,
     transction?: SqlSession,
@@ -1044,6 +1090,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName]
    * @returns {Promise<number[]>}
    */
+  @MethodDebug()
   async deleteByIds(
     ids: any[],
     transction?: SqlSession,
@@ -1066,6 +1113,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async unique<L>(
     id: any,
     error?: string,
@@ -1100,6 +1148,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async uniqueMe(
     id: any,
     error?: string,
@@ -1120,6 +1169,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async uniqueMuti<L>(
     data: {[P in keyof T]?: T[P]},
     error?: string,
@@ -1156,6 +1206,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async uniqueMutiMe(
     data: {[P in keyof T]?: T[P]},
     error?: string,
@@ -1176,6 +1227,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async single<L>(
     id: any,
     transction?: SqlSession,
@@ -1209,6 +1261,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async singleMe(
     id: any,
     transction?: SqlSession,
@@ -1227,6 +1280,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async singleMuti<L>(
     data: {[P in keyof L]?: L[P]},
     transction?: SqlSession,
@@ -1260,6 +1314,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async singleMutiMe(
     data: {[P in keyof T]?: T[P]},
     transction?: SqlSession,
@@ -1277,6 +1332,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async all<L>(
     transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
@@ -1300,6 +1356,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async allMe(
     transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
@@ -1319,6 +1376,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async allPage<L>(
     start: number,
     size: number,
@@ -1354,6 +1412,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async allPageMe(
     start: number,
     size: number,
@@ -1373,6 +1432,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async allCount(
     transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
@@ -1399,6 +1459,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async template<L>(
     where: {[P in keyof L]?: L[P]},
     transction?: SqlSession,
@@ -1431,6 +1492,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async templateMe(
     where: {[P in keyof T]?: T[P]},
     transction?: SqlSession,
@@ -1450,6 +1512,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async templateOne<L>(
     data: {[P in keyof L]?: L[P]},
     transction?: SqlSession,
@@ -1483,6 +1546,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async templateOneMe(
     data: {[P in keyof T]?: T[P]},
     transction?: SqlSession,
@@ -1505,6 +1569,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async templatePage<L>(
     data: {[P in keyof L]?: L[P]},
     start: number,
@@ -1545,6 +1610,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async templatePageMe(
     data: {[P in keyof T]?: T[P]},
     start: number,
@@ -1567,6 +1633,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
+  @MethodDebug()
   async templateCount(
     data: {[P in keyof T]?: T[P]},
     transction?: SqlSession,
@@ -1599,6 +1666,7 @@ export default abstract class <T> extends Service {
    * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @returns
    */
+  @MethodDebug()
   async executeBySqlId(
     sqlid: string,
     param?: {[propName: string]: any},
@@ -1619,6 +1687,7 @@ export default abstract class <T> extends Service {
    * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @returns
    */
+  @MethodDebug()
   async executeBySql(
     sql: string,
     param?: {[propName: string]: any},
@@ -1638,6 +1707,7 @@ export default abstract class <T> extends Service {
    * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns 本service对象数组
    */
+  @MethodDebug()
   async queryMeBySqlId(
     sqlid: string,
     param?: {[propName: string]: any},
@@ -1654,6 +1724,7 @@ export default abstract class <T> extends Service {
    * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns 指定类型数组
    */
+  @MethodDebug()
   async queryBySql<L>(
     sql: string,
     param?: {[propName: string]: any},
@@ -1670,6 +1741,7 @@ export default abstract class <T> extends Service {
    * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns 指定类型数组
    */
+  @MethodDebug()
   async queryBySqlId<L>(
     sqlid: string,
     param?: {[propName: string]: any},
@@ -1686,6 +1758,7 @@ export default abstract class <T> extends Service {
    * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns 指定类型数组
    */
+  @MethodDebug()
   async queryMulitBySql<L>(
     sql: string,
     param?: {[propName: string]: any},
@@ -1706,6 +1779,7 @@ export default abstract class <T> extends Service {
    * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns 指定类型数组
    */
+  @MethodDebug()
   async queryMulitBySqlId<L>(
     sqlid: string,
     param?: {[propName: string]: any},
@@ -1727,6 +1801,7 @@ export default abstract class <T> extends Service {
    * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns 本service对象数组
    */
+  @MethodDebug()
   async queryMeBySql(
     sql: string,
     param?: {[propName: string]: any},
@@ -1742,6 +1817,7 @@ export default abstract class <T> extends Service {
    * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns 列名 =key的json数组
    */
+  @MethodDebug()
   async queryMutiRowMutiColumnBySqlId<L>(
     sqlid: string,
     param?: {[propName: string]: any},
@@ -1759,6 +1835,7 @@ export default abstract class <T> extends Service {
    * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns 列名 =key的json数组
    */
+  @MethodDebug()
   async queryMutiRowMutiColumnBySql<L>(
     sql: string,
     param?: {[propName: string]: any},
@@ -1779,6 +1856,7 @@ export default abstract class <T> extends Service {
    * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns
    */
+  @MethodDebug()
   async querySingelRowMutiColumnBySqlId<L>(
     sqlid: string,
     param?: {[propName: string]: any},
@@ -1800,6 +1878,7 @@ export default abstract class <T> extends Service {
    * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns 列名 =key的json数组
    */
+  @MethodDebug()
   async querySingelRowMutiColumnBySql<L>(
     sql: string,
     param?: {[propName: string]: any},
@@ -1817,6 +1896,7 @@ export default abstract class <T> extends Service {
    * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns
    */
+  @MethodDebug()
   async queryMutiRowSingelColumnBySqlId<M>(
     sqlid: string,
     param?: {[propName: string]: any},
@@ -1839,6 +1919,7 @@ export default abstract class <T> extends Service {
    * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns 列名 =key的json数组
    */
+  @MethodDebug()
   async queryMutiRowSingelColumnBySql<L>(
     sql: string,
     param?: {[propName: string]: any},
@@ -1861,6 +1942,7 @@ export default abstract class <T> extends Service {
    * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns
    */
+  @MethodDebug()
   async querySingelRowSingelColumnBySqlId<M>(
     sqlid: string,
     param?: {[propName: string]: any},
@@ -1882,6 +1964,7 @@ export default abstract class <T> extends Service {
    * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
    * @returns 列名 =key的json数组
    */
+  @MethodDebug()
   async querySingelRowSingelColumnBySql<M>(
     sql: string,
     param?: {[propName: string]: any},
@@ -2045,6 +2128,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns {Promise<L[]>}
    */
+  @MethodDebug()
   async customQuery<L>(
     x: {
       where?: {[P in keyof L]?: L[P]};
@@ -2098,6 +2182,7 @@ export default abstract class <T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns {Promise<T[]>}
    */
+  @MethodDebug()
   async customQueryMe(
     x: {
       where?: {[P in keyof T]?: T[P]};

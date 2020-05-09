@@ -1,8 +1,9 @@
 import {Nuxt, Builder, Generator} from 'nuxt';
 import shell = require('shelljs');
-import {writeFileSync} from 'fs';
+import {writeFileSync, readFileSync} from 'fs';
 import {merge} from 'lodash';
 import {join} from 'path';
+import 'tsconfig-paths/register';
 class Resource {
   from: string;
   to: string;
@@ -72,7 +73,7 @@ export const ci = async (serviceDistDir: string, resources?: string[], dirs?: st
     new Resource(`./${ serviceDistDir }/`, `../${ serviceDistDir }/`, true),
     new Resource('./package.json', `../${ serviceDistDir }/package.json`, false),
     new Resource('./yarn.lock', `../${ serviceDistDir }/yarn.lock`, false),
-    new Resource('./tslint.json', `../${ serviceDistDir }/tslint.json`, false),
+    new Resource('./tsconfig.json', `../${ serviceDistDir }/tsconfig.json`, false),
     new Resource('./.npmrc', `../${ serviceDistDir }/.npmrc`, false),
     new Resource('./app/sql/', `../${ serviceDistDir }/app/sql/`, true),
     new Resource('./app/sql-fn/', `../${ serviceDistDir }/app/sql-fn/`, true),
@@ -99,8 +100,16 @@ export const ci = async (serviceDistDir: string, resources?: string[], dirs?: st
   shell.exec('yarn tsc');
   // tslint:disable-next-line: no-console
   console.log('[egg-bag] typescipt compile finished');
-  const configDefault = require(join(dir, `./${ serviceDistDir }/config/config.default.js`)).default({}).nuxt;
-  const configProd = require(join(dir, `./${ serviceDistDir }/config/config.prod.js`)).default({}).nuxt;
+
+
+  const defaultConfig = readFileSync(join(dir, `./${ serviceDistDir }/config/config.default.js`), {encoding: 'utf-8'});
+  const prodConfig = readFileSync(join(dir, `./${ serviceDistDir }/config/config.prod.js`), {encoding: 'utf-8'});
+  writeFileSync(join(dir, `./${ serviceDistDir }/config/config.default.temp.js`), defaultConfig.replace(/"app\//g, '"../app/'), {encoding: 'utf-8'});
+  writeFileSync(join(dir, `./${ serviceDistDir }/config/config.prod.temp.js`), prodConfig.replace(/"app\//g, '"../app/'), {encoding: 'utf-8'});
+
+  const configDefault = require(join(dir, `./${ serviceDistDir }/config/config.default.temp.js`)).default({}).nuxt;
+  const configProd = require(join(dir, `./${ serviceDistDir }/config/config.prod.temp.js`)).default({}).nuxt;
+
   if (configDefault || configProd) {
     // tslint:disable-next-line: no-console
     console.log('[egg-bag] found nuxt config, start compile');
@@ -121,6 +130,8 @@ export const ci = async (serviceDistDir: string, resources?: string[], dirs?: st
       process.exit(1);
     }
   }
+  shell.rm('-rf', join(dir, `./${ serviceDistDir }/config/config.default.temp.js`));
+  shell.rm('-rf', join(dir, `./${ serviceDistDir }/config/config.prod.temp.js`));
   // tslint:disable-next-line: no-console
   console.log('[egg-bag] clear history');
   // 删除旧文件

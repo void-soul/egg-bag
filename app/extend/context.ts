@@ -10,11 +10,13 @@ export default {
     return this[USER];
   },
   login(this: Context, user: BaseUser, notify = true) {
+    let newUser = false;
     if (!user.devid) {
       if (this.me && this.me.devid) {
         user.devid = this.me.devid;
       } else {
         user.devid = uuid();
+        newUser = true;
       }
     }
 
@@ -44,6 +46,12 @@ export default {
       case 'redis':
         this.setCache(user.devid, this.app.stringifyUser(user), 'user', this.app.config.session && this.app.config.session.sessionMinutes);
         this.app.redis.get('user').sadd(`user-devid-${ user.userid }`, user.devid);
+        if (newUser) {
+          this.app.subSync(`user-${ user.devid }`, async () => {
+            await this.app.redis.get('user').srem(`user-devid-${ user.userid }`, user.devid!);
+            this.app.emit('logout', user);
+          });
+        }
         break;
       case 'memory':
         this.setCache(user.devid, this.app.stringifyUser(user));
@@ -61,22 +69,19 @@ export default {
       if (this.app._devidIO === 'cookie') {
         this.removeCookie('devid');
       }
+      this.app.emit('logout', this.me);
       switch (this.app._cacheIO) {
         case 'cookie':
           this.delCache(this.me.devid);
           break;
         case 'redis':
-          await this.setCache(this.me.devid, this.app.stringifyUser(this.me), 'user');
           await this.delCache(this.me.devid, 'user', this.app.config.session && this.app.config.session.sessionContinueMinutes);
-          await this.app.redis.get('user').srem(`user-devid-${ this.me.userid }`, this.me.devid);
-          if (await this.app.redis.get('user').scard(`user-devid-${ this.me.userid }`) === 0) {
-            await this.app.redis.get('user').del(`user-devid-${ this.me.userid }`);
-          }
           break;
         case 'memory':
           await this.delCache(this.me.devid);
           break;
       }
+
     }
   },
   async getDevids(this: Context, userid: string | number): Promise<string[] | null> {
@@ -103,16 +108,13 @@ export default {
   async dickOut(this: Context, user: BaseUser, host?: string) {
     if (user && user.devid && user.client_online) {
       user.client_online = false;
+      this.app.emit('logout', user);
       switch (this.app._cacheIO) {
         case 'cookie':
           break;
         case 'redis':
-          await this.setCache(user.devid, this.app.stringifyUser(user), 'user');
-          await this.delCache(user.devid, 'user', this.app.config.session && this.app.config.session.sessionContinueMinutes);
+          await this.delCache(user.devid, 'user');
           await this.app.redis.get('user').srem(`user-devid-${ user.userid }`, user.devid);
-          if (await this.app.redis.get('user').scard(`user-devid-${ user.userid }`) === 0) {
-            await this.app.redis.get('user').del(`user-devid-${ user.userid }`);
-          }
           this.app.io.of('/').to(`${ SocketConfig.SOCKET_DEV.value() }-${ user.devid }`).emit('dick-out', {
             host: host || '未知'
           });
@@ -149,6 +151,10 @@ export default {
     if (user) {
       return JSON.parse(user) as BaseUser;
     }
+  },
+  async loginByDevid(this: Context, devid: string) {
+    const user = await this.getUser(devid);
+    this[USER] = user;
   },
   async getCache(this: Context, key: string, redisName?: 'user' | 'other'): Promise<string | null> {
     let meString: string | null = null;
@@ -202,7 +208,16 @@ export default {
   async emitASync(this: Context, name: string, ...args: any[]) {
     if (this.app._asyncSubClient[name]) {
       debug(` async-sub named ${ name } has been called`);
-      return await this._asyncSubClient[name].call(this, ...args);
+      return await this.app._asyncSubClient[name].call(this, ...args);
+    }
+  },
+  async emitASyncWithDevid(this: Context, name: string, devid: string, ...args: any[]) {
+    if (this.app._asyncSubClient[name]) {
+      debug(` async-sub named ${ name } has been called`);
+      if (devid) {
+        await this.loginByDevid(devid);
+      }
+      return await this.app._asyncSubClient[name].call(this, ...args);
     }
   },
   async doFlow(

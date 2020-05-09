@@ -10,15 +10,7 @@ export function loadSync(this: Application) {
     for (const subFile of subFiles) {
       const sub = require(path.join(syncSubPath, subFile)).default;
       const subName = subFile.replace(/.js|.ts/, '');
-      debug(`created a sync-sub named ${ subName } from ${ subFile }`);
-      this.messenger.on(subName, (args: any[]) => {
-        debug(`sync-sub named ${ subName } from ${ subFile } has been called`);
-        sub.call(this.createAnonymousContext(), ...args);
-      });
-      this.on(subName, (...args: any[]) => {
-        debug(`sync-sub named ${ subName } from ${ subFile } has been called`);
-        sub.call(this.createAnonymousContext(), ...args);
-      });
+      this.subSync(subName, sub);
     }
   } else {
     debug(`not found sync-sub path ${ syncSubPath }`);
@@ -34,8 +26,8 @@ export function loadAsync(this: Application) {
     const subFiles = fs.readdirSync(asyncSubPath);
     for (const subFile of subFiles) {
       const subName = subFile.replace(/.js|.ts/, '');
-      debug(`created a async-sub named ${ subName } from ${ subFile }`);
-      this._asyncSubClient[subName] = require(path.join(asyncSubPath, subFile)).default;
+      const sub = require(path.join(asyncSubPath, subFile)).default;
+      this.subASync(subName, sub);
     }
   } else {
     debug(`not found async-sub path ${ asyncSubPath }`);

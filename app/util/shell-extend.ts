@@ -77,4 +77,3 @@ export const BuildData = buildData;
 export const TransientMeda = transientMeda;
 /* tslint:disable-next-line */
 export const LogicDelete = logicDelete();
-

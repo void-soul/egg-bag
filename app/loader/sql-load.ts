@@ -36,6 +36,7 @@ export function loadSql(this: Application) {
         let source: SQLSource | null = parser.next();
         while (source != null) {
           sqlSourceMap[source.id] = source;
+          debug(`sql: ${ source.id } found!`);
           source = parser.next();
         }
         return true;
@@ -43,6 +44,8 @@ export function loadSql(this: Application) {
         return false;
       }
     });
+  } else {
+    debug('not found any sql');
   }
 
   if (fs.existsSync(sqlJSPath)) {
@@ -52,9 +55,12 @@ export function loadSql(this: Application) {
       const scriptReq = require(path.join(sqlJSPath, item));
       const script = scriptReq as {[key: string]: SqlScript};
       for (const [k, fn] of Object.entries(script)) {
+        debug(`sql-script: ${ name }.${ k } found!`);
         sqlSourceMap[`${ name }.${ k }`] = new SQLSource(`${ name }.${ k }`, fn, true);
       }
     });
+  } else {
+    debug('not found any sql-script');
   }
 
   if (fs.existsSync(fnPath)) {
@@ -62,8 +68,11 @@ export function loadSql(this: Application) {
     fnFiles.forEach((item) => {
       const name = item.replace(/.mu/, '');
       const file = path.join(fnPath, item);
+      debug(`sql-fn: ${ name } found!`);
       fnMap[name] = fs.readFileSync(file, {encoding: 'utf-8'}).toString();
     });
+  } else {
+    debug('not found any sql-fn');
   }
 
   this._getSql = function <T>(ctx: Context, count: boolean, id: string, param?: {[key: string]: any}): string | MongoFilter<T> {
@@ -73,9 +82,13 @@ export function loadSql(this: Application) {
     }
     if (typeof source.template === 'string') {
       const buildParam = new Build(count, param);
-      return Mustache.render(source, buildParam, fnMap);
+      const sql = Mustache.render(source.template, buildParam, fnMap);
+      debug(id, sql);
+      return sql;
     } else {
-      return source.template.call(ctx, param);
+      const sql = source.template.call(ctx, param);
+      debug(id, sql);
+      return sql;
     }
   };
   debug('sql files read over');

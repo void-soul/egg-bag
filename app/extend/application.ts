@@ -2,6 +2,8 @@ import Enum from '../enums/Enum';
 import {StatusError} from '../util/shell';
 import {Application} from 'egg';
 import md5Util = require('md5');
+import {Context} from 'vm';
+import {clearCache} from '../util/method-enhance';
 const debug = require('debug')('egg-bag');
 export default {
   /**
@@ -160,6 +162,42 @@ export default {
     debug(`async-sub named ${ name } has been called`);
     return await this.createAnonymousContext().emitASync(name, ...args);
   },
+  async emitASyncWithDevid(this: Application, name: string, devid: string, ...args: any[]) {
+    debug(`async-sub named ${ name } has been called`);
+    return await this.createAnonymousContext().emitASyncWithDevid(name, devid, ...args);
+  },
+  emitSyncRandom(this: Application, name: string, ...args: any[]) {
+    this.messenger.sendRandom(name, args);
+  },
+  emitSyncAll(this: Application, name: string, ...args: any[]) {
+    this.messenger.sendToApp(name, args);
+  },
+  /**
+   * 订阅异步消息
+   * @param name
+   * @param fn
+   */
+  subSync(this: Application, name: string, fn: (this: Context, ...args: any) => void, ...argsOut: any[]) {
+    debug(`created a sync-sub named ${ name }`);
+    this.messenger.on(name, (...args: any[]) => {
+      debug(`sync-sub named ${ name } from subSync has been called`);
+      fn.apply(this.createAnonymousContext(), [...args, ...argsOut]);
+    });
+    this.on(name, (...args: any[]) => {
+      debug(`sync-sub named ${ name } from subSync has been called`);
+      fn.apply(this.createAnonymousContext(), [...args, ...argsOut]);
+    });
+  },
+
+  /**
+   * 订阅同步消息
+   * @param name
+   * @param fn
+   */
+  subASync(this: Application, name: string, fn: (this: Context, ...args: any) => Promise<any>) {
+    debug(`created a async-sub named ${ name }`);
+    this._asyncSubClient[name] = fn;
+  },
   async doFlow(
     this: Application,
     param: {
@@ -175,21 +213,7 @@ export default {
     const context = this.createAnonymousContext();
     return await context.doFlow(param);
   },
-  emitSyncRandom(this: Application, name: string, ...args: any[]) {
-    this.messenger.sendRandom(name, args);
-  },
-  emitSyncAll(this: Application, name: string, ...args: any[]) {
-    this.messenger.sendToApp(name, args);
-  },
   async clearContextMethodCache(this: Application, clearKey: string) {
-    const keys = await this.redis.get('other').smembers(clearKey);
-    if (keys) {
-      for (const key of keys) {
-        debug(`cache ${ key } cleared!`);
-        await this.redis.get('other').del(key);
-      }
-    }
-    debug(`cache ${ clearKey } cleared!`);
-    await this.redis.get('other').del(clearKey);
+    await clearCache.call(this, clearKey);
   }
 };

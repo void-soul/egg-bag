@@ -10,6 +10,7 @@ const RequestMethod = require('./shell/enum/request-method');
 const ctMap = new Map();
 const ctHandler = new ControllerHandler();
 const methodHandler = new MethodHandler(ctMap);
+const debug = require('debug')('egg-bag');
 // 路由统计
 const routers = [];
 const EggShell = (app, options = {}) => {
@@ -55,7 +56,7 @@ const EggShell = (app, options = {}) => {
         reqMethod = 'get';
       }
       if (reqMethod && router[reqMethod]) {
-        app.coreLogger.info(`[egg-bag] found router: ${ prefix + path }.`);
+        debug(`[egg-bag] found router: ${ prefix + path }.`);
         const befores = [...options.before, ...beforeAll, ...before];
         const afters = [...options.after, ...afterAll, ...after];
         router[reqMethod](prefix + path, async (ctx, next) => {
@@ -155,7 +156,7 @@ const EggShell = (app, options = {}) => {
             }
           } finally {
             if (ctx.app.config.env !== 'prod') {
-              ctx.app.coreLogger.info(`${ prefix + path } + ${ +new Date() - start }ms`);
+              debug(`${ prefix + path } + ${ +new Date() - start }ms`);
             }
             if (lock === true && ctx.me && ctx.me.devid) {
               await ctx.delCache(`${ prefix }-${ path }-${ ctx.me.devid }`, 'other');
@@ -163,7 +164,7 @@ const EggShell = (app, options = {}) => {
           }
         });
       } else if (reqMethod === 'io') {
-        app.coreLogger.info(`[egg-bag] found io-router: ${ prefix + path }.`);
+        debug(`[egg-bag] found io-router: ${ prefix + path }.`);
         const befores = [...options.before, ...beforeAll, ...before];
         const afters = [...options.after, ...afterAll, ...after];
         io.of('/').route(prefix + path, async function () {
@@ -186,9 +187,7 @@ const EggShell = (app, options = {}) => {
               message: error.message
             });
           } finally {
-            if (instance.app.config.env !== 'prod') {
-              instance.app.coreLogger.info(`${ prefix + path } + ${ +new Date() - start }ms`);
-            }
+            debug(`${ prefix + path } + ${ +new Date() - start }ms`);
           }
         });
       }
@@ -207,7 +206,7 @@ const EggShell = (app, options = {}) => {
 const EggInstall = (target, app, options = {}) => {
   const { router } = app;
   if (router[target.method]) {
-    app.coreLogger.info(`[egg-bag] found inner-router: ${ target.path }.`);
+    debug(`[egg-bag] found inner-router: ${ target.path }.`);
     router[target.method](target.path, async (ctx, next) => {
       const start = +new Date();
       try {
@@ -254,9 +253,7 @@ const EggInstall = (target, app, options = {}) => {
           message: error.message
         };
       } finally {
-        if (ctx.app.config.env !== 'prod') {
-          ctx.app.coreLogger.info(`${ target.path } + ${ +new Date() - start }ms`);
-        }
+        debug(`${ target.path } + ${ +new Date() - start }ms`);
       }
     });
   }
@@ -266,7 +263,7 @@ const EggInstall = (target, app, options = {}) => {
 };
 const EggIoInstall = (target, app, options = {}) => {
   const { io } = app;
-  app.coreLogger.info(`[egg-bag] found inner-io: ${ target.path }.`);
+  debug(`[egg-bag] found inner-io: ${ target.path }.`);
   io.of('/').route(target.path, async function () {
     const start = +new Date();
     try {
@@ -299,9 +296,7 @@ const EggIoInstall = (target, app, options = {}) => {
         message: error.message
       });
     } finally {
-      if (this.app.config.env !== 'prod') {
-        this.app.coreLogger.info(`${ target.path } + ${ +new Date() - start }ms`);
-      }
+      this.debug(`${ target.path } + ${ +new Date() - start }ms`);
     }
   });
 }

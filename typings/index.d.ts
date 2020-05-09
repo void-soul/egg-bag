@@ -880,9 +880,13 @@ export interface WxPay {
    * 每一个支付应用都有自己的：支付成功、支付失败、退款成功、退款失败回调
    * 所以如果有不同的业务，最好将这些业务都分层不同的支付应用
    * 每个应用实现独立的同步消息通知（sub-async）
+   *
+   * devid 是当前支付发起的用户token
+   * 在支付回调时，由于请求是由微信服务器发起的,因此上下文中不存在 用户对象
+   * 通过这个参数可以将 当前支付发起时用户 追加到回调的上下文中
    * @memberof WxPay
    */
-  unifiedorder(wxOrderOption: WxCreatedorder, dataCache?: {[key: string]: any}): Promise<WxCreateOrderResult>;
+  unifiedorder(wxOrderOption: WxCreatedorder, dataCache?: {[key: string]: any}, devid?: string): Promise<WxCreateOrderResult>;
   /**
    *
    * https://pay.weixin.qq.com/wiki/doc/api/jsapi.php?chapter=9_2
@@ -912,11 +916,17 @@ export interface WxPay {
   /**
    *
    * https://pay.weixin.qq.com/wiki/doc/api/jsapi.php?chapter=9_4
+   *
+   *
+   * devid 是当前退款发起的用户token
+   * 在退款回调时，由于请求是由微信服务器发起的,因此上下文中不存在 用户对象
+   * 通过这个参数可以将 当前退款发起时用户 追加到回调的上下文中
+   *
    * @param {WxCreateRefundOrder} option
    * @returns {Promise<void>}
    * @memberof WxPay
    */
-  refund(option: WxCreateRefundOrder): Promise<void>;
+  refund(option: WxCreateRefundOrder, devid?: string): Promise<void>;
   /**
    *
    * https://pay.weixin.qq.com/wiki/doc/api/jsapi.php?chapter=9_5
@@ -3188,7 +3198,13 @@ declare class PaasService extends BaseService<Empty> {
     }
   ): Promise<any>;
 }
-
+declare type RedisChannel = 'user' | 'other' | 'sub';
+declare interface RedisConfig {
+  host: string;
+  port: number;
+  password: string;
+  db: number;
+}
 export interface SqlSession {
   query: (sql: string, param?: {[key: string]: any}) => Promise<any>;
   count: <T>(tableName: string, where?: {[P in keyof T]?: T[P]}) => Promise<number>;
@@ -3260,10 +3276,10 @@ declare module 'egg' {
     _cache: {[key: string]: any};
     _globalValues: EnmuJson;
     mysql: SqlSession;
-    redis: {get: (name: 'user' | 'other') => Redis};
+    redis: {get: (name: RedisChannel) => Redis};
     io: EggIOServer & EggSocketNameSpace & EggSocketIO;
     mongo: MongoClient;
-    _asyncSubClient: {[code: string]: (...args: any[]) => any};
+    _asyncSubClient: {[code: string]: (...args: any[]) => Promise<any>};
     /**
      * nuxt 是否已经准备完毕
      */
@@ -3382,23 +3398,17 @@ declare module 'egg' {
     emitASync(name: string, ...args: any[]): Promise<any>;
     /**
      *
-     * 处理流程
-     * @param {string} flow
-     * @param {*} data
-     * @returns {Promise<any>}
+     * 发出同步事件,可以根据devid构建用户上下文
+     * 与emitSync不同，emitSync是异步且无法获取到订阅者的返回值,且可能发送给其他进程
+     * emitASync只能发送给同一个进程
+     * 返回 事件方法的返回值
+     *
+     * @param {string} name
+     * @param {...any[]} args
+     * @returns {*}
      * @memberof Application
      */
-    doFlow(
-      param: {
-        flowPath: string;
-        flowParam: {
-          remark: string;
-        };
-        bizParam: any;
-        dataFlow?: any;
-        conn?: any;
-      }
-    ): Promise<any>;
+    emitASyncWithDevid(name: string, devid: string, ...args: any[]): Promise<any>;
     /**
      *
      * 发出异步事件,随机找一个worker执行
@@ -3418,12 +3428,44 @@ declare module 'egg' {
      */
     emitSyncAll(name: string, ...args: any[]): void;
     /**
+     * 订阅异步消息
+     * @param name
+     * @param fn
+     */
+    subSync(name: string, fn: (this: Context, ...args: any[]) => void, ...args: any[]);
+
+    /**
+     * 订阅同步消息
+     * @param name
+     * @param fn
+     */
+    subASync(name: string, fn: (this: Context, ...args: any[]) => Promise<void>);
+    /**
      *
      * 清空指定的方法缓存
      * @returns {Promise<void>}
      * @memberof Application
      */
     clearContextMethodCache(clearKey: string): Promise<void>;
+    /**
+     *
+     * 处理流程
+     * @param {string} flow
+     * @param {*} data
+     * @returns {Promise<any>}
+     * @memberof Application
+     */
+    doFlow(
+      param: {
+        flowPath: string;
+        flowParam: {
+          remark: string;
+        };
+        bizParam: any;
+        dataFlow?: any;
+        conn?: any;
+      }
+    ): Promise<any>;
   }
   interface EggAppConfig {
     /**
@@ -3552,9 +3594,18 @@ declare module 'egg' {
       /**
        * 客户端,包含user、other，分别存放用户信息、其他缓存
        * other每次启动服务会清空
-       * @type {({[key: 'user' | 'other']: {host: string, port: number, password: string, db: number}})}
+       * sub: 专门用于订阅 定时缓存清理
+       * 需要同时设置 redis.conf: notify-keyspace-events "Ex"
+       * @type {({[key: 'user' | 'other' | 'sub']: {host: string, port: number, password: string, db: number}})}
        */
-      clients?: {[key: 'user' | 'other']: {host: string; port: number; password: string; db: number}};
+      clients?: {
+        /* 用于缓存用户信息，如devid、userid */
+        user?: RedisConfig;
+        /* 其他缓存，如数据缓存、消息缓存*/
+        other?: RedisConfig;
+        /* 用于订阅user、other的定时key过期事件 */
+        sub?: RedisConfig;
+      };
     };
     /**
      *
@@ -3588,7 +3639,8 @@ declare module 'egg' {
        * 登出后，将会话延长多久后再释放?
        * 默认10
        * 0 = 立即释放
-       * 仅对redis存储方式有效
+       * 仅对redis存储方式有效.
+       * 当设置sessionMinutes，导致会话自然过期时,不会触发 这里设置的延长
        * @type {number}
        */
       sessionContinueMinutes?: number;
@@ -3777,6 +3829,7 @@ declare module 'egg' {
     me: BaseUser;
     /**
      * 登录
+     * 不需要自己为devid赋值！否则会影响到 session 过期订阅
      * @param {BaseUser} user
      * @param {boolean} [notify] 是否发出登陆通知？默认true
      * @memberof Context
@@ -3802,6 +3855,8 @@ declare module 'egg' {
     delCache(key: string, redisName?: 'user' | 'other', minutes?: number): Promise<void>;
     /** 根据会话令牌获取用户 */
     getUser(devid: string): Promise<BaseUser>;
+    /** 根据devid登录到当前会话中,不会影响原缓存数据体系 */
+    loginByDevid(devid: string): Promise<void>;
     /** 获取userid已经登陆的devid */
     getDevids(userid: string | number): Promise<string[] | null>;
     /** 获取userid已经登陆的个人信息 */
@@ -3822,6 +3877,20 @@ declare module 'egg' {
      * @memberof Application
      */
     emitASync(name: string, ...args: any[]): Promise<any>;
+    /**
+     *
+     * 发出同步事件,可以根据devid构建用户上下文
+     * 与emitSync不同，emitSync是异步且无法获取到订阅者的返回值,且可能发送给其他进程
+     * emitASync只能发送给同一个进程
+     * this指向当前上下文
+     * 返回 事件方法的返回值
+     *
+     * @param {string} name
+     * @param {...any[]} args
+     * @returns {*}
+     * @memberof Application
+     */
+    emitASyncWithDevid(name: string, devid: string, ...args: any[]): Promise<any>;
     /** 执行流程,this指向当前上下文 */
     doFlow(
       param: {
@@ -3949,12 +4018,14 @@ export const AfterAll: (...fns: Array<() => (ctx: Context, next: () => Promise<a
 export const Prefix: (path: string) => any;
 /** service、controller的方法缓存设置 */
 export const ContextMethodCache: (config: {
-  /** 返回缓存key,参数同方法的参数。可以用来清空缓存。 */
+  /** 返回缓存key,参数=方法的参数+当前用户对象，可以用来清空缓存。 */
   key: (...args: any[]) => string;
-  /** 返回缓存清除key,参数同方法的参数。可以用来批量清空缓存 */
+  /** 返回缓存清除key,参数=方法的参数+当前用户对象，可以用来批量清空缓存 */
   clearKey?: (...args: any[]) => string[];
   /** 自动清空缓存的时间，单位分钟 */
   autoClearTime?: number;
+  /** 随着当前用户sesion的清空而一起清空 */
+  clearWithSession?: boolean;
 }) => Decorator;
 /** 生成uuid */
 export function uuid(): string;

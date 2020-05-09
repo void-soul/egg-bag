@@ -354,3 +354,23 @@ export const queryList: SqlScript = function<MdOrder> (this: Context) {
 ```javascript
 import initDataFlow from 'app/flow-help/init-data-flow';
 ```
+
+# 1.33.0
+
+1. 方法缓存的key生成方法中，除了方法的原有参数外，还会追加当前 用户对象
+2. 方法缓存支持随当前用户session释放
+3. 增加`this.app.subSync`、`this.app.subASync`,可以动态订阅 异步、同步事件.
+4. 可通过配置`redis.clients`的`sub`以及`redis.conf: notify-keyspace-events "Ex"`,实现订阅过期key释放事件:`this.app.subSync(user|other-key)`
+5. `socket`断开时，不再重新登入` socket`监听缓存的`用户session`了,最明显的体验为：手动清空`redis`的`session`,客户端重新请求，发现会话过期，断开`socket`时，`redis`中不会再次出现刚才清掉的`session`了
+6. 当用户`session`过期时，会利用订阅机制 清空当时缓存 的 `userid`-`devid`的映射关系.前提是：登录前devid不是自己赋值，而是由bag赋值
+7. 修复原 同步消息 通过 context 无法发出的bug
+8. 增加`this.ctx.loginByDevid`方法，临时登录一个用户session，且不缓存
+9. 增加`this.ctx.emitASyncWithDevid`、`this.app.emitASyncWithDevid`,发布同步消息时,可以附带用户token,这样在消费消息时，可以获取`this.ctx.me`了
+10. 支付、退款增加一个参数，传入当前操作的`devid`，以便在处理回调时可以直接获取`this.ctx.me`
+
+
+# 1.33.4
+
+1. 修复`mongodb`的`update`错误
+2. 增加`base-service`的debug日志输出
+3. 修复打包`nuxt`配置时，因ts别名导致找不到用户自定义配置的问题
