@@ -19,17 +19,12 @@ export const enumToJson = (GlobalValues: any): EnmuJson => {
       if (!result.GlobalArray[guess[1]]) {
         result.GlobalArray[guess[1]] = [];
       }
-      result.GlobalArray[guess[1]].push([
-        GlobalValues[item].value(),
-        GlobalValues[item].desc()
-      ]);
+      result.GlobalArray[guess[1]].push([GlobalValues[item].value(), GlobalValues[item].desc()]);
 
       if (!result.GlobalMap[guess[1]]) {
         result.GlobalMap[guess[1]] = {};
       }
-      result.GlobalMap[guess[1]][GlobalValues[item].value()] = GlobalValues[
-        item
-      ].desc();
+      result.GlobalMap[guess[1]][GlobalValues[item].value()] = GlobalValues[item].desc();
     }
   });
   configData = result;

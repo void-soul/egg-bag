@@ -19,8 +19,34 @@ export function loadRouter(this: Application) {
     path: `/do-flow/:flow/:node/:action.json`,
     method: 'post',
     before: [ILogin],
-    async handel(this: Controller, {params: {flow, node, action}, body: {flowParam, bizParam}}) {
-      return await this.service.paasService.doFlow({flowPath: `${ flow }/${ node }/${ action }`, flowParam, bizParam});
+    async handel(this: Controller, {params: {flow, node, action}, body: {data}}) {
+      return await this.service.paasService.doFlow<any, any>({
+        flowPath: `${ flow }/${ node }/${ action }`,
+        data
+      });
+    }
+  }, this, {
+    before: [IMe]
+  });
+  EggInstall({
+    path: `/do-flow/:dir/:flow/:node/:action.json`,
+    method: 'post',
+    before: [ILogin],
+    async handel(this: Controller, {params: {dir, flow, node, action}, body: {data}}) {
+      return await this.service.paasService.doFlow<any, any>({
+        flowPath: `${ dir }/${ flow }/${ node }/${ action }`,
+        data
+      });
+    }
+  }, this, {
+    before: [IMe]
+  });
+  EggInstall({
+    path: `/get-flow/:dir/:flow/:node.json`,
+    method: 'get',
+    before: [ILogin],
+    handel(this: Controller, {params: {dir, flow, node}}) {
+      return this.app.getFlowNode(dir, flow, node);
     }
   }, this, {
     before: [IMe]

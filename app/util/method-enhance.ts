@@ -1,26 +1,26 @@
 import {BaseContextClass, Application, Context} from 'egg';
-import {FlowContext, FlowActionConfigParam, FlowActionConfigFilter, FlowCodeFilter, FlowAction} from '../../typings';
+import {FlowContext, FlowActionConfigParam, FlowActionConfigFilter, FlowCodeFilter} from '../../typings';
 import {merge, isArray} from 'lodash';
 const debug = require('debug')('egg-bag');
 
 async function clearChild(this: Application, key: string, skipDel = false) {
   if (skipDel === false) {
-    await this.redis.get('other').del(`cache-${ key }`);
+    await this.redis.get('other').del(`[cache]${ key }`);
   }
-  const childtype = await this.redis.get('other').type(`cache-child-${ key }`);
+  const childtype = await this.redis.get('other').type(`[cache-child]${ key }`);
   if (childtype === 'set') {
-    const parentKeys = await this.redis.get('other').smembers(`cache-child-${ key }`);
+    const parentKeys = await this.redis.get('other').smembers(`[cache-child]${ key }`);
     for (const clear of parentKeys) {
-      const type = await this.redis.get('other').type(`cache-parent-${ clear }`);
+      const type = await this.redis.get('other').type(`[cache-parent]${ clear }`);
       if (type === 'set') {
-        await this.redis.get('other').srem(`cache-parent-${ clear }`, key);
+        await this.redis.get('other').srem(`[cache-parent]${ clear }`, key);
       }
     }
-    await this.redis.get('other').del(`cache-child-${ key }`);
+    await this.redis.get('other').del(`[cache-child]${ key }`);
   }
 }
 async function clearParent(this: Application, clearKey: string) {
-  const keys = await this.redis.get('other').smembers(`cache-parent-${ clearKey }`);
+  const keys = await this.redis.get('other').smembers(`[cache-parent]${ clearKey }`);
   if (keys) {
     for (const key of keys) {
       debug(`cache ${ key } cleared!`);
@@ -44,20 +44,20 @@ export async function setCache(
     // 映射关系存放
     if (config.clearKey && config.clearKey.length > 0) {
       for (const clear of config.clearKey) {
-        await this.app.redis.get('other').sadd(`cache-parent-${ clear }`, config.key);
-        await this.app.redis.get('other').sadd(`cache-child-${ config.key }`, clear);
+        await this.app.redis.get('other').sadd(`[cache-parent]${ clear }`, config.key);
+        await this.app.redis.get('other').sadd(`[cache-child]${ config.key }`, clear);
       }
     }
     if (config.autoClearTime) { // 自动清空
-      await this.app.redis.get('other').set(`cache-${ config.key }`, JSON.stringify(config.result), 'EX', config.autoClearTime * 60);
+      await this.app.redis.get('other').set(`[cache]${ config.key }`, JSON.stringify(config.result), 'EX', config.autoClearTime * 60);
       // 订阅：清空 clear list
       if (config.clearKey && config.clearKey.length > 0) {
-        await this.app.subSync(`other-cache-${ config.key }`, async function (this: Context, key: string) {
+        await this.app.subSync(`other-[cache]${ config.key }`, async function (this: Context, key: string) {
           await clearChild.call(this.app, key, true);
         }, config.key);
       }
     } else {
-      await this.app.redis.get('other').set(`cache-${ config.key }`, JSON.stringify(config.result));
+      await this.app.redis.get('other').set(`[cache]${ config.key }`, JSON.stringify(config.result));
     }
 
 
@@ -71,11 +71,11 @@ export async function setCache(
 }
 
 export async function clearCache(this: Application, key: string) {
-  let type = await this.redis.get('other').type(`cache-parent-${ key }`);
+  let type = await this.redis.get('other').type(`[cache-parent]${ key }`);
   if (type === 'set') {
     clearParent.call(this, key);
   }
-  type = await this.redis.get('other').type(`cache-${ key }`);
+  type = await this.redis.get('other').type(`[cache]${ key }`);
   if (type !== 'none') {
     clearChild.call(this, key);
   }
@@ -98,7 +98,7 @@ export function ContextMethodCache(config: {
         // eslint-disable-next-line prefer-rest-params
         const args = Array.from(arguments);
         const key = config.key(...args, this.ctx.me);
-        const cache = await this.app.redis.get('other').get(`cache-${ key }`);
+        const cache = await this.app.redis.get('other').get(`[cache]${ key }`);
         if (cache) {
           debug(`cache ${ key } hit!`);
           return JSON.parse(cache);
@@ -122,15 +122,18 @@ export function ContextMethodCache(config: {
   };
 }
 
-const excute = async (ctx: FlowContext<any, any, any>, items?: FlowActionConfigFilter[]) => {
+const excute = async <D, R>(ctx: FlowContext<D, R>, items?: FlowActionConfigFilter<D, R>[]) => {
   if (items) {
     for (const item of items) {
       if (
         (item.exception !== true && !ctx.error) ||
         (item.exception === true && ctx.error)
       ) {
-        if (item.dataFlow) {
-          merge(ctx.dataFlow, item.dataFlow);
+        if (item.data) {
+          merge(ctx.data, item.data);
+        }
+        if (item.returnValue) {
+          merge(ctx.returnValue, item.returnValue);
         }
         if (item.handler) {
           if (isArray(item.handler)) {
@@ -155,13 +158,13 @@ const excute = async (ctx: FlowContext<any, any, any>, items?: FlowActionConfigF
 
 };
 
-function explainCode(
+function explainCode<D, R>(
   codeGloval: {
     flowCodes: string[];
     nodeCodes: string[];
   },
-  item: FlowActionConfigFilter,
-  result: {[flowNode: string]: FlowActionConfigFilter[]},
+  item: FlowActionConfigFilter<D, R>,
+  result: {[flowNode: string]: FlowActionConfigFilter<D, R>[]},
   filter: {
     flowCode?: FlowCodeFilter;
     nodeCode?: FlowCodeFilter;
@@ -178,48 +181,36 @@ function explainCode(
     }
   }
 }
-function explainCodes(
+function explainCodes<D, R>(
   codeGloval: {
     flowCodes: string[];
     nodeCodes: string[];
   },
-  result: {[flowNode: string]: FlowActionConfigFilter[]},
-  items?: FlowActionConfigFilter[],
-  flowAlias?: {
-    [name: string]: {
-      flowCode?: FlowCodeFilter;
-      nodeCode?: FlowCodeFilter;
-    };
-  }
+  result: {[flowNode: string]: FlowActionConfigFilter<D, R>[]},
+  items?: FlowActionConfigFilter<D, R>[]
 ) {
   if (items) {
     for (const item of items) {
-      if (item.alias) {
-        if (flowAlias) {
-          for (const alias of item.alias) {
-            if (flowAlias[alias]) {
-              explainCode(codeGloval, item, result, {
-                flowCode: item.flowCode || flowAlias[alias].flowCode,
-                nodeCode: item.nodeCode || flowAlias[alias].nodeCode
-              });
-            }
-          }
-        }
-      } else {
-        explainCode(codeGloval, item, result, item);
-      }
+      explainCode<D, R>(codeGloval, item, result, item);
     }
   }
 }
 
-export function FlowActionConfig(config: FlowActionConfigParam) {
+export function FlowActionConfig<D, R>(config: FlowActionConfigParam<D, R>) {
   return function (target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
-    if (target instanceof BaseContextClass) {
-      let lombaqInterface: FlowAction | undefined = (new (target as any).constructor()) as FlowAction;
-      const flowConfig = lombaqInterface.flowConfig;
-      let alias = lombaqInterface.flowAlias;
-      let flowCodeSet: Set<string> | undefined = new Set<string>();
-      let nodeCodeSet: Set<string> | undefined = new Set<string>();
+    let flowConfig = target.constructor.flowConfig as Array<{
+      flowCode: FlowCodeFilter;
+      nodeCode: FlowCodeFilter;
+    }> | undefined;
+    if (!flowConfig && target.constructor.dirName && target.constructor.fileName) {
+      flowConfig = global['flowActionConfig'].get(`${ target.constructor.dirName }/${ target.constructor.fileName }`) as Array<{
+        flowCode: FlowCodeFilter;
+        nodeCode: FlowCodeFilter;
+      }> | undefined;
+    }
+    let flowCodeSet: Set<string> | undefined = new Set<string>();
+    let nodeCodeSet: Set<string> | undefined = new Set<string>();
+    if (flowConfig) {
       for (const item of flowConfig) {
         const flowCodes = isArray(item.flowCode) ? item.flowCode : [item.flowCode];
         const nodeCodes = isArray(item.nodeCode) ? item.nodeCode : [item.nodeCode];
@@ -230,53 +221,52 @@ export function FlowActionConfig(config: FlowActionConfigParam) {
           nodeCodeSet.add(nodeCode);
         }
       }
-      let codeGloval: {
-        flowCodes: string[];
-        nodeCodes: string[];
-      } | undefined = {
-        flowCodes: Array.from(flowCodeSet),
-        nodeCodes: Array.from(nodeCodeSet)
-      };
-
-      const before: {
-        [flowNode: string]: FlowActionConfigFilter[];
-      } = {};
-      const after: {
-        [flowNode: string]: FlowActionConfigFilter[];
-      } = {};
-      explainCodes(codeGloval, before, config.before, alias);
-      explainCodes(codeGloval, after, config.after, alias);
-
-      codeGloval.flowCodes.length = 0;
-      codeGloval.nodeCodes.length = 0;
-      codeGloval = undefined;
-      flowCodeSet.clear();
-      flowCodeSet = undefined;
-      nodeCodeSet.clear();
-      nodeCodeSet = undefined;
-      flowConfig.length = 0;
-      alias = undefined;
-      lombaqInterface = undefined;
-
-      const fn = descriptor.value;
-      descriptor.value = async function (this: FlowContext<any, any, any>) {
-        const pather = `${ this.flowCode }/${ this.fromNode }`;
-
-        await excute(this, before[pather]);
-
-        try {
-          await fn.call(this);
-        } catch (error) {
-          this.error = error;
-        }
-
-        await excute(this, after[pather]);
-
-        if (this.error) {
-          throw this.error;
-        }
-        return this.returnValue;
-      };
     }
+    let codeGloval: {
+      flowCodes: string[];
+      nodeCodes: string[];
+    } | undefined = {
+      flowCodes: Array.from(flowCodeSet),
+      nodeCodes: Array.from(nodeCodeSet)
+    };
+
+    const before: {
+      [flowNode: string]: FlowActionConfigFilter<D, R>[];
+    } = {};
+    const after: {
+      [flowNode: string]: FlowActionConfigFilter<D, R>[];
+    } = {};
+    explainCodes<D, R>(codeGloval, before, config.before);
+    explainCodes<D, R>(codeGloval, after, config.after);
+
+    codeGloval.flowCodes.length = 0;
+    codeGloval.nodeCodes.length = 0;
+    codeGloval = undefined;
+    flowCodeSet.clear();
+    flowCodeSet = undefined;
+    nodeCodeSet.clear();
+    nodeCodeSet = undefined;
+    if (target.constructor.dirName && target.constructor.fileName) {
+      global['flowActionConfig'].delete(`${ target.constructor.dirName }/${ target.constructor.fileName }`);
+    }
+
+    const fn = descriptor.value;
+    descriptor.value = async function (this: FlowContext<D, R>) {
+      const pather = `${ this.flowCode }/${ this.fromNode }`;
+      await excute<D, R>(this, before[pather]);
+
+      try {
+        await fn.call(this);
+      } catch (error) {
+        this.error = error;
+      }
+
+      await excute<D, R>(this, after[pather]);
+
+      if (this.error) {
+        throw this.error;
+      }
+      return this.returnValue;
+    };
   };
 }

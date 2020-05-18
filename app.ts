@@ -1,6 +1,5 @@
 import {Application} from 'egg';
-// import {loadFlow1, loadFlow2} from './app/loader/flow-load';
-import {loadFlow2} from './app/loader/flow-load';
+import {loadFlow} from './app/loader/flow-load';
 import {loadSync, loadAsync} from './app/loader/sub-load';
 import {loadWXMini, loadWXOrgan, loadWXPay} from './app/loader/wx-load';
 import {loadNuxt, initNuxt} from './app/loader/nuxt-load';
@@ -32,8 +31,7 @@ export default class {
     loadAsync.call(this.app);
 
     // 流程读取
-    // loadFlow1.call(this.app);
-    loadFlow2.call(this.app);
+    loadFlow.call(this.app);
 
     // 内部消息定义
     loadMessage.call(this.app);

@@ -4,6 +4,7 @@ import {Application} from 'egg';
 import md5Util = require('md5');
 import {Context} from 'vm';
 import {clearCache} from '../util/method-enhance';
+import {SqlSession} from '../../typings';
 const debug = require('debug')('egg-bag');
 export default {
   /**
@@ -198,20 +199,23 @@ export default {
     debug(`created a async-sub named ${ name }`);
     this._asyncSubClient[name] = fn;
   },
-  async doFlow(
+  async doFlow<D, R>(
     this: Application,
     param: {
       flowPath: string;
-      flowParam: {
-        remark: string;
-      };
-      bizParam: any;
-      dataFlow?: any;
-      conn?: any;
-    }
-  ): Promise<any> {
+      conn?: SqlSession;
+      data?: D;
+      returnValue?: R;
+      error?: Error;
+    }): Promise<R> {
     const context = this.createAnonymousContext();
-    return await context.doFlow(param);
+    return await context.doFlow<D, R>(param);
+  },
+  getFlowNode(this: Application, dir: string, flow: string, node: string) {
+    return this._flowNodeDefined[`${ dir }/${ flow }/${ node }`];
+  },
+  getFlowAction(this: Application, dir: string, flow: string, node: string, action: string) {
+    return this._flowActionDefined[`${ dir }/${ flow }/${ node }/${ action }`];
   },
   async clearContextMethodCache(this: Application, clearKey: string) {
     await clearCache.call(this, clearKey);

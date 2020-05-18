@@ -3011,7 +3011,7 @@ export abstract class BaseService<T> extends Service {
   /**
    *
    * 事务执行方法
-   * @param {(conn: any) => void} fn 方法主体
+   * @param {(conn: SqlSession) => void} fn 方法主体
    * @param {*} [transaction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @returns
    */
@@ -3025,132 +3025,120 @@ export abstract class BaseSchedule extends Subscription {
   abstract excute(): Promise<string>;
 }
 
+
 /**
  *
  * 流程上下文
  * @export
  * @interface FlowContext
- * @template P bizParam类型
- * @template F 数据流类型
+ * @template D 上下文数据流类型
  * @template R 流程返回值
  */
-export interface FlowContext<P, F, R> {
+export interface FlowContext<D, R> {
   readonly ctx: Context;
   readonly service: IService;
   readonly app: Application;
-
-  /** 提交流程时，流程相关参数 */
-  readonly flowParam: {remark: string};
-  /** 提交流程时，业务相关参数 */
-  readonly bizParam: P;
-
+  /** 操作编码 */
+  readonly actionCode: string;
   /** 流程编码 */
   readonly flowCode: string;
   /** 来自哪个节点，当前node编码，可以在action中进行判断 */
   readonly fromNode?: string;
-  // /** 将要到哪个节点，取自action定义 */
-  // toNode?: string;
-
-  /** 数据流 */
-  dataFlow: F;
+  /** 当前操作定义对象 */
+  readonly actionInfo?: FlowActionDefined;
+  /** 事务 */
+  readonly conn: SqlSession;
+  /** 提交流程时，业务相关参数 */
+  readonly data: D;
   /** 返回值 */
-  returnValue?: R;
-
+  readonly returnValue: R;
   /** 可能存在的异常信息,每个节点处理完异常后，可以将异常对象从上下文移除，以通知其他节点异常已经解决 */
   error?: Error;
-
-  /** 事务 */
-  readonly conn: any;
 }
 
-export type FlowMeta = (this: FlowContext<P, F, R>) => Promise<void>;
-
-// /**
-//  * 流程定义
-//  * 在action中，不需要保存业务的状态
-//  * 而是在流程定义中进行存储
-//  */
-// export interface Flow {
-//   /* 别名 */
-//   alias?: string[];
-//   /** 一批节点处理完毕触发,可以存储状态、todo（一批是指一个操作+N个自动操作） */
-//   doAfterAllAction?: FlowMeta;
-//   /** 一批处理之前调用（一批是指一个操作+N个自动操作） */
-//   doBeforeAllAction?: FlowMeta;
-//   /** 每个处理完毕触发 */
-//   doAfterEveryAction?: FlowMeta;
-//   /** 每个处理之前调用 */
-//   doBeforeEveryAction?: FlowMeta;
-//   /** 异常处理 */
-//   doException?: FlowMeta;
-// }
-
-// /**
-//  * 流程节点定义1
-//  */
-// export interface FlowNode {
-//   /* 别名 */
-//   alias?: string[];
-//   /** 节点自动操作，系统自动匹配，无需设置 */
-//   autoAction?: string;
-//   /** 每个节点内操作进行之前调用 */
-//   async doAfterEveryAction?: FlowMeta;
-//   /** 每个节点内操作进行之后调用 */
-//   async doBeforeEveryAction?: FlowMeta;
-//   /** 进入此节点时执行，可以匹配结点处理人员、发送消息等 */
-//   async onInto?: FlowMeta;
-//   /** 离开此节点时执行，可以找到所有的 todo userid,加以清除 */
-//   async onLeave?: FlowMeta;
-//   /** 异常处理 */
-//   doException?: FlowMeta;
-// }
-// /**
-//  * 流程节点定义1
-//  */
-// export interface FlowAction1 {
-//   /* 别名 */
-//   alias?: string[];
-//   /** 自动执行吗？每个节点只能由一个自动节点,沿用上一个ctx;要求必须存在node的index文件 */
-//   auto?: boolean;
-//   /** 到哪个节点，用于流程跳转 */
-//   toNode: string;
-//   /** 节点执行,不用保存 业务的状态、操作历史哦 */
-//   excute: FlowMeta;
-// }
+export type FlowMeta = (this: FlowContext<D, R>) => Promise<void>;
 
 export type FlowCodeFilter = string | string[];
+
+/** 操作定义,会自动读取流程集中同名code为操作方法 */
+export interface FlowActionDefined {
+  /** 文字描述 */
+  label: string;
+  /** 编码 */
+  code: string;
+  /** 目标code */
+  toNodeCode: string;
+  /** 自动执行?.流程进入此节点时,会按顺序执行节点的所有自动操作.默认是false.自动执行的操作,对用户不可见 */
+  auto?: boolean;
+  /** 前端是否隐藏?默认false */
+  hide?: boolean;
+  /** 是否是定向、默认操作?默认false */
+  def?: boolean;
+}
+/** 节点中字段 */
+export interface FlowFieldDefined {
+  /** 描述性文字 */
+  label?: string;
+  /** true=只读 false=可写?默认false */
+  readonly?: boolean;
+  /** true=必须 false=可选?默认false */
+  required?: boolean;
+}
+/** 节点 */
+export interface FlowNodeDefined {
+  /** 可用操作 */
+  actions?: FlowActionDefined[];
+  /** 字段 */
+  fields?: {
+    [code: string]: FlowFieldDefined;
+  };
+}
+/** 流程 */
+export interface FlowDefined {
+  /** 流程编码 */
+  code: string;
+  /** 节点 */
+  nodes: {
+    [code: string]: FlowNodeDefined;
+  };
+}
+/** 流程集 */
+export interface Flow {
+  /* 定义一组流程 */
+  defined?: FlowDefined[];
+}
 
 /**
  * 流程节点定义2
  */
 export interface FlowAction {
-  /** 流程定义，一个流程对应一个节点 */
-  flowConfig: Array<{
+  /** 此操作适用于哪些节点? */
+  static flowConfig?: Array<{
     flowCode: FlowCodeFilter;
     nodeCode: FlowCodeFilter;
   }>;
-  /** 流程别名 */
-  flowAlias?: {
-    [name: string]: {
-      flowCode?: FlowCodeFilter;
-      nodeCode?: FlowCodeFilter;
-    };
-  };
+  /** 在哪个目录中? */
+  static dirName?: string;
+  /** 自己的文件名 */
+  static fileName?: string;
   /** 节点执行,不用保存 业务的状态、操作历史哦 */
   excute: FlowMeta;
 }
-export interface FlowActionConfigFilter {
+/**
+ * D:flowContext的上下文数据流类型
+ */
+export interface FlowActionConfigFilter<D, R> {
   flowCode?: FlowCodeFilter;
   nodeCode?: FlowCodeFilter;
-  alias?: FlowCodeFilter;
-
   /** 发生异常才进行调用? */
   exception?: boolean;
-  /** 先扩展dataFlow，然后再调用handler */
-  dataFlow?: {[key: string]: any};
-  /** 先扩展dataFlow，然后再调用handler */
+
+  /** 先扩展data、returnValue，然后再调用handler */
+  data?: D;
+  /** 先扩展data、returnValue，然后再调用handler */
+  returnValue?: R;
+  /** 先扩展data、returnValue，然后再调用handler */
   handler?: FlowMeta[] | FlowMeta;
-  // toNode?: string;
 }
 /**
  * 顺序
@@ -3159,15 +3147,15 @@ export interface FlowActionConfigFilter {
  * Reverse 仅有一个生效！
  * toNode、doException 都是 Specil>All>空>Reverse,一旦匹配成功就跳出
  */
-export interface FlowActionConfigParam {
-  before?: FlowActionConfigFilter[];
-  after?: FlowActionConfigFilter[];
+export interface FlowActionConfigParam<D, R> {
+  before?: FlowActionConfigFilter<D, R>[];
+  after?: FlowActionConfigFilter<D, R>[];
 }
 
 /**
  * 流程操作过滤配置,进行操作时按照声明文件的顺序来执行
  */
-export const FlowActionConfig: (config: FlowActionConfigParam) => Decorator;
+export const FlowActionConfig: <D, R>(config: FlowActionConfigParam<D, R>) => Decorator;
 
 // tslint:disable-next-line:max-classes-per-file
 declare class PaasService extends BaseService<Empty> {
@@ -3186,17 +3174,13 @@ declare class PaasService extends BaseService<Empty> {
   /** 删除图形验证码缓存 */
   removePicCode(key: string): Promise<number>;
   /** 执行流程 */
-  doFlow(
-    param: {
-      flowPath: string;
-      flowParam: {
-        remark: string;
-      };
-      bizParam: any;
-      dataFlow?: any;
-      conn?: any;
-    }
-  ): Promise<any>;
+  doFlow<D, R>(param: {
+    flowPath: string;
+    conn?: SqlSession;
+    data?: D;
+    returnValue?: R;
+    error?: Error;
+  }): Promise<R>;
 }
 declare type RedisChannel = 'user' | 'other' | 'sub';
 declare interface RedisConfig {
@@ -3284,12 +3268,10 @@ declare module 'egg' {
      * nuxt 是否已经准备完毕
      */
     _nuxtReady: boolean;
-    // /** 流程 */
-    // _flowMap: {[name: string]: Flow};
-    // /** 流程节点 */
-    // _flowNodeMap: {[name: string]: FlowNode};
     /** 流程操作 */
     _flowActionMap: {[name: string]: FlowAction};
+    _flowActionDefined: {[name: string]: FlowActionDefined};
+    _flowNodeDefined: {[name: string]: FlowNodeDefined};
     /**
      * 手动调用nuxt渲染
      * 只有配置了nuxt选项后才能使用
@@ -3455,17 +3437,26 @@ declare module 'egg' {
      * @returns {Promise<any>}
      * @memberof Application
      */
-    doFlow(
-      param: {
-        flowPath: string;
-        flowParam: {
-          remark: string;
-        };
-        bizParam: any;
-        dataFlow?: any;
-        conn?: any;
-      }
-    ): Promise<any>;
+    doFlow<D, R>(param: {
+      flowPath: string;
+      conn?: SqlSession;
+      data?: D;
+      returnValue?: R;
+      error?: Error;
+    }): Promise<R>;
+    /**
+     * 获取流程节点配置
+     * @param this
+     * @param flow
+     * @param node
+     */
+    getFlowNode(dir: string, flow: string, node: string): FlowNodeDefined;
+    /**
+     * 获取操作配置
+     * @param this
+     * @param flow
+     */
+    getFlowAction(dir: string, flow: string, node: string, action: string): FlowActionDefined;
   }
   interface EggAppConfig {
     /**
@@ -3892,17 +3883,13 @@ declare module 'egg' {
      */
     emitASyncWithDevid(name: string, devid: string, ...args: any[]): Promise<any>;
     /** 执行流程,this指向当前上下文 */
-    doFlow(
-      param: {
-        flowPath: string;
-        flowParam: {
-          remark: string;
-        };
-        bizParam: any;
-        dataFlow?: any;
-        conn?: any;
-      }
-    ): Promise<any>;
+    doFlow<D, R>(param: {
+      flowPath: string;
+      conn?: SqlSession;
+      data?: D;
+      returnValue?: R;
+      error?: Error;
+    }): Promise<R>;
   }
   // eslint-disable-next-line @typescript-eslint/interface-name-prefix
   interface IService {

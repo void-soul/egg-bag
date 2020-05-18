@@ -1,7 +1,7 @@
 import {Context} from 'egg';
 import {uuid} from '../util/string';
 import lodash = require('lodash');
-import {BaseUser} from '../../typings';
+import {BaseUser, SqlSession} from '../../typings';
 import SocketConfig from '../enums/SocketConfig';
 const debug = require('debug')('egg-bag');
 const USER = 'Context#user';
@@ -220,18 +220,15 @@ export default {
       return await this.app._asyncSubClient[name].call(this, ...args);
     }
   },
-  async doFlow(
+  async doFlow<D, R>(
     this: Context,
     param: {
       flowPath: string;
-      flowParam: {
-        remark: string;
-      };
-      bizParam: any;
-      dataFlow?: any;
-      conn?: any;
-    }
-  ): Promise<any> {
+      conn?: SqlSession;
+      data?: D;
+      returnValue?: R;
+      error?: Error;
+    }): Promise<R> {
     debug(` flow named ${ param.flowPath } has been called`);
     return await this.service.paasService.doFlow(param);
   }

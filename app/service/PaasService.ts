@@ -2,7 +2,7 @@ import * as Core from '@alicloud/pop-core';
 import BaseService from '../base/BaseService';
 import {Empty} from '../util/empty';
 import {randomNumber, uuid} from '../util/string';
-import {FlowContext} from '../../typings';
+import {FlowContext, SqlSession} from '../../typings';
 import svgCaptcha = require('svg-captcha');
 const debug = require('debug')('egg-bag');
 /**
@@ -70,278 +70,67 @@ export default class extends BaseService<Empty> {
     await this.ctx.delCache(`${ key }-pic`, 'other');
   }
 
-  public async doFlow(
-    {flowPath, flowParam, bizParam, dataFlow, conn}: {
+  public async doFlow<D, R>(
+    {flowPath, conn, data, returnValue, error}: {
       flowPath: string;
-      flowParam: {remark: string};
-      bizParam: any;
-      dataFlow?: any;
-      conn?: any;
-    }) {
-    const flowCodes = flowPath.split('/');
-    const flowCode = flowCodes[0];
-    const fromNode = flowCodes[1];
-    this.app.throwIf(flowCodes.length !== 2, `error flow: ${ flowPath }`);
-    this.app.throwIf(flowCodes.length === 0, `not found flow: ${ flowPath }`);
-    this.app.throwIf(!this.app._flowActionMap[flowPath], `not found flow: ${ flowPath }`);
+      conn?: SqlSession;
 
+      data?: D;
+      returnValue?: R;
+      error?: Error;
+    }): Promise<R> {
+    const flowCodes = flowPath.split('/');
+    this.app.throwIf(flowCodes.length !== 3, `error flow: ${ flowPath }`);
+    const flowCode = flowCodes.length === 3 ? flowCodes[0] : flowCodes[1];
+    const fromNode = flowCodes.length === 3 ? flowCodes[1] : flowCodes[2];
+    const actionCode = flowCodes.length === 3 ? flowCodes[2] : flowCodes[3];
+    const dir = flowCodes[0];
+    this.app.throwIf(!this.app._flowActionMap[flowPath], `not found flow: ${ flowPath }`);
+    debug(`start do flow: ${ flowPath }`);
     if (conn) {
-      return await this._doFlow({
-        flowCode, fromNode, flowPath, flowParam, bizParam, dataFlow, conn
+      const result = await this._doFlow({
+        dir, flowCode, fromNode, actionCode, flowPath, conn, data, returnValue, error
       });
+      debug(`over do flow: ${ flowPath }`);
+      return result;
     } else {
-      return await this.transction(async conn2 => {
+      const result = await this.transction(async conn2 => {
         return await this._doFlow({
-          flowCode, fromNode, flowPath, flowParam, bizParam, dataFlow, conn: conn2
+          dir, flowCode, fromNode, actionCode, flowPath, conn: conn2, data, returnValue, error
         });
       });
+      debug(`over do flow: ${ flowPath }`);
+      return result;
     }
-
-    // return await this.transction(async conn => {
-    //   const context = {
-    //     ctx: this.ctx,
-    //     service: this.service,
-    //     app: this.app,
-
-    //     flowParam: {
-    //       remark: flowParam.remark,
-    //       userid: this.ctx.me.userid
-    //     },
-    //     bizParam,
-
-    //     fromNode,
-    //     flowCode,
-
-    //     bizIds: [],
-    //     bizDatas: [],
-    //     dataFlow: dataFlow || {} as any,
-
-    //     conn
-    //   } as FlowContext<any, any, any>;
-    //   // 全部执行前
-
-    //   const flow = this.app._flowMap[flowCode];
-    //   if (flow && flow.doBeforeAllAction) {
-    //     try {
-    //       await flow.doBeforeAllAction.call(context);
-    //     } catch (error) {
-    //       context.error = error;
-    //       if (flow.doException) {
-    //         await flow.doException.call(context);
-    //       } else {
-    //         throw error;
-    //       }
-    //     }
-    //   }
-
-    //   // 离开旧节点、进入新节点，同时如果新节点有自动action，则执行
-    //   await this.excuteFlowAction(context, flow, flowCode, flowPath);
-
-    //   // 全部执行完毕
-    //   if (flow && flow.doAfterAllAction) {
-    //     try {
-    //       await flow.doAfterAllAction.call(context);
-    //     } catch (error) {
-    //       context.error = error;
-    //       if (flow.doException) {
-    //         await flow.doException.call(context);
-    //       } else {
-    //         throw error;
-    //       }
-    //     }
-    //   }
-    //   return context.returnValue;
-    // });
   }
 
-  private async _doFlow({flowCode, fromNode, flowPath, flowParam, bizParam, dataFlow, conn}: {
+  private async _doFlow<D, R>({dir, flowCode, fromNode, actionCode, flowPath, data, returnValue, conn, error}: {
+    dir: string;
     flowCode: string;
     fromNode: string;
+    actionCode: string;
     flowPath: string;
-    flowParam: {remark: string};
-    bizParam: any;
-    dataFlow?: any;
-    conn: any;
-  }) {
+
+    data?: D;
+    returnValue?: R;
+    conn?: SqlSession;
+    error?: Error;
+  }): Promise<R> {
     const context = {
       ctx: this.ctx,
       service: this.service,
       app: this.app,
-
-      flowParam: {
-        remark: flowParam.remark,
-        userid: this.ctx.me.userid
-      },
-      bizParam,
-
+      actionCode,
       fromNode,
       flowCode,
+      actionInfo: this.app.getFlowAction(dir, flowCode, flowCode, actionCode),
+      conn,
 
-      bizIds: [],
-      bizDatas: [],
-      dataFlow: dataFlow || {} as any,
-
-      conn
-    } as FlowContext<any, any, any>;
+      data: data || {} as D,
+      returnValue: returnValue || {} as R,
+      error
+    } as FlowContext<D, R>;
     await this.app._flowActionMap[flowPath].excute.call(context);
-    // 全部执行前
-    // const flow = this.app._flowMap[flowCode];
-    // if (flow && flow.doBeforeAllAction) {
-    //   try {
-    //     await flow.doBeforeAllAction.call(context);
-    //   } catch (error) {
-    //     context.error = error;
-    //     if (flow.doException) {
-    //       await flow.doException.call(context);
-    //     } else {
-    //       throw error;
-    //     }
-    //   }
-    // }
-
-    // 离开旧节点、进入新节点，同时如果新节点有自动action，则执行
-    // await this.excuteFlowAction(context, flow, flowCode, flowPath);
-
-    // 全部执行完毕
-    // if (flow && flow.doAfterAllAction) {
-    //   try {
-    //     await flow.doAfterAllAction.call(context);
-    //   } catch (error) {
-    //     context.error = error;
-    //     if (flow.doException) {
-    //       await flow.doException.call(context);
-    //     } else {
-    //       throw error;
-    //     }
-    //   }
-    // }
     return context.returnValue;
   }
-
-  // private async excuteFlowAction(context: FlowContext<any, any, any>, flow: Flow, flowCode: string, actionCode: string) {
-  //   const fromNode = this.app._flowNodeMap[`${ flowCode ? `${ flowCode }` : '' }${ context.fromNode ? `/${ context.fromNode }` : '' }`];
-  //   const action = this.app._flowActionMap[actionCode];
-
-  //   if (action) {
-  //     if (action['toNode']) {
-  //       Object.assign(context, {
-  //         toNode: action['toNode']
-  //       });
-  //     }
-  //     // 节点执行前
-  //     if (fromNode && fromNode.doBeforeEveryAction) {
-  //       try {
-  //         await fromNode.doBeforeEveryAction.call(context);
-  //       } catch (error) {
-  //         context.error = error;
-  //         if (fromNode.doException) {
-  //           await fromNode.doException.call(context);
-  //         } else if (flow && flow.doException) {
-  //           await flow.doException.call(context);
-  //         } else {
-  //           throw error;
-  //         }
-  //       }
-  //     }
-  //     if (flow && flow.doBeforeEveryAction) {
-  //       try {
-  //         await flow.doBeforeEveryAction.call(context);
-  //       } catch (error) {
-  //         context.error = error;
-  //         if (flow.doException) {
-  //           await flow.doException.call(context);
-  //         } else {
-  //           throw error;
-  //         }
-  //       }
-  //     }
-  //     // 执行
-  //     try {
-  //       await action.excute.call(context);
-  //     } catch (error) {
-  //       context.error = error;
-  //       if (fromNode && fromNode.doException) {
-  //         await fromNode.doException.call(context);
-  //       } else if (flow && flow.doException) {
-  //         await flow.doException.call(context);
-  //       } else {
-  //         throw error;
-  //       }
-  //     }
-  //     // 节点执行后
-  //     if (fromNode && fromNode.doAfterEveryAction) {
-  //       try {
-  //         await fromNode.doAfterEveryAction.call(context);
-  //       } catch (error) {
-  //         context.error = error;
-  //         if (fromNode.doException) {
-  //           await fromNode.doException.call(context);
-  //         } else if (flow && flow.doException) {
-  //           await flow.doException.call(context);
-  //         } else {
-  //           throw error;
-  //         }
-  //       }
-  //     }
-  //     if (flow && flow.doAfterEveryAction) {
-  //       try {
-  //         await flow.doAfterEveryAction.call(context);
-  //       } catch (error) {
-  //         context.error = error;
-  //         if (flow.doException) {
-  //           await flow.doException.call(context);
-  //         } else {
-  //           throw error;
-  //         }
-  //       }
-  //     }
-  //     // 节点发生了变化
-  //     if (context.fromNode !== context.toNode) {
-  //       // 来源节点 离开
-  //       if (fromNode && fromNode.onLeave) {
-  //         try {
-  //           await fromNode.onLeave.call(context);
-  //         } catch (error) {
-  //           context.error = error;
-  //           if (fromNode.doException) {
-  //             await fromNode.doException.call(context);
-  //           } else if (flow && flow.doException) {
-  //             await flow.doException.call(context);
-  //           } else {
-  //             throw error;
-  //           }
-  //         }
-  //       }
-
-  //       // 新节点
-  //       if (context.toNode) {
-  //         const toNode = this.app._flowNodeMap[`${ flowCode }/${ context.toNode }`];
-  //         if (toNode) {
-  //           //  进入
-  //           if (toNode.onInto) {
-  //             try {
-  //               await toNode.onInto.call(context);
-  //             } catch (error) {
-  //               context.error = error;
-  //               if (toNode.doException) {
-  //                 await toNode.doException.call(context);
-  //               } else if (flow && flow.doException) {
-  //                 await flow.doException.call(context);
-  //               } else {
-  //                 throw error;
-  //               }
-  //             }
-  //           }
-  //           // 自动
-  //           if (toNode.autoAction) {
-  //             Object.assign(context, {
-  //               fromNode: context.toNode
-  //             });
-  //             await this.excuteFlowAction(context, flow, flowCode, `${ flowCode }/${ context.toNode }/${ toNode.autoAction }`);
-  //           }
-  //         }
-  //       }
-  //     }
-  //   }
-  // }
 }
