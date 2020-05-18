@@ -136,7 +136,12 @@ export default class extends BaseService<Empty> {
       todo: [],
       logs: []
     }, (objValue: any, srcValue: any) => lodash.isUndefined(srcValue) ? objValue : srcValue);
-
+    if (context.actionid) {
+      const action = context.flow.flowConfig[context.fromNodeCode].find(item => item.id === context.actionid);
+      if (action && action.label) {
+        context.logs.push(action.label);
+      }
+    }
     if (context.conn) {
       lodash.assign(fromNode, context);
       await this._doFlow(context);
@@ -152,12 +157,6 @@ export default class extends BaseService<Empty> {
   }
 
   private async _doFlow(context: FlowContext<any, any, any>) {
-    if (context.actionid) {
-      const action = context.flow.flowConfig[context.fromNodeCode].find(item => item.id === context.actionid);
-      if (action) {
-        context.logs.push(action.label);
-      }
-    }
     const toNodeCode = context.toNodeCode;
     const toNode = context.flow.nodes[toNodeCode];
     if (toNode) {
@@ -179,6 +178,7 @@ export default class extends BaseService<Empty> {
               fromNode: toNode,
               actionid: action.id
             });
+            context.logs.push(action.label);
             await this._doFlow(context);
           }
         } else if (actions.length > 1) { // 多个操作，找默认
@@ -193,6 +193,7 @@ export default class extends BaseService<Empty> {
                 fromNode: toNode,
                 actionid: defAction.id
               });
+              defAction.label && context.logs.push(defAction.label);
               await this._doFlow(context);
             }
           }
@@ -207,6 +208,7 @@ export default class extends BaseService<Empty> {
             fromNode: toNode,
             actionid: errorAction.id
           });
+          errorAction.label && context.logs.push(errorAction.label);
           await this._doFlow(context);
         } else { // 没有流转，直接抛出
           throw error;
@@ -217,13 +219,28 @@ export default class extends BaseService<Empty> {
       if (autoNode) {
         lodash.assign(context, {toNode: autoNode});
         const newToNodeCode = await autoNode.enter();
-        if (newToNodeCode && toNodeCode !== newToNodeCode) {
+        if (newToNodeCode) {
+          this.app.throwIf(toNodeCode === newToNodeCode, '自动节点循环调用！');
           lodash.assign(context, {
             toNodeCode: newToNodeCode,
             fromNodeCode: toNodeCode,
             fromNode: autoNode,
             actionid: undefined
           });
+          await this._doFlow(context);
+        } else {
+          const actions = context.flow.flowConfig[context.toNodeCode];
+          this.app.throwIf(actions.length !== 1, '自动节点被中断了！');
+          const nextNodeCode = actions[0].to;
+          this.app.throwIf(!nextNodeCode, '自动节点被中断了！');
+          this.app.throwIf(toNodeCode === nextNodeCode, '自动节点循环调用！');
+          lodash.assign(context, {
+            toNodeCode: nextNodeCode,
+            fromNodeCode: toNodeCode,
+            fromNode: autoNode,
+            actionid: actions[0].id
+          });
+          actions[0].label && context.logs.push(actions[0].label);
           await this._doFlow(context);
         }
       } else if (toNodeCode === context.flow.endNodeCode && context.flow.endNode) {

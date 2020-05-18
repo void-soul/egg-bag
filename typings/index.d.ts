@@ -3238,7 +3238,7 @@ export abstract class FlowEndNode<D, R, F extends FlowFields> extends FlowContex
  */
 export abstract class FlowAutoNode<D, R, F extends FlowFields> extends FlowContext<D, R, F> {
   /** 数据处理，返回跳转的节点编号 */
-  abstract enter(): Promise<string>;
+  abstract enter(): Promise<string | undefined>;
 }
 
 declare module 'egg' {
