@@ -3026,137 +3026,6 @@ export abstract class BaseSchedule extends Subscription {
 }
 
 
-/**
- *
- * 流程上下文
- * @export
- * @interface FlowContext
- * @template D 上下文数据流类型
- * @template R 流程返回值
- */
-export interface FlowContext<D, R> {
-  readonly ctx: Context;
-  readonly service: IService;
-  readonly app: Application;
-  /** 操作编码 */
-  readonly actionCode: string;
-  /** 流程编码 */
-  readonly flowCode: string;
-  /** 来自哪个节点，当前node编码，可以在action中进行判断 */
-  readonly fromNode?: string;
-  /** 当前操作定义对象 */
-  readonly actionInfo?: FlowActionDefined;
-  /** 事务 */
-  readonly conn: SqlSession;
-  /** 提交流程时，业务相关参数 */
-  readonly data: D;
-  /** 返回值 */
-  readonly returnValue: R;
-  /** 可能存在的异常信息,每个节点处理完异常后，可以将异常对象从上下文移除，以通知其他节点异常已经解决 */
-  error?: Error;
-}
-
-export type FlowMeta = (this: FlowContext<D, R>) => Promise<void>;
-
-export type FlowCodeFilter = string | string[];
-
-/** 操作定义,会自动读取流程集中同名code为操作方法 */
-export interface FlowActionDefined {
-  /** 文字描述 */
-  label: string;
-  /** 编码 */
-  code: string;
-  /** 目标code */
-  toNodeCode: string;
-  /** 自动执行?.流程进入此节点时,会按顺序执行节点的所有自动操作.默认是false.自动执行的操作,对用户不可见 */
-  auto?: boolean;
-  /** 前端是否隐藏?默认false */
-  hide?: boolean;
-  /** 是否是定向、默认操作?默认false */
-  def?: boolean;
-}
-/** 节点中字段 */
-export interface FlowFieldDefined {
-  /** 描述性文字 */
-  label?: string;
-  /** true=只读 false=可写?默认false */
-  readonly?: boolean;
-  /** true=必须 false=可选?默认false */
-  required?: boolean;
-}
-/** 节点 */
-export interface FlowNodeDefined {
-  /** 可用操作 */
-  actions?: FlowActionDefined[];
-  /** 字段 */
-  fields?: {
-    [code: string]: FlowFieldDefined;
-  };
-}
-/** 流程 */
-export interface FlowDefined {
-  /** 流程编码 */
-  code: string;
-  /** 节点 */
-  nodes: {
-    [code: string]: FlowNodeDefined;
-  };
-}
-/** 流程集 */
-export interface Flow {
-  /* 定义一组流程 */
-  defined?: FlowDefined[];
-}
-
-/**
- * 流程节点定义2
- */
-export interface FlowAction {
-  /** 此操作适用于哪些节点? */
-  static flowConfig?: Array<{
-    flowCode: FlowCodeFilter;
-    nodeCode: FlowCodeFilter;
-  }>;
-  /** 在哪个目录中? */
-  static dirName?: string;
-  /** 自己的文件名 */
-  static fileName?: string;
-  /** 节点执行,不用保存 业务的状态、操作历史哦 */
-  excute: FlowMeta;
-}
-/**
- * D:flowContext的上下文数据流类型
- */
-export interface FlowActionConfigFilter<D, R> {
-  flowCode?: FlowCodeFilter;
-  nodeCode?: FlowCodeFilter;
-  /** 发生异常才进行调用? */
-  exception?: boolean;
-
-  /** 先扩展data、returnValue，然后再调用handler */
-  data?: D;
-  /** 先扩展data、returnValue，然后再调用handler */
-  returnValue?: R;
-  /** 先扩展data、returnValue，然后再调用handler */
-  handler?: FlowMeta[] | FlowMeta;
-}
-/**
- * 顺序
- * Specil或者All,
- * 空>Reverse,
- * Reverse 仅有一个生效！
- * toNode、doException 都是 Specil>All>空>Reverse,一旦匹配成功就跳出
- */
-export interface FlowActionConfigParam<D, R> {
-  before?: FlowActionConfigFilter<D, R>[];
-  after?: FlowActionConfigFilter<D, R>[];
-}
-
-/**
- * 流程操作过滤配置,进行操作时按照声明文件的顺序来执行
- */
-export const FlowActionConfig: <D, R>(config: FlowActionConfigParam<D, R>) => Decorator;
-
 // tslint:disable-next-line:max-classes-per-file
 declare class PaasService extends BaseService<Empty> {
   /** 发送短信验证码,返回验证码编号 */
@@ -3174,13 +3043,13 @@ declare class PaasService extends BaseService<Empty> {
   /** 删除图形验证码缓存 */
   removePicCode(key: string): Promise<number>;
   /** 执行流程 */
-  doFlow<D, R>(param: {
-    flowPath: string;
-    conn?: SqlSession;
-    data?: D;
-    returnValue?: R;
-    error?: Error;
-  }): Promise<R>;
+  // doFlow<D, R>(param: {
+  //   flowPath: string;
+  //   conn?: SqlSession;
+  //   data?: D;
+  //   returnValue?: R;
+  //   error?: Error;
+  // }): Promise<R>;
 }
 declare type RedisChannel = 'user' | 'other' | 'sub';
 declare interface RedisConfig {
@@ -3268,10 +3137,6 @@ declare module 'egg' {
      * nuxt 是否已经准备完毕
      */
     _nuxtReady: boolean;
-    /** 流程操作 */
-    _flowActionMap: {[name: string]: FlowAction};
-    _flowActionDefined: {[name: string]: FlowActionDefined};
-    _flowNodeDefined: {[name: string]: FlowNodeDefined};
     /**
      * 手动调用nuxt渲染
      * 只有配置了nuxt选项后才能使用
@@ -3429,34 +3294,6 @@ declare module 'egg' {
      * @memberof Application
      */
     clearContextMethodCache(clearKey: string): Promise<void>;
-    /**
-     *
-     * 处理流程
-     * @param {string} flow
-     * @param {*} data
-     * @returns {Promise<any>}
-     * @memberof Application
-     */
-    doFlow<D, R>(param: {
-      flowPath: string;
-      conn?: SqlSession;
-      data?: D;
-      returnValue?: R;
-      error?: Error;
-    }): Promise<R>;
-    /**
-     * 获取流程节点配置
-     * @param this
-     * @param flow
-     * @param node
-     */
-    getFlowNode(dir: string, flow: string, node: string): FlowNodeDefined;
-    /**
-     * 获取操作配置
-     * @param this
-     * @param flow
-     */
-    getFlowAction(dir: string, flow: string, node: string, action: string): FlowActionDefined;
   }
   interface EggAppConfig {
     /**
@@ -3882,14 +3719,6 @@ declare module 'egg' {
      * @memberof Application
      */
     emitASyncWithDevid(name: string, devid: string, ...args: any[]): Promise<any>;
-    /** 执行流程,this指向当前上下文 */
-    doFlow<D, R>(param: {
-      flowPath: string;
-      conn?: SqlSession;
-      data?: D;
-      returnValue?: R;
-      error?: Error;
-    }): Promise<R>;
   }
   // eslint-disable-next-line @typescript-eslint/interface-name-prefix
   interface IService {

@@ -47,6 +47,5 @@ export = {
     SOCKET_USER: SocketConfig.SOCKET_USER.value(),
     SOCKET_DEV: SocketConfig.SOCKET_DEV.value()
   },
-  // ContextMethodCache, FlowActionConfig,
   ContextMethodCache
 };

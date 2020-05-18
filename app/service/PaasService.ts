@@ -2,7 +2,6 @@ import * as Core from '@alicloud/pop-core';
 import BaseService from '../base/BaseService';
 import {Empty} from '../util/empty';
 import {randomNumber, uuid} from '../util/string';
-import {FlowContext, SqlSession} from '../../typings';
 import svgCaptcha = require('svg-captcha');
 const debug = require('debug')('egg-bag');
 /**
@@ -68,69 +67,5 @@ export default class extends BaseService<Empty> {
 
   public async removePicCode(key: string) {
     await this.ctx.delCache(`${ key }-pic`, 'other');
-  }
-
-  public async doFlow<D, R>(
-    {flowPath, conn, data, returnValue, error}: {
-      flowPath: string;
-      conn?: SqlSession;
-
-      data?: D;
-      returnValue?: R;
-      error?: Error;
-    }): Promise<R> {
-    const flowCodes = flowPath.split('/');
-    this.app.throwIf(flowCodes.length !== 3, `error flow: ${ flowPath }`);
-    const flowCode = flowCodes.length === 3 ? flowCodes[0] : flowCodes[1];
-    const fromNode = flowCodes.length === 3 ? flowCodes[1] : flowCodes[2];
-    const actionCode = flowCodes.length === 3 ? flowCodes[2] : flowCodes[3];
-    const dir = flowCodes[0];
-    this.app.throwIf(!this.app._flowActionMap[flowPath], `not found flow: ${ flowPath }`);
-    debug(`start do flow: ${ flowPath }`);
-    if (conn) {
-      const result = await this._doFlow({
-        dir, flowCode, fromNode, actionCode, flowPath, conn, data, returnValue, error
-      });
-      debug(`over do flow: ${ flowPath }`);
-      return result;
-    } else {
-      const result = await this.transction(async conn2 => {
-        return await this._doFlow({
-          dir, flowCode, fromNode, actionCode, flowPath, conn: conn2, data, returnValue, error
-        });
-      });
-      debug(`over do flow: ${ flowPath }`);
-      return result;
-    }
-  }
-
-  private async _doFlow<D, R>({dir, flowCode, fromNode, actionCode, flowPath, data, returnValue, conn, error}: {
-    dir: string;
-    flowCode: string;
-    fromNode: string;
-    actionCode: string;
-    flowPath: string;
-
-    data?: D;
-    returnValue?: R;
-    conn?: SqlSession;
-    error?: Error;
-  }): Promise<R> {
-    const context = {
-      ctx: this.ctx,
-      service: this.service,
-      app: this.app,
-      actionCode,
-      fromNode,
-      flowCode,
-      actionInfo: this.app.getFlowAction(dir, flowCode, flowCode, actionCode),
-      conn,
-
-      data: data || {} as D,
-      returnValue: returnValue || {} as R,
-      error
-    } as FlowContext<D, R>;
-    await this.app._flowActionMap[flowPath].excute.call(context);
-    return context.returnValue;
   }
 }
