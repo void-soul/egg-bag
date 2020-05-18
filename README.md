@@ -200,75 +200,6 @@ export default function (this: Context, order: WxRefHook) {
   }
 ```
 
-# 1.27.0
-
-增加建议工作流配置。
-
-
-## 路径 `app/flow`
-
-实现接口 `FlowAction`,必须声明 `flowConfig`,如:
-
-例如文件名为 `order-create.ts`
-
-```
-export default class implements FlowAction{
-  flowConfig = [
-    // 访问方式=2/3/order-create
-    {flowCode: '2', nodeCode: '3'}
-  ];
-  ...
-}
-```
-
-### 入口
-
-这个流程访问的入口是 `/do-flow/${flow}/${node}/order-create.json` ，
-需要传入参数 `bizParam`、`flowParam`,其中`bizParam` 是业务参数，`flowParam`是流程参数，目前只有 remark 一个属性
-
-## 代码调用
-
-> app 中调用时，this 指向的 context 是一个虚拟的上下文，不包含用户会话。如果有需要用户信息，则需要自行 login
-
-> ctx 中调用时，this 指向的 context 会沿用当前上下文
-
-`app.doFlow('${flow}/${node}/${action}', flowParam, bizParam)`
-
-`ctx.doFlow('${flow}/${node}/${action}', flowParam, bizParam)`
-
-## 操作过滤器
-
-使用注解
-
-```
-// 流程操作过滤配置,进行操作时，顺序：beforeAll>before>extendInit>toNode>执行操作>after>afterAll,是按照声明文件的顺序来的 */
-export const FlowActionFilter: (config: {
-  before?: Array<{
-    flowCode?: string | string[];
-    nodeCode?: string | string[];
-    alias?: string | string[];
-
-    /** 发生异常才进行调用? */
-    exception?: boolean;
-    /** 先扩展dataFlow，然后再调用handler */
-    dataFlow?: {[key: string]: any};
-    /** 先扩展dataFlow，然后再调用handler */
-    handler?: Array<(this: FlowContext<P, F, R>) => Promise<void>> | (this: FlowContext<P, F, R>) => Promise<void>;
-  }>;
-  after?: Array<{
-    flowCode?: string | string[];
-    nodeCode?: string | string[];
-    alias?: string | string[];
-
-    /** 发生异常才进行调用? */
-    exception?: boolean;
-    /** 先扩展dataFlow，然后再调用handler */
-    dataFlow?: {[key: string]: any};
-    /** 先扩展dataFlow，然后再调用handler */
-    handler?: Array<(this: FlowContext<P, F, R>) => Promise<void>> | (this: FlowContext<P, F, R>) => Promise<void>;
-  }>;
-}) => Decorator;
-```
 
 # 1.28.0
 
@@ -380,5 +311,3 @@ import initDataFlow from 'app/flow-help/init-data-flow';
 # 1.33.5
 1. 方法缓存的key、clearKey方法都必须定义为箭头函数，不会再传入this（为了提高效率）
 
-
-text
