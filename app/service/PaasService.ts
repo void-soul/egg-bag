@@ -140,11 +140,13 @@ export default class extends BaseService<Empty> {
     if (context.conn) {
       lodash.assign(fromNode, context);
       await this._doFlow(context);
+      await flow.save();
     } else {
       await this.transction(async conn => {
         lodash.assign(context, {conn});
         lodash.assign(fromNode, context);
         await this._doFlow(context);
+        await flow.save();
       });
     }
   }
