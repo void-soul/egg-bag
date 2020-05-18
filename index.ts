@@ -19,6 +19,10 @@ import SocketConfig from './app/enums/SocketConfig';
 import {ci} from './app/util/ci-help';
 import {enumToJson} from './app/util/enumUtil';
 import {ContextMethodCache} from './app/util/method-enhance';
+import Flow from './app/flow/flow';
+import FlowNode from './app/flow/flow-node';
+import FlowAutoNode from './app/flow/flow-auto-node';
+import FlowContext from './app/flow/flow-context';
 
 export = {
   ...egg,
@@ -47,5 +51,7 @@ export = {
     SOCKET_USER: SocketConfig.SOCKET_USER.value(),
     SOCKET_DEV: SocketConfig.SOCKET_DEV.value()
   },
-  ContextMethodCache
+  ContextMethodCache,
+  Flow, FlowNode, FlowAutoNode, FlowContext
 };
+

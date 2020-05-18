@@ -3113,6 +3113,134 @@ export interface MongoFilter<T> {
 }
 
 export type SqlScript = (this: Context, param?: {[k: string]: any}) => string | MongoFilter<any>;
+
+export interface FlowAction {
+  id: string;
+  /** 文字 */
+  label: string;
+  /** 目标节点 */
+  to?: string;
+  /** 隐藏 */
+  hide?: boolean;
+  /** 默认优先级 */
+  def?: boolean;
+  /** 错误处理流转：仅普通任务节点支持. */
+  error?: boolean;
+}
+
+export interface FlowField {
+  label?: string;
+  readonly?: boolean;
+  required?: boolean;
+}
+export interface FlowFields {
+  [code: string]: FlowField | undefined;
+}
+
+export interface FlowNotice {
+  id: any;
+  msg: string;
+}
+/**
+ * 流程上下文
+ * D: 流转data 类型定义
+ * R: 流程输出类型
+ */
+export class FlowContext<D, R, F extends FlowFields> {
+  readonly ctx: Context;
+  readonly service: IService;
+  readonly app: Application;
+  /** 事务 */
+  readonly conn: SqlSession;
+  /** 提交流程时，业务相关参数 */
+  readonly data: D;
+  /** 返回值 */
+  readonly returnValue: R;
+  /** 流程编码 */
+  readonly flowCode: string;
+  /** 流程对象 */
+  readonly flow: Flow<D, R, F>;
+  /** 源节点编码 */
+  readonly fromNodeCode: string;
+  /** 源节点 */
+  readonly fromNode: FlowNode<D, R, F> | FlowStartNode<D, R, F> | FlowAutoNode<D, R, F>;
+  /** 目标节点*/
+  readonly toNodeCode: string;
+  /** 目标节点 */
+  readonly toNode: FlowNode<D, R, F> | FlowStartNode<D, R, F> | FlowEndNode<D, R, F>;
+  /** 可用操作列表 */
+  readonly actions: FlowAction[];
+  /** 操作 */
+  readonly actionid: string;
+  /** 字段列表 */
+  readonly field: F;
+  /** 消息通知 */
+  readonly notice: FlowNotice[];
+  /** 任务执行人id */
+  readonly todo: any[];
+  /** 日志 */
+  readonly logs: string[];
+  /** 可能存在的异常信息,每个节点处理完异常后，可以将异常对象从上下文移除，以通知其他节点异常已经解决 */
+  error?: Error;
+}
+
+/**
+ * 流程定义
+ * D: 流转上下文 类型定义
+ * R: 流程输出类型
+ * F: 流程字段类型
+ */
+export abstract class Flow<D, R, F extends FlowFields> extends FlowContext<D, R, F> {
+  /** 界面维护用 */
+  abstract flowData: {nodes: any; areas: any; lines: any};
+  /** 流转配置 */
+  abstract flowConfig: {[node: string]: FlowAction[]};
+  /** 流程字段汇总.nodeType可以是各节点值，也可以是自定义字符 */
+  abstract flowField: {
+    [nodeType: string]: F;
+  };
+  startNodeCode: string;
+  startNode: FlowStartNode<D, R, F>;
+  endNodeCode: string;
+  endNode: FlowEndNode<D, R, F>;
+  nodes: {[key: string]: FlowNode<D, R, F>};
+  autoNodes: {[key: string]: FlowAutoNode<D, R, F>};
+  /** 保存数据 */
+  abstract save(): Promise<void>;
+}
+/**
+ * 普通数据节点
+ */
+export abstract class FlowNode<D, R, F extends FlowFields> extends FlowContext<D, R, F> {
+  /** 进入流程时初始化上下文用.需要在这里给上下文绑定 actions、fields */
+  abstract init(): Promise<void>;
+  /** 流程流转入此节点时调用 */
+  abstract enter(): Promise<void>;
+  /** 可操作人ID列表:当流程处理到此节点为一个中断时触发 */
+  abstract todo(): Promise<void>;
+  /** 消息列表:当流程处理到此节点为一个中断时触发 */
+  abstract notice(): Promise<void>;
+}
+/**
+ * 开始节点
+ */
+export abstract class FlowStartNode<D, R, F extends FlowFields> extends FlowContext<D, R, F> {
+  abstract init(): Promise<void>;
+}
+/**
+ * 结束节点
+ */
+export abstract class FlowEndNode<D, R, F extends FlowFields> extends FlowContext<D, R, F> {
+  abstract enter(): Promise<void>;
+}
+/**
+ * 自动节点
+ */
+export abstract class FlowAutoNode<D, R, F extends FlowFields> extends FlowContext<D, R, F> {
+  /** 数据处理，返回跳转的节点编号 */
+  abstract enter(): Promise<string>;
+}
+
 declare module 'egg' {
   interface Application {
     _wxMini: {[appCode: string]: WxMini};
@@ -3137,6 +3265,7 @@ declare module 'egg' {
      * nuxt 是否已经准备完毕
      */
     _nuxtReady: boolean;
+    _flowMap: {[flowCode: string]: Flow<any, any, any>};
     /**
      * 手动调用nuxt渲染
      * 只有配置了nuxt选项后才能使用
