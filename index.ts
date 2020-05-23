@@ -19,11 +19,7 @@ import SocketConfig from './app/enums/SocketConfig';
 import {ci} from './app/util/ci-help';
 import {enumToJson} from './app/util/enumUtil';
 import {ContextMethodCache} from './app/util/method-enhance';
-import Flow from './app/flow/flow';
-import FlowNode from './app/flow/flow-node';
-import FlowAutoNode from './app/flow/flow-auto-node';
-import FlowContext from './app/flow/flow-context';
-
+import {FlowContext, Flow, FlowTaskNode, FlowStartNode, FlowSkipNode, FlowSysNode, FlowEndNode, FlowAutoNode, FlowReportNode, FlowChildNode} from './app/util/flow';
 export = {
   ...egg,
   Application,
@@ -52,6 +48,6 @@ export = {
     SOCKET_DEV: SocketConfig.SOCKET_DEV.value()
   },
   ContextMethodCache,
-  Flow, FlowNode, FlowAutoNode, FlowContext
+  FlowContext, Flow, FlowTaskNode, FlowStartNode, FlowSkipNode, FlowSysNode, FlowEndNode, FlowAutoNode, FlowReportNode, FlowChildNode
 };
 

@@ -873,7 +873,7 @@ export interface WxPay {
    * 统一下单接口参数定义
    * https://pay.weixin.qq.com/wiki/doc/api/jsapi.php?chapter=9_1
    * 其中未定义到此处的参数，说明框架会给出默认值
-   * attach 与另一个参数dataCache配合使用，调用创建订单接口时
+   *
    * 会将dataCache存放到redis中
    * 在支付回调中将dataCache取出传回业务方法
    *
@@ -917,6 +917,8 @@ export interface WxPay {
    *
    * https://pay.weixin.qq.com/wiki/doc/api/jsapi.php?chapter=9_4
    *
+   * 会将dataCache存放到redis中
+   * 在回调中将dataCache取出传回业务方法
    *
    * devid 是当前退款发起的用户token
    * 在退款回调时，由于请求是由微信服务器发起的,因此上下文中不存在 用户对象
@@ -926,7 +928,7 @@ export interface WxPay {
    * @returns {Promise<void>}
    * @memberof WxPay
    */
-  refund(option: WxCreateRefundOrder, devid?: string): Promise<void>;
+  refund(option: WxCreateRefundOrder, dataCache?: {[key: string]: any}, devid?: string): Promise<void>;
   /**
    *
    * https://pay.weixin.qq.com/wiki/doc/api/jsapi.php?chapter=9_5
@@ -3051,7 +3053,7 @@ declare class PaasService extends BaseService<Empty> {
   //   error?: Error;
   // }): Promise<R>;
 }
-declare type RedisChannel = 'user' | 'other' | 'sub';
+declare type RedisChannel = 'user' | 'other' | 'static' | 'sub';
 declare interface RedisConfig {
   host: string;
   port: number;
@@ -3114,18 +3116,39 @@ export interface MongoFilter<T> {
 
 export type SqlScript = (this: Context, param?: {[k: string]: any}) => string | MongoFilter<any>;
 
-export interface FlowAction {
-  id: string;
+export interface FlowLine {
   /** 文字 */
-  label: string;
-  /** 目标节点 */
-  to?: string;
-  /** 隐藏 */
-  hide?: boolean;
+  name: string | number;
+  /** 编码 */
+  code: string;
+  /** 界面呈现样式 */
+  type: 'sl' | 'lr' | 'tb';
+  /** 界面拐角 */
+  M?: number;
+  /** 起 */
+  from: string;
+  /** 到 */
+  to: string;
   /** 默认优先级 */
-  def?: boolean;
+  def: boolean;
+  /** 隐藏 */
+  hide: boolean;
   /** 错误处理流转：仅普通任务节点支持. */
-  error?: boolean;
+  error: boolean;
+  /** 自动节点分流 */
+  swi: string[];
+}
+
+export interface FlowNodeConfig {
+  name?: string;
+  left: number;
+  top: number;
+  type: 'start' | 'auto' | 'task' | 'skip' | 'sys' | 'child' | 'report' | 'end';
+  code?: string;
+  width: number;
+  height: number;
+  // 子流程
+  child: string;
 }
 
 export interface FlowField {
@@ -3141,47 +3164,90 @@ export interface FlowNotice {
   id: any;
   msg: string;
 }
+
+
+export interface FlowData {
+  nodes: {
+    [id: string]: FlowNodeConfig;
+  };
+  lines: {
+    [id: string]: FlowLine;
+  };
+  areas?: {
+    [id: string]: {
+      name: string;
+      left: number;
+      top: number;
+      color: 'red' | 'yellow' | 'blue' | 'green';
+      width: number;
+      height: number;
+    };
+  };
+}
+
 /**
  * 流程上下文
  * D: 流转data 类型定义
  * R: 流程输出类型
  */
-export class FlowContext<D, R, F extends FlowFields> {
+export abstract class FlowContext<D, F extends FlowFields> {
   readonly ctx: Context;
   readonly service: IService;
   readonly app: Application;
   /** 事务 */
   readonly conn: SqlSession;
   /** 提交流程时，业务相关参数 */
-  readonly data: D;
-  /** 返回值 */
-  readonly returnValue: R;
-  /** 流程编码 */
+  readonly biz: D;
+
+  /** 查询、执行必须参数 */
+  readonly flowPath: string;
   readonly flowCode: string;
-  /** 流程对象 */
-  readonly flow: Flow<D, R, F>;
-  /** 源节点编码 */
-  readonly fromNodeCode: string;
+  readonly flowPaths: string[];
+  readonly flowCodeIndex: number;
+
   /** 源节点 */
-  readonly fromNode: FlowNode<D, R, F> | FlowStartNode<D, R, F> | FlowAutoNode<D, R, F>;
+  readonly fromNodeCode?: string;
+  readonly fromNodeId?: string;
+  readonly fromNodeLabel?: string;
+  readonly fromNodeConfig?: FlowNodeConfig;
+  readonly fromNode?: FlowNode;
+  readonly fromNodeLines?: Array<{id: string; line: FlowLine}>;
   /** 目标节点*/
-  readonly toNodeCode: string;
-  /** 目标节点 */
-  readonly toNode: FlowNode<D, R, F> | FlowStartNode<D, R, F> | FlowEndNode<D, R, F>;
-  /** 可用操作列表 */
-  readonly actions: FlowAction[];
-  /** 操作 */
-  readonly actionid: string;
-  /** 字段列表 */
-  readonly field: F;
+  readonly toNodeCode?: string;
+  readonly toNodeId?: string;
+  readonly toNodeLabel?: string;
+  readonly toNodeConfig?: FlowNodeConfig;
+  readonly toNode?: FlowNode;
+  readonly toNodeLines?: Array<{id: string; line: FlowLine}>;
+
+  /** 当前处理的操作id或者操作编码:处理时前端必传 */
+  readonly lineId?: string;
+  /** 当前处理的操作id或者操作编码:处理时前端必传 */
+  readonly lineCode?: string;
+  /** 当前处理的操作文字 */
+  readonly lineLabel?: string;
+  /** 当前生效字段列表 */
+  field: F;
+
   /** 消息通知 */
-  readonly notice: FlowNotice[];
+  readonly noticeList: FlowNotice[];
   /** 任务执行人id */
-  readonly todo: any[];
+  readonly todoList: any[];
   /** 日志 */
   readonly logs: string[];
+
   /** 可能存在的异常信息,每个节点处理完异常后，可以将异常对象从上下文移除，以通知其他节点异常已经解决 */
-  error?: Error;
+  readonly error?: Error;
+
+
+  /** 当前流程字段汇总.nodeType可以是各节点值，也可以是自定义字符 */
+  readonly flowField: {[nodeType: string]: F};
+  /** 当前流程实现类缓存 */
+  readonly nodes: {[key: string]: FlowContext<D, F>};
+  /** 当前流程配置 */
+  readonly flowData: FlowData;
+  /** 当前流程的保存数据 */
+  save(): Promise<void>;
 }
 
 /**
@@ -3190,55 +3256,89 @@ export class FlowContext<D, R, F extends FlowFields> {
  * R: 流程输出类型
  * F: 流程字段类型
  */
-export abstract class Flow<D, R, F extends FlowFields> extends FlowContext<D, R, F> {
-  /** 界面维护用 */
-  abstract flowData: {nodes: any; areas: any; lines: any};
-  /** 流转配置 */
-  abstract flowConfig: {[node: string]: FlowAction[]};
+export abstract class Flow<D, F extends FlowFields> extends FlowContext<D, F>{
   /** 流程字段汇总.nodeType可以是各节点值，也可以是自定义字符 */
-  abstract flowField: {
-    [nodeType: string]: F;
-  };
-  startNodeCode: string;
-  startNode: FlowStartNode<D, R, F>;
-  endNodeCode: string;
-  endNode: FlowEndNode<D, R, F>;
-  nodes: {[key: string]: FlowNode<D, R, F>};
-  autoNodes: {[key: string]: FlowAutoNode<D, R, F>};
+  readonly flowField: {[nodeType: string]: F};
+  /** 流程配置 */
+  readonly flowData: FlowData;
+  /** 实现类缓存 */
+  readonly nodes: {[key: string]: FlowContext<D, F>};
   /** 保存数据 */
   abstract save(): Promise<void>;
-}
-/**
- * 普通数据节点
- */
-export abstract class FlowNode<D, R, F extends FlowFields> extends FlowContext<D, R, F> {
-  /** 进入流程时初始化上下文用.需要在这里给上下文绑定 actions、fields */
+  /** 进入流程时，用来初始化上下文 */
   abstract init(): Promise<void>;
-  /** 流程流转入此节点时调用 */
+  /** 流程查询时，用来初始化上下文 */
+  abstract fetch(): Promise<void>;
+}
+export interface FlowNode {
+
+}
+/** 任务结点(若找不到执行人员,将抛出异常) */
+export abstract class FlowTaskNode<D, F extends FlowFields> extends FlowContext<D, F> implements FlowNode {
+  /** 从此节点获取流程数据 */
+  abstract fetch(): Promise<void>;
+  /** 流程从此节点开始执行时触发 */
+  abstract init(): Promise<void>;
+  /** 流程流转入此节点时触发 */
   abstract enter(): Promise<void>;
-  /** 可操作人ID列表:当流程处理到此节点为一个中断时触发 */
+  /** 可操作人ID列表:当流程处理到此节点并暂停时触发 */
   abstract todo(): Promise<void>;
   /** 消息列表:当流程处理到此节点为一个中断时触发 */
   abstract notice(): Promise<void>;
 }
-/**
- * 开始节点
- */
-export abstract class FlowStartNode<D, R, F extends FlowFields> extends FlowContext<D, R, F> {
+/** 开始结点(一个流程可以有多个开始节点,除了子流程的开始节点外,所有开始节点都不能被指向)*/
+export abstract class FlowStartNode<D, F extends FlowFields> extends FlowContext<D, F> implements FlowNode {
+  /** 从此节点获取流程数据 */
+  abstract fetch(): Promise<void>;
+  /** 流程从此节点开始执行时触发 */
   abstract init(): Promise<void>;
 }
 /**
- * 结束节点
+ * 结束节点：无出线
  */
-export abstract class FlowEndNode<D, R, F extends FlowFields> extends FlowContext<D, R, F> {
+export abstract class FlowEndNode<D, F extends FlowFields> extends FlowContext<D, F> implements FlowNode {
+  /** 流程流转入此节点时触发 */
+  abstract enter(): Promise<void>;
+  /** 消息列表:当流程处理到此节点为一个中断时触发 */
+  abstract notice(): Promise<void>;
+}
+/**  自动结点 无需人为,不能暂停,返回数字|undefined决定流程走向. */
+export abstract class FlowAutoNode<D, F extends FlowFields> extends FlowContext<D, F> implements FlowNode {
+  /** 数据处理，返回number|void */
+  abstract enter(): Promise<number | void>;
+}
+/** 可跳过的任务节点(若找不到执行人员,将跳过该节点)*/
+export abstract class FlowSkipNode<D, F extends FlowFields> extends FlowContext<D, F> implements FlowNode {
+  /** 从此节点获取流程数据 */
+  abstract fetch(): Promise<void>;
+  /** 流程从此节点开始执行时触发 */
+  abstract init(): Promise<void>;
+  /** 流程流转入此节点时触发 */
+  abstract enter(): Promise<void>;
+  /** 可操作人ID列表:当流程处理到此节点并暂停时触发 */
+  abstract todo(): Promise<void>;
+  /** 消息列表:当流程处理到此节点为一个中断时触发 */
+  abstract notice(): Promise<void>;
+}
+
+/** 系统节点(无需人为,可暂停并作为执行入口)*/
+export abstract class FlowSysNode<D, F extends FlowFields> extends FlowContext<D, F> implements FlowNode {
+  /** 流程从此节点开始执行时触发 */
+  abstract init(): Promise<void>;
+  /** 流程流转入此节点时调用 */
+  abstract enter(): Promise<void>;
+  /** 消息列表:当流程处理到此节点为一个中断时触发 */
+  abstract notice(): Promise<void>;
+}
+
+/** 子流程入口(存在于父流程中,需要指定一个子流程编号,一个父流程目前仅支持一个同名子流程编号) */
+export abstract class FlowChildNode<D, F extends FlowFields> extends FlowContext<D, F> implements FlowNode {
   abstract enter(): Promise<void>;
 }
-/**
- * 自动节点
- */
-export abstract class FlowAutoNode<D, R, F extends FlowFields> extends FlowContext<D, R, F> {
-  /** 数据处理，返回跳转的节点编号 */
-  abstract enter(): Promise<string | undefined>;
+/** 子流程上报(相当于一种特殊的结束节点,不过会根据此节点返回值反调父流程中的 【子流程入口】的对应操作) */
+
+export abstract class FlowReportNode<D, F extends FlowFields> extends FlowContext<D, F> implements FlowNode {
+  abstract enter(): Promise<number | undefined>;
 }
 
 declare module 'egg' {
@@ -3265,7 +3365,7 @@ declare module 'egg' {
      * nuxt 是否已经准备完毕
      */
     _nuxtReady: boolean;
-    _flowMap: {[flowCode: string]: Flow<any, any, any>};
+    _flowMap: {[flowCode: string]: Flow<any, any>};
     /**
      * 手动调用nuxt渲染
      * 只有配置了nuxt选项后才能使用
@@ -3310,31 +3410,31 @@ declare module 'egg' {
      * 当缓存设置为 redis、memory时，可以在app中获取
      * @param {string} key
      * @param {string} value
-     * @param {('user' | 'other')} [redisName]
+     * @param {('user' | 'other' | 'static')} [redisName]
      * @param {number} [minutes]
      * @returns {Promise<void>}
      * @memberof Application
      */
-    setCache(key: string, value: string, redisName?: 'user' | 'other', minutes?: number): Promise<void>;
+    setCache(key: string, value: string, redisName?: 'user' | 'other' | 'static', minutes?: number): Promise<void>;
     /**
      *
      * 当缓存设置为 redis、memory时，可以在app中获取
      * @param {(string)} key
-     * @param {('user' | 'other')} [redisName]
+     * @param {('user' | 'other' | 'static')} [redisName]
      * @returns {(Promise<string | null>)}
      * @memberof Application
      */
-    getCache(key: string, redisName?: 'user' | 'other'): Promise<string | null>;
+    getCache(key: string, redisName?: 'user' | 'other' | 'static'): Promise<string | null>;
     /**
      *
      * 当缓存设置为 redis、memory时，可以在app中获取
      * @param {string} key
-     * @param {('user' | 'other')} [redisName]
+     * @param {('user' | 'other' | 'static')} [redisName]
      * @param {number} [minutes]
      * @returns {Promise<void>}
      * @memberof Application
      */
-    delCache(key: string, redisName?: 'user' | 'other', minutes?: number): Promise<void>;
+    delCache(key: string, redisName?: 'user' | 'other' | 'static', minutes?: number): Promise<void>;
     /**
      *
      * 获取微信小程序api对象
@@ -3553,15 +3653,17 @@ declare module 'egg' {
        * other每次启动服务会清空
        * sub: 专门用于订阅 定时缓存清理
        * 需要同时设置 redis.conf: notify-keyspace-events "Ex"
-       * @type {({[key: 'user' | 'other' | 'sub']: {host: string, port: number, password: string, db: number}})}
+       * @type {({[key: 'user' | 'other' | 'static' | 'sub']: {host: string, port: number, password: string, db: number}})}
        */
       clients?: {
         /* 用于缓存用户信息，如devid、userid */
         user?: RedisConfig;
-        /* 其他缓存，如数据缓存、消息缓存*/
+        /* 其他缓存，如数据缓存、消息缓存.每次项目启动会清空*/
         other?: RedisConfig;
         /* 用于订阅user、other的定时key过期事件 */
         sub?: RedisConfig;
+        /* 重要缓存，如支付缓存、退款缓存 */
+        static?: RedisConfig;
       };
     };
     /**
@@ -3799,17 +3901,17 @@ declare module 'egg' {
     /** 获取会话token */
     getDevid(): string | null;
     /** 添加缓存 */
-    setCache(key: string, value: string, redisName?: 'user' | 'other', minutes?: number): Promise<void>;
+    setCache(key: string, value: string, redisName?: 'user' | 'other' | 'static', minutes?: number): Promise<void>;
     /** 设置cookie */
     setCookie(key: string, value: string);
     /** 删除cookie */
     removeCookie(key: string);
     /** 获取缓存 */
-    getCache(key: string, redisName?: 'user' | 'other'): Promise<string | null>;
+    getCache(key: string, redisName?: 'user' | 'other' | 'static'): Promise<string | null>;
     /** 获取cookie */
     getCookie(key: string);
     /** 删除缓存 */
-    delCache(key: string, redisName?: 'user' | 'other', minutes?: number): Promise<void>;
+    delCache(key: string, redisName?: 'user' | 'other' | 'static', minutes?: number): Promise<void>;
     /** 根据会话令牌获取用户 */
     getUser(devid: string): Promise<BaseUser>;
     /** 根据devid登录到当前会话中,不会影响原缓存数据体系 */
@@ -4005,3 +4107,4 @@ export function replaceChineseCode(str: string): string;
 export function ci(serviceDistDir: string, resources?: string[], dirs?: string[]): Promise<void>;
 /** 内置socket 房间编号 */
 export const SocketRoom: {SOCKET_ALL: string; SOCKET_USER: string; SOCKET_DEV: string};
+

@@ -6,7 +6,7 @@ import SocketConfig from '../enums/SocketConfig';
 const debug = require('debug')('egg-bag');
 const USER = 'Context#user';
 export default {
-  get me(this: Context): BaseUser {
+  get me(): BaseUser {
     return this[USER];
   },
   login(this: Context, user: BaseUser, notify = true) {
@@ -156,7 +156,7 @@ export default {
     const user = await this.getUser(devid);
     this[USER] = user;
   },
-  async getCache(this: Context, key: string, redisName?: 'user' | 'other'): Promise<string | null> {
+  async getCache(this: Context, key: string, redisName?: 'user' | 'other' | 'static'): Promise<string | null> {
     let meString: string | null = null;
     if (key) {
       if (this.app._cacheIO === 'cookie') {
@@ -185,7 +185,7 @@ export default {
   removeCookie(this: Context, key: string) {
     this.cookies.set(key, undefined);
   },
-  async setCache(this: Context, key: string, value: string, redisName?: 'user' | 'other', minutes?: number): Promise<void> {
+  async setCache(this: Context, key: string, value: string, redisName?: 'user' | 'other' | 'static', minutes?: number): Promise<void> {
     if (this.app._cacheIO === 'cookie') {
       this.cookies.set(key, value, {
         httpOnly: true,
@@ -198,7 +198,7 @@ export default {
       await this.app.setCache(key, value, redisName, minutes);
     }
   },
-  async delCache(this: Context, key: string, redisName?: 'user' | 'other', minutes?: number): Promise<void> {
+  async delCache(this: Context, key: string, redisName?: 'user' | 'other' | 'static', minutes?: number): Promise<void> {
     if (this.app._cacheIO === 'cookie') {
       this.cookies.set(key, undefined);
     } else {

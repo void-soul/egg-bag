@@ -78,7 +78,7 @@ export default {
   md5(this: Application, value: string, key?: string): string {
     return md5Util(value + (key || this.config.keys || ''));
   },
-  async getCache(this: Application, key: string, redisName?: 'user' | 'other'): Promise<string | null> {
+  async getCache(this: Application, key: string, redisName?: 'user' | 'other' | 'static'): Promise<string | null> {
     let meString: string | null = null;
     if (key) {
       switch (this._cacheIO) {
@@ -96,7 +96,7 @@ export default {
     }
     return meString;
   },
-  async setCache(this: Application, key: string, value: string, redisName?: 'user' | 'other', minutes?: number): Promise<void> {
+  async setCache(this: Application, key: string, value: string, redisName?: 'user' | 'other' | 'static', minutes?: number): Promise<void> {
     switch (this._cacheIO) {
       case 'cookie':
         break;
@@ -115,7 +115,7 @@ export default {
         break;
     }
   },
-  async delCache(this: Application, key: string, redisName?: 'user' | 'other', minutes?: number): Promise<void> {
+  async delCache(this: Application, key: string, redisName?: 'user' | 'other' | 'static', minutes?: number): Promise<void> {
     switch (this._cacheIO) {
       case 'cookie':
         break;

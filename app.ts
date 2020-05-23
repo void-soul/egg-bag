@@ -9,6 +9,7 @@ import {loadGlobal} from './app/loader/global-load';
 import {loadView} from './app/loader/view-load';
 import {loadCache, flushRedis, redisPsub} from './app/loader/cache-load';
 import {loadRouter} from './app/loader/route-load';
+import {loadFlow} from './app/loader/flow-loader';
 const debug = require('debug')('egg-bag');
 export default class {
   app: Application;
@@ -47,6 +48,8 @@ export default class {
     // 配置读取
     loadGlobal.call(this.app);
     loadView.call(this.app);
+    // 流程读取
+    loadFlow.call(this.app);
 
     debug(` over load config, +${ +new Date() - start }ms`);
   }
