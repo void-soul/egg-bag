@@ -48,7 +48,7 @@ export abstract class FlowContext<D, F extends FlowFields> {
   /** 消息通知 */
   readonly noticeList: FlowNotice[];
   /** 任务执行人id */
-  readonly todoList: any[];
+  readonly todoList: Set<any>;
   /** 日志 */
   readonly logs: string[];
   /** 可能存在的异常信息,每个节点处理完异常后，可以将异常对象从上下文移除，以通知其他节点异常已经解决 */

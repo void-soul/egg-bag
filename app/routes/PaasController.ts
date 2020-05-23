@@ -156,6 +156,23 @@ const wxDecrypt = {
     });
   }
 };
+const fetchFlow = {
+  path: '/fetch-flow',
+  method: 'post',
+  before: [ILogin],
+  async handel(this: Controller, {body: {flowPath, fromNodeId, fromNodeNode, biz}}) {
+    return await this.service.paasService.fetchFlow({flowPath, fromNodeId, fromNodeNode, biz});
+  }
+};
+
+const doFlow = {
+  path: '/do-flow',
+  method: 'post',
+  before: [ILogin],
+  async handel(this: Controller, {body: {flowPath, fromNodeId, fromNodeNode, actionId, actionCode, biz}}) {
+    return await this.service.paasService.doFlow({flowPath, fromNodeId, fromNodeNode, actionId, actionCode, biz});
+  }
+};
 const socketRoomIn = {
   path: '/login',
   before: [ILogin],
@@ -173,7 +190,7 @@ const socketRoomOut = {
 };
 
 export const routes = [
-  now, phoneCode, picCode, getConfigJson, today, getWxIds, getWxQr, wxDecrypt
+  now, phoneCode, picCode, getConfigJson, today, getWxIds, getWxQr, wxDecrypt, fetchFlow, doFlow
 ];
 export const querys = [
   query, queryMongo

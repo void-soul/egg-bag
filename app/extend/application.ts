@@ -4,6 +4,7 @@ import {Application} from 'egg';
 import md5Util = require('md5');
 import {Context} from 'vm';
 import {clearCache} from '../util/method-enhance';
+import {SqlSession} from 'typings';
 const debug = require('debug')('egg-bag');
 export default {
   /**
@@ -200,5 +201,51 @@ export default {
   },
   async clearContextMethodCache(this: Application, clearKey: string) {
     await clearCache.call(this, clearKey);
-  }
+  },
+  /** 流程获取 */
+  async fetchFlow(this: Application, param: {
+    flowPath: string;
+    fromNodeId?: string;
+    fromNodeNode?: string;
+    biz: any;
+    conn?: SqlSession;
+  }): Promise<{
+    biz: any;
+    flowCode: string;
+    flowPath: string;
+    fromNodeId: string | undefined;
+    fromNodeCode: string | undefined;
+    lines: {
+      name: string | number;
+      code: string;
+      from: string;
+      to: string;
+    }[];
+    fields: FlowFields;
+  }> {
+
+  },
+  /** 流程处理 */
+  doFlow(param: {
+    flowPath: string;
+    fromNodeId?: string;
+    fromNodeNode?: string;
+    actionId?: string;
+    actionCode?: string;
+    biz: any;
+    conn?: SqlSession;
+  }): Promise<{
+    biz: any;
+    flowCode: string;
+    flowPath: string;
+    fromNodeId: string | undefined;
+    fromNodeCode: string | undefined;
+    lines: {
+      name: string | number;
+      code: string;
+      from: string;
+      to: string;
+    }[];
+    fields: FlowFields;
+  }>;
 };

@@ -3044,14 +3044,50 @@ declare class PaasService extends BaseService<Empty> {
   validPicCode(key: string, code: string): Promise<boolean>;
   /** 删除图形验证码缓存 */
   removePicCode(key: string): Promise<number>;
-  /** 执行流程 */
-  // doFlow<D, R>(param: {
-  //   flowPath: string;
-  //   conn?: SqlSession;
-  //   data?: D;
-  //   returnValue?: R;
-  //   error?: Error;
-  // }): Promise<R>;
+  /** 流程获取 */
+  fetchFlow(param: {
+    flowPath: string;
+    fromNodeId?: string;
+    fromNodeNode?: string;
+    biz: any;
+    conn?: SqlSession;
+  }): Promise<{
+    biz: any;
+    flowCode: string;
+    flowPath: string;
+    fromNodeId: string | undefined;
+    fromNodeCode: string | undefined;
+    lines: {
+      name: string | number;
+      code: string;
+      from: string;
+      to: string;
+    }[];
+    fields: FlowFields;
+  }>;
+  /** 流程处理 */
+  doFlow(param: {
+    flowPath: string;
+    fromNodeId?: string;
+    fromNodeNode?: string;
+    actionId?: string;
+    actionCode?: string;
+    biz: any;
+    conn?: SqlSession;
+  }): Promise<{
+    biz: any;
+    flowCode: string;
+    flowPath: string;
+    fromNodeId: string | undefined;
+    fromNodeCode: string | undefined;
+    lines: {
+      name: string | number;
+      code: string;
+      from: string;
+      to: string;
+    }[];
+    fields: FlowFields;
+  }>;
 }
 declare type RedisChannel = 'user' | 'other' | 'static' | 'sub';
 declare interface RedisConfig {
@@ -3232,7 +3268,7 @@ export abstract class FlowContext<D, F extends FlowFields> {
   /** 消息通知 */
   readonly noticeList: FlowNotice[];
   /** 任务执行人id */
-  readonly todoList: any[];
+  readonly todoList: Set<any>;
   /** 日志 */
   readonly logs: string[];
 
@@ -3523,6 +3559,50 @@ declare module 'egg' {
      * @memberof Application
      */
     clearContextMethodCache(clearKey: string): Promise<void>;
+    /** 流程获取 */
+    fetchFlow(param: {
+      flowPath: string;
+      fromNodeId?: string;
+      fromNodeNode?: string;
+      biz: any;
+      conn?: SqlSession;
+    }): Promise<{
+      biz: any;
+      flowCode: string;
+      flowPath: string;
+      fromNodeId: string | undefined;
+      fromNodeCode: string | undefined;
+      lines: {
+        name: string | number;
+        code: string;
+        from: string;
+        to: string;
+      }[];
+      fields: FlowFields;
+    }>;
+    /** 流程处理 */
+    doFlow(param: {
+      flowPath: string;
+      fromNodeId?: string;
+      fromNodeNode?: string;
+      actionId?: string;
+      actionCode?: string;
+      biz: any;
+      conn?: SqlSession;
+    }): Promise<{
+      biz: any;
+      flowCode: string;
+      flowPath: string;
+      fromNodeId: string | undefined;
+      fromNodeCode: string | undefined;
+      lines: {
+        name: string | number;
+        code: string;
+        from: string;
+        to: string;
+      }[];
+      fields: FlowFields;
+    }>;
   }
   interface EggAppConfig {
     /**
@@ -3950,6 +4030,50 @@ declare module 'egg' {
      * @memberof Application
      */
     emitASyncWithDevid(name: string, devid: string, ...args: any[]): Promise<any>;
+    /** 流程获取 */
+    fetchFlow(param: {
+      flowPath: string;
+      fromNodeId?: string;
+      fromNodeNode?: string;
+      biz: any;
+      conn?: SqlSession;
+    }): Promise<{
+      biz: any;
+      flowCode: string;
+      flowPath: string;
+      fromNodeId: string | undefined;
+      fromNodeCode: string | undefined;
+      lines: {
+        name: string | number;
+        code: string;
+        from: string;
+        to: string;
+      }[];
+      fields: FlowFields;
+    }>;
+    /** 流程处理 */
+    doFlow(param: {
+      flowPath: string;
+      fromNodeId?: string;
+      fromNodeNode?: string;
+      actionId?: string;
+      actionCode?: string;
+      biz: any;
+      conn?: SqlSession;
+    }): Promise<{
+      biz: any;
+      flowCode: string;
+      flowPath: string;
+      fromNodeId: string | undefined;
+      fromNodeCode: string | undefined;
+      lines: {
+        name: string | number;
+        code: string;
+        from: string;
+        to: string;
+      }[];
+      fields: FlowFields;
+    }>;
   }
   // eslint-disable-next-line @typescript-eslint/interface-name-prefix
   interface IService {

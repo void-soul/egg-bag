@@ -151,7 +151,7 @@ export default class extends BaseService<Empty> {
     return this.getResult(context);
   }
   private async _doFlow(context: FlowContext<any, any>) {
-    context.todoList.length = 0;
+    context.todoList.clear();
     context.noticeList.length = 0;
     // 起始节点 init
     if (context.fromNode) {
@@ -181,7 +181,7 @@ export default class extends BaseService<Empty> {
           Object.assign(context, {error});
         }
         if (!context.error) {
-          this.app.throwIf(context.todoList.length === 0, `${ context.toNodeLabel }找不到可执行人(${ context.toNodeCode })`);
+          this.app.throwIf(context.todoList.size === 0, `${ context.toNodeLabel }找不到可执行人(${ context.toNodeCode })`);
           nextAction = await this.tryToFindDefAction(context);
         }
         break;
@@ -198,7 +198,7 @@ export default class extends BaseService<Empty> {
           Object.assign(context, {error});
         }
         if (!context.error) {
-          if (context.todoList.length === 0) {
+          if (context.todoList.size === 0) {
             nextAction = context.toNodeLines!.find(item => item.line.def);
           } else {
             nextAction = await this.tryToFindDefAction(context);
@@ -435,7 +435,7 @@ export default class extends BaseService<Empty> {
 
       field: {},
       noticeList: [],
-      todoList: [],
+      todoList: new Set(),
       logs: []
     } as FlowContext<any, any>;
     if (run === true) {
@@ -475,7 +475,7 @@ export default class extends BaseService<Empty> {
         if (context.toNode instanceof FlowTaskNode || context.toNode instanceof FlowSkipNode) {
           const backUp = this.backUpContext(context);
           Object.assign(context, {
-            todoList: [],
+            todoList: new Set(),
 
             lineId: defAction.id,
             lineCode: defAction.line.code,
@@ -487,7 +487,7 @@ export default class extends BaseService<Empty> {
           await context.toNode.todo.call(context);
           const todoList = context.todoList;
           Object.assign(context, backUp);
-          if (todoList.includes(this.ctx.me)) {
+          if (todoList.has(this.ctx.me)) {
             return defAction;
           }
         }
@@ -538,7 +538,7 @@ export default class extends BaseService<Empty> {
 
       field: {},
       noticeList: [],
-      todoList: [],
+      todoList: new Set(),
       logs: [],
 
       biz: context.biz
