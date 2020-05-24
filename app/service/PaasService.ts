@@ -3,7 +3,7 @@ import BaseService from '../base/BaseService';
 import {Empty} from '../util/empty';
 import {randomNumber, uuid} from '../util/string';
 import svgCaptcha = require('svg-captcha');
-import {FlowLine, SqlSession, FlowNodeConfig, FlowData} from '../../typings';
+import {FlowLine, SqlSession, FlowNodeConfig, FlowData, FlowFields} from '../../typings';
 import {FlowContext, FlowTaskNode, FlowStartNode, FlowSkipNode, FlowSysNode, FlowEndNode, FlowAutoNode, FlowChildNode, FlowReportNode} from '../util/flow';
 const debug = require('debug')('egg-bag');
 const nodeType = {
@@ -81,15 +81,15 @@ export default class extends BaseService<Empty> {
     await this.ctx.delCache(`${ key }-pic`, 'other');
   }
 
-  public async fetchFlow(param: {
+  public async fetchFlow<D, F extends FlowFields>(param: {
     flowPath: string;
     fromNodeId?: string;
     fromNodeNode?: string;
 
-    biz: any;
+    biz: D;
     conn?: SqlSession;
   }) {
-    const context = await this.initContext(param, false);
+    const context = await this.initContext<D, F>(param, false);
     this.app.throwIf(!context.fromNode, '起始节点没有实现');
 
     Object.assign(context, {
@@ -103,23 +103,22 @@ export default class extends BaseService<Empty> {
 
     if (context.fromNode! instanceof FlowTaskNode || context.fromNode! instanceof FlowStartNode || context.fromNode! instanceof FlowSkipNode) {
       await context.fromNode.fetch.call(context);
-      return this.getResult(context);
+      return this.getResult<D, F>(context);
     }
     this.app.throwNow('起始节点只能是task、start、skip');
   }
-  public async doFlow(param: {
+  public async doFlow<D, F extends FlowFields>(param: {
     flowPath: string;
     fromNodeId?: string;
     fromNodeNode?: string;
     actionId?: string;
     actionCode?: string;
 
-    biz: any;
+    biz: D;
     conn?: SqlSession;
   }) {
-    const context = await this.initContext(param, true);
+    const context = await this.initContext<D, F>(param, true);
     this.app.throwIf(!context.fromNodeLines || context.fromNodeLines.length === 0, '起始节点没有任何出线');
-    this.app.throwIf(!param.actionId && !param.actionCode, '请指定操作');
     let action: {id: string; line: FlowLine} | undefined;
     if (param.actionId) {
       action = context.fromNodeLines!.find(item => item.id === param.actionId);
@@ -128,8 +127,8 @@ export default class extends BaseService<Empty> {
     } else {
       action = context.fromNodeLines!.find(item => item.line.def);
     }
-    this.app.throwIf(!action, '操作id无效');
-    const to = this.getNode(context.flowData, context.nodes, {fromOrTo: true, strict: true}, {id: action!.line.to});
+    this.app.throwIf(!action, '操作无效');
+    const to = this.getNode<D, F>(context.flowData, context.nodes, {fromOrTo: false, strict: true}, {id: action!.line.to});
     Object.assign(context, {
       lineId: action?.id,
       lineCode: action?.line.code,
@@ -138,21 +137,20 @@ export default class extends BaseService<Empty> {
     });
 
     if (context.conn) {
-      await this._doFlow(context);
+      await this._doFlow<D, F>(context);
       await context.save.call(context);
     } else {
       await this.transction(async conn => {
         Object.assign(context, {conn});
-        await this._doFlow(context);
+        await this._doFlow<D, F>(context);
         await context.save.call(context);
       });
     }
 
-    return this.getResult(context);
+    return this.getResult<D, F>(context);
   }
-  private async _doFlow(context: FlowContext<any, any>) {
+  private async _doFlow<D, F extends FlowFields>(context: FlowContext<D, F>) {
     context.todoList.clear();
-    context.noticeList.length = 0;
     // 起始节点 init
     if (context.fromNode) {
       if (
@@ -165,14 +163,16 @@ export default class extends BaseService<Empty> {
       }
     }
     let nextAction: {id: string; line: FlowLine} | undefined;
+    const lines = context.toNodeLines!.filter(item => item.line.error === false);
+    const defAction = lines.length === 1 ? lines[0] : lines.find(item => item.line.def);
     switch (context.toNodeConfig!.type) {
       case 'start': {
         this.app.throwNow('开始节点不能被指向');
       }
       case 'task': {
         this.app.throwIf(!context.toNode, `${ context.toNodeId }未实现`);
-        this.app.throwIf(!context.toNodeLines || context.toNodeLines.length === 0, `${ context.toNodeId }无出线`);
-        const node = context.toNode! as FlowTaskNode<any, any>;
+        this.app.throwIf(lines.length === 0, `${ context.toNodeId }无非错误出线`);
+        const node = context.toNode! as FlowTaskNode<D, F>;
         try {
           await node.enter.call(context);
           await node.todo.call(context);
@@ -182,14 +182,14 @@ export default class extends BaseService<Empty> {
         }
         if (!context.error) {
           this.app.throwIf(context.todoList.size === 0, `${ context.toNodeLabel }找不到可执行人(${ context.toNodeCode })`);
-          nextAction = await this.tryToFindDefAction(context);
+          nextAction = await this.tryToFindDefAction<D, F>(context, defAction);
         }
         break;
       }
       case 'skip': {
         this.app.throwIf(!context.toNode, `${ context.toNodeId }未实现`);
-        this.app.throwIf(!context.toNodeLines || context.toNodeLines.length === 0, `${ context.toNodeId }无出线`);
-        const node = context.toNode! as FlowSkipNode<any, any>;
+        this.app.throwIf(lines.length === 0, `${ context.toNodeId }无非错误出线`);
+        const node = context.toNode! as FlowSkipNode<D, F>;
         try {
           await node.enter.call(context);
           await node.todo.call(context);
@@ -199,30 +199,30 @@ export default class extends BaseService<Empty> {
         }
         if (!context.error) {
           if (context.todoList.size === 0) {
-            nextAction = context.toNodeLines!.find(item => item.line.def);
+            nextAction = defAction;
           } else {
-            nextAction = await this.tryToFindDefAction(context);
+            nextAction = await this.tryToFindDefAction<D, F>(context, defAction);
           }
         }
         break;
       }
       case 'auto': {
         this.app.throwIf(!context.toNode, `${ context.toNodeId }未实现`);
-        this.app.throwIf(!context.toNodeLines || context.toNodeLines.length === 0, `${ context.toNodeId }无出线`);
+        this.app.throwIf(lines.length === 0, `${ context.toNodeId }无非错误出线`);
         let nextSwitch: number | void;
-        const node = context.toNode! as FlowAutoNode<any, any>;
+        const node = context.toNode! as FlowAutoNode<D, F>;
         try {
           nextSwitch = await node.enter.call(context);
         } catch (error) {
           Object.assign(context, {error});
         }
         if (!context.error) {
-          if (typeof nextSwitch === 'number') {
+          if (lines.length > 1 && typeof nextSwitch === 'number') {
             const value = `${ nextSwitch }`;
-            nextAction = context.toNodeLines!.find(item => item.line.swi.includes(value));
+            nextAction = lines.find(item => item.line.swi.includes(value));
           }
           if (!nextAction) {
-            nextAction = context.toNodeLines!.find(item => item.line.def);
+            nextAction = defAction;
           }
           this.app.throwIf(!nextAction, `${ context.toNodeId }结果为${ nextSwitch },但无匹配的操作`);
         }
@@ -230,7 +230,7 @@ export default class extends BaseService<Empty> {
       }
       case 'child': {
         this.app.throwIf(!context.toNodeConfig?.child, '未声明子流程');
-        const node = context.toNode! as FlowChildNode<any, any>;
+        const node = context.toNode! as FlowChildNode<D, F>;
         try {
           await node.enter.call(context);
         } catch (error) {
@@ -238,13 +238,14 @@ export default class extends BaseService<Empty> {
         }
         if (!context.error) {
           // 切换到子流程
-          this.switchFlow(context, context.toNodeConfig?.child!, `${ context.flowPath }/${ context.toNodeConfig?.child }`);
+          this.switchFlow<D, F>(context, context.toNodeConfig?.child!, `${ context.flowPath }/${ context.toNodeConfig?.child }`);
           // 查找子流程开始节点
-          const startAsTo = this.getNode(context.flowData, context.nodes, {fromOrTo: false, strict: true}, {start: true});
+          const startAsTo = this.getNode<D, F>(context.flowData, context.nodes, {fromOrTo: true, strict: true}, {start: true});
+          const noError = startAsTo!.fromNodeLines!.filter(item => item.line.error === false);
           // 查找默认操作
-          this.app.throwIf(!startAsTo || !startAsTo.toNodeLines || startAsTo.toNodeLines.length === 0, `${ startAsTo!.toNodeId }无出线`);
+          this.app.throwIf(noError.length === 0, `${ startAsTo!.toNodeId }无出线`);
           // 起始节点默认操作
-          nextAction = startAsTo!.toNodeLines!.find((item: {line: FlowLine}) => item.line.def);
+          nextAction = noError.length === 1 ? noError[0] : noError.find(item => item.line.def);
           this.app.throwIf(!nextAction, `${ startAsTo!.toNodeId }无默认出线`);
           // 设置起始节点
           Object.assign(context, startAsTo);
@@ -253,8 +254,8 @@ export default class extends BaseService<Empty> {
       }
       case 'sys': {
         this.app.throwIf(!context.toNode, `${ context.toNodeId }未实现`);
-        this.app.throwIf(!context.toNodeLines || context.toNodeLines.length === 0, `${ context.toNodeId }无出线`);
-        const node = context.toNode! as FlowSysNode<any, any>;
+        this.app.throwIf(lines.length === 0, `${ context.toNodeId }无非错误出线`);
+        const node = context.toNode! as FlowSysNode<D, F>;
         try {
           await node.enter.call(context);
           await node.notice.call(context);
@@ -262,12 +263,12 @@ export default class extends BaseService<Empty> {
           Object.assign(context, {error});
         }
         if (!context.error) {
-          nextAction = context.toNodeLines!.find(item => item.line.def);
+          nextAction = defAction;
         }
         break;
       }
       case 'report': {
-        const node = context.toNode! as FlowReportNode<any, any>;
+        const node = context.toNode! as FlowReportNode<D, F>;
         let nextSwitch: number | void;
         try {
           nextSwitch = await node.enter.call(context);
@@ -277,16 +278,18 @@ export default class extends BaseService<Empty> {
         if (!context.error && context.flowCodeIndex > 0) {
           const flowCode = context.flowCode;
           // 切换到上级流程
-          this.switchFlow(context, context.flowPaths[context.flowCodeIndex - 1]);
+          this.switchFlow<D, F>(context, context.flowPaths[context.flowCodeIndex - 1]);
           // 查找 子流程入口节点
-          const childAsTo = this.getNode(context.flowData, context.nodes, {fromOrTo: false, strict: false}, {child: flowCode});
+          const childAsTo = this.getNode<D, F>(context.flowData, context.nodes, {fromOrTo: true, strict: false}, {child: flowCode});
           if (childAsTo) {
-            if (typeof nextSwitch === 'number') {
+            const noError = childAsTo.fromNodeLines!.filter(item => item.line.error === false);
+            const childAsToDefAction = noError.length === 1 ? noError[0] : noError.find(item => item.line.def);
+            if (noError.length > 1 && typeof nextSwitch === 'number') {
               const value = `${ nextSwitch }`;
-              nextAction = childAsTo.toNodeLines!.find((item: {line: FlowLine}) => item.line.swi.includes(value));
+              nextAction = noError.find(item => item.line.swi.includes(value));
             }
             if (!nextAction) {
-              nextAction = childAsTo.toNodeLines!.find((item: {line: FlowLine}) => item.line.def);
+              nextAction = childAsToDefAction;
             }
             if (nextAction) {
               // 设置起始节点
@@ -297,7 +300,7 @@ export default class extends BaseService<Empty> {
         break;
       }
       case 'end': {
-        const node = context.toNode! as FlowEndNode<any, any>;
+        const node = context.toNode! as FlowEndNode<D, F>;
         try {
           await node.enter.call(context);
           await node.notice.call(context);
@@ -325,14 +328,14 @@ export default class extends BaseService<Empty> {
         fromNode: context.toNode,
         fromNodeLabel: context.toNodeLabel,
 
-        ...this.getNode(context.flowData, context.nodes, {fromOrTo: false, strict: true}, {id: nextAction.line.to}),
+        ...this.getNode<D, F>(context.flowData, context.nodes, {fromOrTo: false, strict: true}, {id: nextAction.line.to}),
       });
-      await this._doFlow(context);
+      await this._doFlow<D, F>(context);
     }
   }
-  private getNode(
+  private getNode<D, F extends FlowFields>(
     flowData: FlowData,
-    nodes: {[key: string]: FlowContext<any, any>},
+    nodes: {[key: string]: FlowContext<D, F>},
     option: {fromOrTo: boolean; strict: boolean},
     filter: {child?: string; id?: string; code?: string; start?: boolean}
   ) {
@@ -382,9 +385,9 @@ export default class extends BaseService<Empty> {
       result = {
         [`${ prefix }NodeCode`]: nodeConfig.code,
         [`${ prefix }NodeId`]: nodeId,
-        [`${ prefix }Config`]: nodeConfig,
-        [`${ prefix }Lines`]: lines,
-        [`${ prefix }Label`]: nodeConfig.name
+        [`${ prefix }NodeConfig`]: nodeConfig,
+        [`${ prefix }NodeLines`]: lines,
+        [`${ prefix }NodeLabel`]: nodeConfig.name
       };
 
       this.app.throwIf(nodeType[nodeConfig.type] !== undefined && !nodeConfig.code, `${ nodeId }没有实现!`);
@@ -396,7 +399,7 @@ export default class extends BaseService<Empty> {
     }
     return result;
   }
-  private async initContext(param: {
+  private async initContext<D, F extends FlowFields>(param: {
     biz: any;
     conn?: SqlSession;
     fromNodeId?: string;
@@ -419,25 +422,25 @@ export default class extends BaseService<Empty> {
 
       conn: param.conn,
 
-      biz: param.biz || {},
+      biz: param.biz || {} as D,
 
       flowCode,
       flowPath: param.flowPath,
       flowPaths,
       flowCodeIndex,
 
-      flowField: flow.field,
+      flowField: flow.flowField,
       nodes: flow.nodes,
       save: flow.save,
       flowData: flow.flowData,
 
-      ...this.getNode(flow.flowData, flow.nodes, {fromOrTo: true, strict: true}, {start: true}),
+      ...this.getNode<D, F>(flow.flowData, flow.nodes, {fromOrTo: true, strict: true}, {start: true}),
 
-      field: {},
+      field: {} as F,
       noticeList: [],
       todoList: new Set(),
       logs: []
-    } as FlowContext<any, any>;
+    } as FlowContext<D, F>;
     if (run === true) {
       await flow.init.call(context);
     } else {
@@ -445,7 +448,7 @@ export default class extends BaseService<Empty> {
     }
     return context;
   }
-  private getResult(context: FlowContext<any, any>) {
+  private getResult<D, F extends FlowFields>(context: FlowContext<D, F>) {
     return {
       biz: context.biz,
       flowCode: context.flowCode,
@@ -466,8 +469,10 @@ export default class extends BaseService<Empty> {
       fields: context.field
     };
   }
-  private async tryToFindDefAction(context: FlowContext<any, any>) {
-    const defAction = context.toNodeLines!.find(item => item.line.def);
+  private async tryToFindDefAction<D, F extends FlowFields>(context: FlowContext<D, F>, defAction?: {
+    id: string;
+    line: FlowLine;
+  }) {
     if (defAction && defAction.line.to !== context.toNodeId) {
       const toNode = this.getNode(context.flowData, context.nodes, {fromOrTo: false, strict: false}, {id: defAction.line.to});
       const fromNode = this.getNode(context.flowData, context.nodes, {fromOrTo: true, strict: false}, {id: defAction.line.from});
@@ -494,7 +499,7 @@ export default class extends BaseService<Empty> {
       }
     }
   }
-  private async switchFlow(context: FlowContext<any, any>, flowCode: string, flowPath?: string) {
+  private async switchFlow<D, F extends FlowFields>(context: FlowContext<D, F>, flowCode: string, flowPath?: string) {
     this.app.throwIf(!flowCode, '请指定流程');
     let flowPaths = context.flowPaths;
     if (flowPath) {
@@ -513,7 +518,7 @@ export default class extends BaseService<Empty> {
       flowPaths,
       flowCodeIndex,
 
-      flowField: flow.field,
+      flowField: flow.flowField,
       nodes: flow.nodes,
       save: flow.save,
       flowData: flow.flowData,
@@ -536,7 +541,7 @@ export default class extends BaseService<Empty> {
       lineCode: undefined,
       lineLabel: undefined,
 
-      field: {},
+      field: {} as F,
       noticeList: [],
       todoList: new Set(),
       logs: [],
@@ -546,7 +551,7 @@ export default class extends BaseService<Empty> {
     await flow.init.call(context);
     return context;
   }
-  private backUpContext(context: FlowContext<any, any>) {
+  private backUpContext<D, F extends FlowFields>(context: FlowContext<D, F>) {
     return {
       flowPath: context.flowPath,
       flowCode: context.flowCode,

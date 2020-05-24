@@ -3,6 +3,7 @@ import {uuid} from '../util/string';
 import lodash = require('lodash');
 import {BaseUser} from '../../typings';
 import SocketConfig from '../enums/SocketConfig';
+import {SqlSession, FlowFields} from '../../typings';
 const debug = require('debug')('egg-bag');
 const USER = 'Context#user';
 export default {
@@ -219,5 +220,59 @@ export default {
       }
       return await this.app._asyncSubClient[name].call(this, ...args);
     }
+  },
+  /** 流程获取 */
+  async fetchFlow<D, F extends FlowFields>(this: Context, param: {
+    flowPath: string;
+    fromNodeId?: string;
+    fromNodeNode?: string;
+    biz: D;
+    conn?: SqlSession;
+  }, devid?: string): Promise<{
+    biz: D;
+    flowCode: string;
+    flowPath: string;
+    fromNodeId: string | undefined;
+    fromNodeCode: string | undefined;
+    lines: {
+      name: string | number;
+      code: string;
+      from: string;
+      to: string;
+    }[];
+    fields: F;
+  }> {
+    if (devid) {
+      await this.loginByDevid(devid);
+    }
+    return await this.service.paasService.fetchFlow(param);
+  },
+  /** 流程处理 */
+  async doFlow<D, F extends FlowFields>(this: Context, param: {
+    flowPath: string;
+    fromNodeId?: string;
+    fromNodeNode?: string;
+    actionId?: string;
+    actionCode?: string;
+    biz: D;
+    conn?: SqlSession;
+  }, devid?: string): Promise<{
+    biz: D;
+    flowCode: string;
+    flowPath: string;
+    fromNodeId: string | undefined;
+    fromNodeCode: string | undefined;
+    lines: {
+      name: string | number;
+      code: string;
+      from: string;
+      to: string;
+    }[];
+    fields: F;
+  }> {
+    if (devid) {
+      await this.loginByDevid(devid);
+    }
+    return await this.service.paasService.doFlow(param);
   }
 };

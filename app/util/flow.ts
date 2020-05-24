@@ -71,8 +71,6 @@ export abstract class FlowContext<D, F extends FlowFields> {
  * F: 流程字段类型
  */
 export abstract class Flow<D, F extends FlowFields> extends FlowContext<D, F>{
-  /** 流程字段汇总.nodeType可以是各节点值，也可以是自定义字符 */
-  readonly flowField: {[nodeType: string]: F} = {};
   /** 流程配置 */
   readonly flowData: FlowData = {nodes: {}, lines: {}};
   /** 实现类缓存 */
@@ -83,6 +81,8 @@ export abstract class Flow<D, F extends FlowFields> extends FlowContext<D, F>{
   abstract init(): Promise<void>;
   /** 流程查询时，用来初始化上下文 */
   abstract fetch(): Promise<void>;
+  /** 当本次流程处理完毕时,可以根据上下文返回数据给前端. */
+  abstract finish(): Promise<D>;
 }
 /** 任务结点(若找不到执行人员,将抛出异常) */
 export abstract class FlowTaskNode<D, F extends FlowFields> extends FlowContext<D, F> implements FlowNode {
@@ -96,6 +96,8 @@ export abstract class FlowTaskNode<D, F extends FlowFields> extends FlowContext<
   abstract todo(): Promise<void>;
   /** 消息列表:当流程处理到此节点为一个中断时触发 */
   abstract notice(): Promise<void>;
+  /** 当节点被fetch时，前端需要根据节点返回的特殊字段值得到字段信息 */
+  abstract special(): string;
 }
 /** 开始结点(一个流程可以有多个开始节点,除了子流程的开始节点外,所有开始节点都不能被指向)*/
 export abstract class FlowStartNode<D, F extends FlowFields> extends FlowContext<D, F> implements FlowNode {
@@ -103,6 +105,8 @@ export abstract class FlowStartNode<D, F extends FlowFields> extends FlowContext
   abstract fetch(): Promise<void>;
   /** 流程从此节点开始执行时触发 */
   abstract init(): Promise<void>;
+  /** 当节点被fetch时，前端需要根据节点返回的特殊字段值得到字段信息 */
+  abstract special(): string;
 }
 /**
  * 结束节点：无出线
@@ -130,6 +134,8 @@ export abstract class FlowSkipNode<D, F extends FlowFields> extends FlowContext<
   abstract todo(): Promise<void>;
   /** 消息列表:当流程处理到此节点为一个中断时触发 */
   abstract notice(): Promise<void>;
+  /** 当节点被fetch时，前端需要根据节点返回的特殊字段值得到字段信息 */
+  abstract special(): string;
 }
 
 /** 系统节点(无需人为,可暂停并作为执行入口)*/

@@ -24,11 +24,6 @@ export function loadFlow(this: Application) {
             flow = new (require(subFullPath).default)() as Flow<any, any>;
             const flowData = require(path.join(oneFlowPath, 'data.json'));
             Object.assign(flow, {flowData});
-            const field = path.join(oneFlowPath, 'field.json');
-            if (fs.existsSync(field)) {
-              const flowField = require(path.join(oneFlowPath, 'field.json'));
-              Object.assign(flow, {flowField});
-            }
             debug(`found flow ${ flowName }`);
           } else if (subFileName !== 'data' && subFileName !== 'field') {
             nodes[subFileName] = new (require(subFullPath).default)();

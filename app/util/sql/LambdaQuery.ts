@@ -240,6 +240,7 @@ export default class LambdaQuery<T> {
         sql += ` AND (${ query.where() }) `;
       }
     }
+    Object.assign(this.param, data);
     return await this.excute(sql, this.param);
   }
   async delete(): Promise<number> {
