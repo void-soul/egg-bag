@@ -1,5 +1,5 @@
 import {BaseContextClass, Application, Context} from 'egg';
-const debug = require('debug')('egg-bag');
+const debug = require('debug')('egg-bag:cache');
 
 async function clearChild(this: Application, key: string, skipDel = false) {
   if (skipDel === false) {

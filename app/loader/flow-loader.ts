@@ -3,7 +3,7 @@ import path = require('path');
 import * as fs from 'fs';
 import {Flow} from '../util/flow';
 import {FlowNode} from 'typings';
-const debug = require('debug')('egg-bag');
+const debug = require('debug')('egg-bag:loader');
 
 export function loadFlow(this: Application) {
   this._flowMap = {};

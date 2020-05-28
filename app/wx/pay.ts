@@ -64,10 +64,10 @@ export class WxPay {
       trade_type: this.option.trade_type
     });
     if (dataCache) {
-      await this.app.setCache(`${ wxOrderOption.out_trade_no }-wx-pay-${ this.appCode }`, JSON.stringify(dataCache), 'static');
+      await this.app.setCache(`${ wxOrderOption.out_trade_no }-wx-pay-${ this.appCode }`, JSON.stringify(dataCache), 'static', 120);
     }
     if (devid) {
-      await this.app.setCache(`${ wxOrderOption.out_trade_no }-wx-pay-${ this.appCode }-devid`, devid, 'static');
+      await this.app.setCache(`${ wxOrderOption.out_trade_no }-wx-pay-${ this.appCode }-devid`, devid, 'static', 120);
     }
 
     const response = await this.request('unifiedorder', params);
@@ -120,6 +120,7 @@ export class WxPay {
   }
   async cancelorder(out_trade_no: string) {
     await this.app.delCache(`${ out_trade_no }-wx-pay-${ this.appCode }`, 'static');
+    await this.app.delCache(`${ out_trade_no }-wx-pay-${ this.appCode }-devid`, 'static');
     try {
       await this.closeorder(out_trade_no);
     } catch (error) {
@@ -313,7 +314,7 @@ export class WxPay {
               await this.app.emitASync(`${ appCode }-ref-hook`, data, dataCache);
             }
             await this.app.delCache(`${ data.out_refund_no }-wx-ref-${ appCode }-devid`, 'static');
-            await this.app.delCache(`${ data.out_refund_no }-wx-pay-${ appCode }`, 'static');
+            await this.app.delCache(`${ data.out_refund_no }-wx-ref-${ appCode }`, 'static');
             return builder.buildObject({return_code: 'SUCCESS', return_msg: 'OK'});
           } catch (error) {
             this.app.coreLogger.error(error);

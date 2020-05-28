@@ -1,5 +1,5 @@
 import {Application} from 'egg';
-const debug = require('debug')('egg-bag');
+const debug = require('debug')('egg-bag:loader');
 export function loadCache(this: Application) {
   this._cacheIO = (this.config.cacheIO) || 'redis';
   debug(`cache has been set to ${ this._cacheIO }`);

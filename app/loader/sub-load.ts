@@ -1,7 +1,7 @@
 import {Application} from 'egg';
 import path = require('path');
 import * as fs from 'fs';
-const debug = require('debug')('egg-bag');
+const debug = require('debug')('egg-bag:loader');
 export function loadSync(this: Application) {
   // 异步消息的this永远都是虚拟的context
   const syncSubPath = path.join(this.baseDir, 'app', 'sub-sync');

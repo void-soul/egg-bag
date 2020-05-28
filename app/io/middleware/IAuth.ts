@@ -1,6 +1,6 @@
 import {Context} from 'egg';
 import SocketConfig from '../../enums/SocketConfig';
-const debug = require('debug')('egg-bag');
+const debug = require('debug')('egg-bag:auth');
 export default (): any => {
   return async (ctx: Context, next: () => Promise<void>) => {
     const {app, socket} = ctx;

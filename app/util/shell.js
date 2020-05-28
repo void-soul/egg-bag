@@ -10,7 +10,7 @@ const RequestMethod = require('./shell/enum/request-method');
 const ctMap = new Map();
 const ctHandler = new ControllerHandler();
 const methodHandler = new MethodHandler(ctMap);
-const debug = require('debug')('egg-bag');
+const debug = require('debug')('egg-bag:router');
 // 路由统计
 const routers = [];
 const EggShell = (app, options = {}) => {

@@ -131,6 +131,18 @@ export default class LambdaQuery<T> {
   ): this {
     return this.between(key, value1, value2, 'NOT');
   }
+  andPow(key: keyof T, value: number) {
+    const pkey = `${ key }_${ this.index++ }`;
+    this.condition.push(`AND POW(2, ${ key }) & ${ value }`);
+    this.param[pkey] = value;
+    return this;
+  }
+  andNotPow(key: keyof T, value: number) {
+    const pkey = `${ key }_${ this.index++ }`;
+    this.condition.push(`AND NOT POW(2, ${ key }) & ${ value }`);
+    this.param[pkey] = value;
+    return this;
+  }
 
   groupBy(key: keyof T): this {
     this.group.push(key);

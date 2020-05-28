@@ -1,7 +1,7 @@
 import {ObjectSchema} from 'fast-json-stringify';
 import {Application} from 'egg';
 import FastJson = require('fast-json-stringify');
-const debug = require('debug')('egg-bag');
+const debug = require('debug')('egg-bag:loader');
 export function loadUser(this: Application) {
   const schema: ObjectSchema = {
     title: 'User Scheam',

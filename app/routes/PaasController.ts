@@ -3,7 +3,7 @@ import ILogin from '../middleware/ILogin';
 import * as dayjs from 'dayjs';
 import {dateTime, date} from '../util/now';
 import lodash = require('lodash');
-const debug = require('debug')('egg-bag');
+const debug = require('debug')('egg-bag:auth');
 const query = {
   path: '/query.json',
   method: 'get',

@@ -8,7 +8,7 @@ import Build from '../util/sql/Build';
 import * as Mustache from 'mustache';
 import {MongoFilter, SqlScript} from '../../typings';
 
-const debug = require('debug')('egg-bag');
+const debug = require('debug')('egg-bag:loader');
 
 export function loadMongo(this: Application) {
   if (this.config.mongo && this.config.mongo.uri) {

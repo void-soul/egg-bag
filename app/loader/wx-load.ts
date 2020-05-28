@@ -2,7 +2,7 @@ import {Application} from 'egg';
 import {WxMini} from '../wx/mini';
 import {WxOrgan} from '../wx/organ';
 import {WxPay} from '../wx/pay';
-const debug = require('debug')('egg-bag');
+const debug = require('debug')('egg-bag:loader');
 export function loadWXMini(this: Application) {
   if (this.config.wxMini) {
     this._wxMini = {};

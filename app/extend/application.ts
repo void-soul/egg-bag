@@ -4,8 +4,8 @@ import {Application} from 'egg';
 import md5Util = require('md5');
 import {Context} from 'vm';
 import {clearCache} from '../util/method-enhance';
-import {SqlSession, FlowFields} from '../../typings';
-const debug = require('debug')('egg-bag');
+import {SqlSession, FlowField} from '../../typings';
+const debug = require('debug')('egg-bag:ms');
 export default {
   /**
  * 立即抛出一个异常
@@ -203,7 +203,7 @@ export default {
     await clearCache.call(this, clearKey);
   },
   /** 流程获取 */
-  async fetchFlow<D, F extends FlowFields>(this: Application, param: {
+  async fetchFlow<D, M>(this: Application, param: {
     flowPath: string;
     fromNodeId?: string;
     fromNodeNode?: string;
@@ -221,16 +221,18 @@ export default {
       from: string;
       to: string;
     }[];
-    fields: F;
+    fields: FlowField;
   }> {
     const ctx = this.createAnonymousContext();
-    return await ctx.fetchFlow(param, devid);
+    return await ctx.fetchFlow<D, M>(param, devid);
   },
   /** 流程处理 */
-  async doFlow<D, F extends FlowFields>(this: Application, param: {
+  async doFlow<D, M>(this: Application, param: {
     flowPath: string;
     fromNodeId?: string;
     fromNodeNode?: string;
+    toNodeId?: string;
+    toNodeNode?: string;
     actionId?: string;
     actionCode?: string;
     biz: D;
@@ -247,9 +249,9 @@ export default {
       from: string;
       to: string;
     }[];
-    fields: F;
+    fields: FlowField;
   }> {
     const ctx = this.createAnonymousContext();
-    return await ctx.doFlow(param, devid);
+    return await ctx.doFlow<D, M>(param, devid);
   }
 };

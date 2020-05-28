@@ -1,10 +1,10 @@
 import {Context} from 'egg';
 import {uuid} from '../util/string';
 import lodash = require('lodash');
-import {BaseUser} from '../../typings';
+import {BaseUser, FlowField} from '../../typings';
 import SocketConfig from '../enums/SocketConfig';
-import {SqlSession, FlowFields} from '../../typings';
-const debug = require('debug')('egg-bag');
+import {SqlSession} from '../../typings';
+const debug = require('debug')('egg-bag:ms');
 const USER = 'Context#user';
 export default {
   get me(): BaseUser {
@@ -218,14 +218,17 @@ export default {
       if (devid) {
         await this.loginByDevid(devid);
       }
+      this.app.throwIf(!this.me, '缓存的登录信息已失效!');
       return await this.app._asyncSubClient[name].call(this, ...args);
     }
   },
   /** 流程获取 */
-  async fetchFlow<D, F extends FlowFields>(this: Context, param: {
+  async fetchFlow<D, M>(this: Context, param: {
     flowPath: string;
     fromNodeId?: string;
     fromNodeNode?: string;
+    toNodeId?: string;
+    toNodeNode?: string;
     biz: D;
     conn?: SqlSession;
   }, devid?: string): Promise<{
@@ -240,15 +243,18 @@ export default {
       from: string;
       to: string;
     }[];
-    fields: F;
+    fields: FlowField;
   }> {
     if (devid) {
       await this.loginByDevid(devid);
+      this.app.throwIf(!this.me, '缓存的登录信息已失效!');
+    } else if (!this.me) {
+      this[USER] = this.app.config.defUser;
     }
-    return await this.service.paasService.fetchFlow(param);
+    return await this.service.paasService.fetchFlow<D, M>(param);
   },
   /** 流程处理 */
-  async doFlow<D, F extends FlowFields>(this: Context, param: {
+  async doFlow<D, M>(this: Context, param: {
     flowPath: string;
     fromNodeId?: string;
     fromNodeNode?: string;
@@ -268,11 +274,14 @@ export default {
       from: string;
       to: string;
     }[];
-    fields: F;
+    fields: FlowField;
   }> {
     if (devid) {
       await this.loginByDevid(devid);
+      this.app.throwIf(!this.me, '缓存的登录信息已失效!');
+    } else if (!this.me && this.app.config.defUser) {
+      this[USER] = this.app.config.defUser;
     }
-    return await this.service.paasService.doFlow(param);
+    return await this.service.paasService.doFlow<D, M>(param);
   }
 };

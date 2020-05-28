@@ -7,7 +7,7 @@ import {notEmptyString} from '../util/string';
 // import {StatusError} from '../util/shell';
 import {FilterQuery} from 'mongodb';
 import {MongoSession, MongoFilter} from '../../typings';
-const debug = require('debug')('egg-bag');
+const debug = require('debug')('egg-bag:mongo');
 const MethodDebug = function <T>() {
   return function (_target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const fn = descriptor.value;

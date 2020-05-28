@@ -5,7 +5,7 @@ import PageQuery from '../util/sql/PageQuery';
 import {Empty} from '../util/empty';
 import {notEmptyString} from '../util/string';
 import {SqlSession} from '../../typings';
-const debug = require('debug')('egg-bag');
+const debug = require('debug')('egg-bag:sql');
 const MethodDebug = function <T>() {
   return function (_target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const fn = descriptor.value;
@@ -31,7 +31,7 @@ export default abstract class BaseService<T> extends Service {
    * 插入所有列
    * 返回自增主键或者0
    * @param {T} data
-   * @param {*} [transction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {*} [transction=true] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -57,7 +57,7 @@ export default abstract class BaseService<T> extends Service {
    * 如果指定列名不存在数据库中，则插入所有列
    * 返回自增主键或者0
    * @param {T} data
-   * @param {*} [transction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {*} [transction=true] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -93,7 +93,7 @@ export default abstract class BaseService<T> extends Service {
    * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
    * 此方法是数据库级别的函数，先删除再插入
    * @param {T} data
-   * @param {*} [transction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {*} [transction=true] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -175,7 +175,7 @@ export default abstract class BaseService<T> extends Service {
    * 如果指定列名不存在数据库中，则插入非空列(排除undefined、null、空字符串)
    * 返回自增主键或者0
    * @param {T} data
-   * @param {*} [transction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {*} [transction=true] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -212,7 +212,7 @@ export default abstract class BaseService<T> extends Service {
  * 如果指定列名不存在数据库中，则插入非空列(排除undefined、null)
  * 返回自增主键或者0
  * @param {T} data
- * @param {*} [transction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+ * @param {*} [transction=true] 独立事务
  * @param {(serviceTableName: string) => string} [tableName=(
  *       serviceTableName: string
  *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -318,7 +318,7 @@ export default abstract class BaseService<T> extends Service {
    * 如果指定列名不存在数据库中，则批量插入所有列
    * 返回自增主键或者0
    * @param {T} data
-   * @param {*} [transction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {*} [transction=true] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -469,7 +469,7 @@ export default abstract class BaseService<T> extends Service {
    * 如果指定列名不存在数据库中，则批量插入所有非空列(排除undefined、null、空字符串)
    * 返回自增主键或者0
    * @param {T} data
-   * @param {*} [transction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+   * @param {*} [transction=true] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -522,7 +522,7 @@ export default abstract class BaseService<T> extends Service {
     * 如果指定列名不存在数据库中，则批量插入所有非空列(排除undefined、null)
     * 返回自增主键或者0
     * @param {T} data
-    * @param {*} [transction=true] 是否开启独立事务，默认true(开启);否则传入事务连接
+    * @param {*} [transction=true] 独立事务
     * @param {(serviceTableName: string) => string} [tableName=(
     *       serviceTableName: string
     *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -931,6 +931,7 @@ export default abstract class BaseService<T> extends Service {
   ): Promise<number> {
     return await this.updateBatchTemplateByIdSafe(datas, transction, tableName, false);
   }
+
   /**
    *
    * 根据自定义条件修改
@@ -960,13 +961,43 @@ export default abstract class BaseService<T> extends Service {
       return result.affectedRows;
     }, transction);
   }
-
+  /**
+   *
+   * 全部删除,如果service开启注解：logicDelete,那么将逻辑删除
+   * @param {T} where
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  @MethodDebug()
+  async clear(
+    transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName
+  ): Promise<number> {
+    return await this.transction(async (conn) => {
+      if (this.stateFileName) {
+        const data = {
+          [this.stateFileName]: this.deleteState
+        };
+        const result = await conn.updateUnSafe<T>(tableName(this.tableName), data as any, {
+          columns: [this.stateFileName as any]
+        });
+        return result.affectedRows;
+      } else {
+        const result = await conn.delete(tableName(this.tableName));
+        return result.affectedRows;
+      }
+    }, transction);
+  }
   /**
    *
    * 自定义条件删除,如果service开启注解：logicDelete,那么将逻辑删除
    * @param {T} where
    * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
-   * @param {boolean} [fixTransient=true] 是否过滤一遍transient标记的字段?
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1453,7 +1484,7 @@ export default abstract class BaseService<T> extends Service {
    * 根据模版查询所有数据
    *
    * @param {T} data 模版，仅支持 = 操作符
-   * @param {boolean} [fixTransient=true] 是否过滤一遍transient标记的字段?
+
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景

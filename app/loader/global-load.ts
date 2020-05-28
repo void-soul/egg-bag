@@ -1,6 +1,6 @@
 import {Application} from 'egg';
 import {enumToJson, dataConfig} from '../util/enumUtil';
-const debug = require('debug')('egg-bag');
+const debug = require('debug')('egg-bag:loader');
 export function loadGlobal(this: Application) {
   if (this.config.globalValues) {
     this._globalValues = enumToJson(this.config.globalValues);
