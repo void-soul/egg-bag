@@ -1,6 +1,6 @@
 {
   "name": "egg-bag",
-  "version": "1.35.0",
+  "version": "1.35.1",
   "description": "egg-bag framework beta",
   "keywords": [
     "egg",
@@ -52,7 +52,7 @@
     "egg-bin": "4.14.1",
     "egg-ci": "1.15.0",
     "egg-mock": "4.0.0",
-    "egg-mysql-ex": "3.0.0-RC10",
+    "egg-mysql-ex": "3.0.0-RC11",
     "egg-redis": "2.4.0",
     "egg-scripts": "2.13.0",
     "egg-socket.io": "4.1.6",
