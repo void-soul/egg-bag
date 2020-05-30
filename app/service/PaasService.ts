@@ -307,30 +307,23 @@ export default class extends BaseService<Empty> {
       case 'child': {
         this.app.throwIf(!context.toNodeConfig?.child, '未声明子流程');
         const node = context.toNode! as FlowChildNode<D, M, any>;
-        try {
-          await node.excute.call(context);
-          debugFlow(`excute-child-node: ${ context.toNodeLabel }(${ context.toNodeId })`);
-          Object.assign(context, {error: undefined});
-        } catch (error) {
-          debugFlow(`error-child-node: ${ context.toNodeLabel }(${ context.toNodeId })===${ error.message }`);
-          Object.assign(context, {error});
-        }
-        if (!context.error) {
-          // 切换到子流程
-          newFlowInit = await this.switchFlow<D, M>(context, context.toNodeConfig?.child!, `${ context.flowPath }/${ context.toNodeConfig?.child }`);
-          // 查找子流程开始节点
-          const startAsTo = this.getNode<D, M>(context.flowData, context.nodes, {fromOrTo: true, strict: true}, {start: true});
-          const noError = startAsTo!.fromNodeLines!.filter(item => item.line.error === false);
-          // 查找默认操作
-          this.app.throwIf(noError.length === 0, `${ startAsTo!.toNodeId }无出线`);
-          nextAction = noError.length === 1 ? noError[0] : noError.find(item => item.line.def);
-          this.app.throwIf(!nextAction, `${ startAsTo!.toNodeId }无默认出线`);
-          debugFlow(`child-start-def: ${ startAsTo!.fromNodeLabel }(${ startAsTo!.fromNodeId })`);
-          // 设置起始节点
-          Object.assign(context, startAsTo);
-          const biz = await node.childContext();
-          Object.assign(context, {biz});
-        }
+        await node.excute.call(context);
+        debugFlow(`excute-child-node: ${ context.toNodeLabel }(${ context.toNodeId })`);
+        Object.assign(context, {error: undefined});
+        // 切换到子流程
+        newFlowInit = await this.switchFlow<D, M>(context, context.toNodeConfig?.child!, `${ context.flowPath }/${ context.toNodeConfig?.child }`);
+        // 查找子流程开始节点
+        const startAsTo = this.getNode<D, M>(context.flowData, context.nodes, {fromOrTo: true, strict: true}, {start: true});
+        const noError = startAsTo!.fromNodeLines!.filter(item => item.line.error === false);
+        // 查找默认操作
+        this.app.throwIf(noError.length === 0, `${ startAsTo!.toNodeId }无出线`);
+        nextAction = noError.length === 1 ? noError[0] : noError.find(item => item.line.def);
+        this.app.throwIf(!nextAction, `${ startAsTo!.toNodeId }无默认出线`);
+        debugFlow(`child-start-def: ${ startAsTo!.fromNodeLabel }(${ startAsTo!.fromNodeId })`);
+        // 设置起始节点
+        Object.assign(context, startAsTo);
+        const biz = await node.childContext();
+        Object.assign(context, {biz});
         break;
       }
       case 'sys': {
@@ -349,15 +342,10 @@ export default class extends BaseService<Empty> {
       }
       case 'report': {
         const node = context.toNode! as FlowReportNode<D, M, any>;
-        let nextSwitch: string | void;
-        try {
-          nextSwitch = await node.excute.call(context);
-          debugFlow(`excute-report-node: ${ context.toNodeLabel }(${ context.toNodeId })`);
-          Object.assign(context, {error: undefined});
-        } catch (error) {
-          debugFlow(`error-report-node: ${ context.toNodeLabel }(${ context.toNodeId })===${ error.message }`);
-          Object.assign(context, {error});
-        }
+        await node.excute.call(context);
+        debugFlow(`excute-report-node: ${ context.toNodeLabel }(${ context.toNodeId })`);
+        Object.assign(context, {error: undefined});
+
         if (!context.error && context.flowCodeIndex > 0) {
           const flowCode = context.flowCode;
           // 切换到上级流程
@@ -365,6 +353,10 @@ export default class extends BaseService<Empty> {
           // 查找 子流程入口节点
           const childAsTo = this.getNode<D, M>(context.flowData, context.nodes, {fromOrTo: true, strict: false}, {child: flowCode});
           if (childAsTo) {
+            const biz = await node.parentContext();
+            Object.assign(context, {biz});
+            const parentNode = childAsTo.fromNode! as FlowChildNode<D, M, any>;
+            const nextSwitch = await parentNode.report();
             const noError = childAsTo.fromNodeLines!.filter(item => item.line.error === false);
             const childAsToDefAction = noError.length === 1 ? noError[0] : noError.find(item => item.line.def);
             if (noError.length > 1 && typeof nextSwitch === 'string') {
@@ -379,12 +371,8 @@ export default class extends BaseService<Empty> {
             } else {
               debugFlow(`match-report-node: ${ context.toNodeLabel }(${ context.toNodeId }) with ${ nextSwitch }, hit:${ nextAction.id }`);
             }
-            if (nextAction) {
-              // 设置起始节点
+            if (nextAction) { // 设置起始节点
               Object.assign(context, childAsTo);
-
-              const biz = await node.parentContext();
-              Object.assign(context, {biz});
             }
           }
         }
@@ -392,14 +380,9 @@ export default class extends BaseService<Empty> {
       }
       case 'end': {
         const node = context.toNode! as FlowEndNode<D, M>;
-        try {
-          await node.excute.call(context);
-          debugFlow(`excute-end-node: ${ context.toNodeLabel }(${ context.toNodeId })`);
-          Object.assign(context, {error: undefined});
-        } catch (error) {
-          debugFlow(`error-end-node: ${ context.toNodeLabel }(${ context.toNodeId })===${ error.message }`);
-          Object.assign(context, {error});
-        }
+        await node.excute.call(context);
+        debugFlow(`excute-end-node: ${ context.toNodeLabel }(${ context.toNodeId })`);
+        Object.assign(context, {error: undefined});
         break;
       }
     }
