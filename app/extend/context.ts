@@ -226,9 +226,9 @@ export default {
   async fetchFlow<D, M>(this: Context, param: {
     flowPath: string;
     fromNodeId?: string;
-    fromNodeNode?: string;
+    fromNodeCode?: string;
     toNodeId?: string;
-    toNodeNode?: string;
+    toNodeCode?: string;
     biz: D;
     conn?: SqlSession;
   }, devid?: string): Promise<{
@@ -257,7 +257,7 @@ export default {
   async doFlow<D, M>(this: Context, param: {
     flowPath: string;
     fromNodeId?: string;
-    fromNodeNode?: string;
+    fromNodeCode?: string;
     actionId?: string;
     actionCode?: string;
     biz: D;

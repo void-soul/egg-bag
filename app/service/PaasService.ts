@@ -85,7 +85,7 @@ export default class extends BaseService<Empty> {
   public async fetchFlow<D, M>(param: {
     flowPath: string;
     fromNodeId?: string;
-    fromNodeNode?: string;
+    fromNodeCode?: string;
 
     biz: D;
     conn?: SqlSession;
@@ -113,11 +113,11 @@ export default class extends BaseService<Empty> {
   public async doFlow<D, M>(param: {
     flowPath: string;
     fromNodeId?: string;
-    fromNodeNode?: string;
+    fromNodeCode?: string;
     actionId?: string;
     actionCode?: string;
     toNodeId?: string;
-    toNodeNode?: string;
+    toNodeCode?: string;
     biz: D;
     conn?: SqlSession;
   }) {
@@ -126,8 +126,8 @@ export default class extends BaseService<Empty> {
       [k: string]: any;
     } | undefined;
     let action: {id: string; line: FlowLine} | undefined;
-    if (param.toNodeId || param.toNodeNode) {
-      to = this.getNode<D, M>(context.flowData, context.nodes, {fromOrTo: false, strict: true}, {id: param.toNodeId, code: param.toNodeNode});
+    if (param.toNodeId || param.toNodeCode) {
+      to = this.getNode<D, M>(context.flowData, context.nodes, {fromOrTo: false, strict: true}, {id: param.toNodeId, code: param.toNodeCode});
       Object.assign(context, {
         lineId: 'unkonwn',
         lineCode: 'unkonwn',
@@ -486,9 +486,9 @@ export default class extends BaseService<Empty> {
     biz: any;
     conn?: SqlSession;
     fromNodeId?: string;
-    fromNodeNode?: string;
+    fromNodeCode?: string;
     toNodeId?: string;
-    toNodeNode?: string;
+    toNodeCode?: string;
     flowPath: string;
   }) {
     this.app.throwIf(!param.flowPath, '请指定流程');
@@ -520,7 +520,7 @@ export default class extends BaseService<Empty> {
       finish: flow.finish,
       flowData: flow.flowData,
 
-      ...this.getNode<D, M>(flow.flowData, flow.nodes, {fromOrTo: true, strict: false}, {start: !param.toNodeId && !param.toNodeNode, id: param.fromNodeId, code: param.fromNodeNode}),
+      ...this.getNode<D, M>(flow.flowData, flow.nodes, {fromOrTo: true, strict: false}, {start: !param.toNodeId && !param.toNodeCode, id: param.fromNodeId, code: param.fromNodeCode}),
 
       field: {},
       noticeList: [],

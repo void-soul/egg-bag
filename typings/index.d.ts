@@ -3058,7 +3058,7 @@ declare class PaasService extends BaseService<Empty> {
   fetchFlow<D, M>(param: {
     flowPath: string;
     fromNodeId?: string;
-    fromNodeNode?: string;
+    fromNodeCode?: string;
     biz: D;
     conn?: SqlSession;
   }): Promise<{
@@ -3079,9 +3079,9 @@ declare class PaasService extends BaseService<Empty> {
   doFlow<D, M>(param: {
     flowPath: string;
     fromNodeId?: string;
-    fromNodeNode?: string;
+    fromNodeCode?: string;
     toNodeId?: string;
-    toNodeNode?: string;
+    toNodeCode?: string;
     actionId?: string;
     actionCode?: string;
     biz: D;
@@ -3582,7 +3582,7 @@ declare module 'egg' {
     fetchFlow<D, M>(param: {
       flowPath: string;
       fromNodeId?: string;
-      fromNodeNode?: string;
+      fromNodeCode?: string;
       biz: D;
       conn?: SqlSession;
     }, devid?: string): Promise<{
@@ -3603,9 +3603,9 @@ declare module 'egg' {
     doFlow<D, M>(param: {
       flowPath: string;
       fromNodeId?: string;
-      fromNodeNode?: string;
+      fromNodeCode?: string;
       toNodeId?: string;
-      toNodeNode?: string;
+      toNodeCode?: string;
       actionId?: string;
       actionCode?: string;
       biz: D;
@@ -4057,7 +4057,7 @@ declare module 'egg' {
     fetchFlow<D, M>(param: {
       flowPath: string;
       fromNodeId?: string;
-      fromNodeNode?: string;
+      fromNodeCode?: string;
       biz: D;
       conn?: SqlSession;
     }, devid?: string): Promise<{
@@ -4078,9 +4078,9 @@ declare module 'egg' {
     doFlow<D, M>(param: {
       flowPath: string;
       fromNodeId?: string;
-      fromNodeNode?: string;
+      fromNodeCode?: string;
       toNodeId?: string;
-      toNodeNode?: string;
+      toNodeCode?: string;
       actionId?: string;
       actionCode?: string;
       biz: D;

@@ -160,8 +160,8 @@ const fetchFlow = {
   path: '/fetch-flow',
   method: 'post',
   before: [ILogin],
-  async handel(this: Controller, {body: {flowPath, fromNodeId, fromNodeNode, biz}}) {
-    return await this.service.paasService.fetchFlow({flowPath, fromNodeId, fromNodeNode, biz});
+  async handel(this: Controller, {body: {flowPath, fromNodeId, fromNodeCode, biz}}) {
+    return await this.service.paasService.fetchFlow({flowPath, fromNodeId, fromNodeCode, biz});
   }
 };
 
@@ -169,8 +169,8 @@ const doFlow = {
   path: '/do-flow',
   method: 'post',
   before: [ILogin],
-  async handel(this: Controller, {body: {flowPath, fromNodeId, fromNodeNode, actionId, actionCode, biz}}) {
-    return await this.service.paasService.doFlow({flowPath, fromNodeId, fromNodeNode, actionId, actionCode, biz});
+  async handel(this: Controller, {body: {flowPath, fromNodeId, fromNodeCode, actionId, actionCode, biz}}) {
+    return await this.service.paasService.doFlow({flowPath, fromNodeId, fromNodeCode, actionId, actionCode, biz});
   }
 };
 const socketRoomIn = {
