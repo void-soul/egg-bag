@@ -71,11 +71,11 @@ export async function setCache(
 export async function clearCache(this: Application, key: string) {
   let type = await this.redis.get('other').type(`[cache-parent]${ key }`);
   if (type === 'set') {
-    clearParent.call(this, key);
+    await clearParent.call(this, key);
   }
   type = await this.redis.get('other').type(`[cache]${ key }`);
   if (type !== 'none') {
-    clearChild.call(this, key);
+    await clearChild.call(this, key);
   }
 }
 

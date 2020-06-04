@@ -21,7 +21,7 @@ const mdDir = (dir: string) => {
   }
 };
 
-export const flow = (port = 4000) => {
+export const flow = async (port = 4000) => {
   const server = Fastify({logger: false});
   if (existsSync(join(baseDir, 'flow'))) {
     const flowCodes = readdirSync(join(baseDir, 'flow'));
@@ -29,14 +29,14 @@ export const flow = (port = 4000) => {
       console.log(`http://127.0.0.1:${ port }/flow?code=${ code }`);
     }
   }
-  server.register(require("fastify-static"), {
+  await server.register(require("fastify-static"), {
     root: join(__dirname, 'flow-public'),
     prefix: '/public/'
   });
-  server.register(require('fastify-formbody'));
+  await server.register(require('fastify-formbody'));
   server.get<{
     Querystring: {code: string}
-  }>('/flow', async (request, reply) => {
+  }>('/flow', (request, reply) => {
     const code = request.query.code;
     if (code) {
       const dataPath = join(baseDir, 'flow', code, 'data.json');
@@ -58,15 +58,15 @@ export const flow = (port = 4000) => {
 
   server.get<{
     Querystring: {code: string, node: string, type: string}
-  }>('/open', async (request, reply) => {
+  }>('/open', (request, reply) => {
     const {code, node, type} = request.query;
     if (code) {
       const nodeFile = join(baseDir, 'flow', code, `${ node }.ts`);
       if (!existsSync(nodeFile)) {
         mdDir(join(baseDir, 'flow', code));
         writeFileSync(nodeFile, `/* eslint-disable @typescript-eslint/require-await */
-import {${type }} from 'egg-bag';
-export default class extends ${type }<?, ?>{
+import {${ type }} from 'egg-bag';
+export default class extends ${ type }<?, ?>{
 }`);
       }
       launch(nodeFile, 'code');
@@ -79,7 +79,7 @@ export default class extends ${type }<?, ?>{
   server.post<{
     Querystring: {code: string}
     Body: {content: string}
-  }>('/save', async (request, reply) => {
+  }>('/save', (request, reply) => {
     const code = request.query.code;
     const content = request.body.content;
     if (code) {
@@ -96,9 +96,9 @@ export default class extends ${type }<?, ?>{
 
   server.listen(port, (err, address) => {
     if (err) {
-      console.error(err)
-      process.exit(0)
+      console.error(err);
+      process.exit(0);
     }
-    console.log(`Server listening at ${ address }`)
-  })
-}
+    console.log(`Server listening at ${ address }`);
+  });
+};

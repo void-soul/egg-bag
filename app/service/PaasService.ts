@@ -346,17 +346,16 @@ export default class extends BaseService<Empty> {
         await node.excute.call(context);
         debugFlow(`excute-child-node: ${ context.toNodeLabel }(${ context.toNodeId })`);
         // 切换到子流程
-        newFlowInit = await this.switchFlow<D, M>(context, context.toNodeConfig!.child!, `${ context.flowPath }/${ context.toNodeConfig?.child }`);
+        const child = context.toNodeConfig!.child!;
+        newFlowInit = await this.switchFlow<D, M>(context, child, `${ context.flowPath }/${ child }`);
         // 查找子流程开始节点
-        const startAsTo = this.getNode<D, M>(context.flowData, context.nodes, {fromOrTo: true, strict: true}, {start: true});
-        const noError = startAsTo!.fromNodeLines!.filter(item => item.line.error === false);
+        const noError = context.fromNodeLines!.filter(item => item.line.error === false);
         // 查找默认操作
-        this.throwIf(noError.length === 0, `${ startAsTo!.toNodeId }无出线`);
         nextAction = noError.length === 1 ? noError[0] : noError.find(item => item.line.def);
-        this.throwIf(!nextAction, `${ startAsTo!.toNodeId }无默认出线`);
-        debugFlow(`child-start-def: ${ startAsTo!.fromNodeLabel }(${ startAsTo!.fromNodeId })`);
-        const biz = await node.childContext();
-        Object.assign(context, {biz, ...startAsTo});
+        this.throwIf(!nextAction, `${ context.flowCode }/${ context.fromNodeId }无默认出线`);
+        debugFlow(`child-start-def: ${ context.fromNodeLabel }(${ context.fromNodeId })`);
+        const biz = await node.childContext.call(context);
+        Object.assign(context, {biz});
         break;
       }
       case 'sys': {
@@ -395,18 +394,16 @@ export default class extends BaseService<Empty> {
       if (context.toNodeConfig!.up === true) {
         debugFlow(`excute-report-node: ${ context.toNodeLabel }(${ context.toNodeId })`);
         if (context.flowCodeIndex > 0) {
-          const flowCode = context.flowCode;
           // 切换到上级流程
-          const childFlowInit = await this.switchFlow<D, M>(context, context.flowPaths[context.flowCodeIndex - 1]);
+          const childFlowInit = await this.switchFlow<D, M>(context, context.flowPaths[context.flowCodeIndex - 1], context.flowPath);
           // 查找 子流程入口节点
-          const childAsTo = this.getNode<D, M>(context.flowData, context.nodes, {fromOrTo: true, strict: false}, {child: flowCode});
-          if (childAsTo) {
-            this.throwIf(childAsTo.fromNodeLines!.length !== 1, `${ childAsTo.fromNodeLabel }(${ childAsTo.fromNodeId })只能有一个出线`);
-            const parentNode = childAsTo.fromNode! as FlowChildNode<D, M, any>;
+          if (context.fromNode) {
+            this.throwIf(context.fromNodeLines!.length !== 1, `${ context.fromNodeLabel }(${ context.fromNodeId })只能有一个出线`);
+            const parentNode = context.fromNode as FlowChildNode<D, M, any>;
             const biz = await parentNode.parentContext(context.biz);
             Object.assign(context, {biz});
             debugFlow(`do-report-node: ${ context.fromNodeLabel }(${ context.fromNodeId })`);
-            await this.doAction<D, M>(context, childAsTo.fromNodeLines![0], true, childFlowInit);
+            await this.doAction<D, M>(context, context.fromNodeLines![0], true, childFlowInit);
           }
         }
       }
@@ -561,16 +558,11 @@ export default class extends BaseService<Empty> {
       error: context.error
     };
   }
-  private async switchFlow<D, M>(context: FlowContext<D, M>, flowCode: string, flowPath?: string) {
+  private async switchFlow<D, M>(context: FlowContext<D, M>, flowCode: string, flowPath: string, child?: string) {
     this.throwIf(!flowCode, '请指定流程');
-    let flowPaths = context.flowPaths;
-    if (flowPath) {
-      flowPaths = flowPath.split('/');
-      const setCheck = new Set<string>(flowPaths);
-      this.throwIf(setCheck.size !== flowPaths.length, '流程路径中有重复值');
-    } else {
-      flowPath = context.flowPath;
-    }
+    const flowPaths = flowPath.split('/');
+    const setCheck = new Set<string>(flowPaths);
+    this.throwIf(setCheck.size !== flowPaths.length, '流程路径中有重复值');
     const flow = this.app._flowMap[flowCode];
     this.throwIf(!flow, `流程：${ flowCode }无效`);
     const flowCodeIndex = context.flowPaths.indexOf(flowCode);
@@ -599,12 +591,12 @@ export default class extends BaseService<Empty> {
       fromNodeLabel: undefined,
       fromNodeLines: undefined,
 
+      ...this.getNode<D, M>(flow.flowData, flow.nodes, {fromOrTo: true, strict: !child}, {start: !child, child}),
+
       field: {},
       noticeList: [],
       todoList: new Set(),
-      logs: [],
-
-      biz: context.biz
+      logs: []
     });
     Object.assign(context, {
       _specialValue: await flow.special.call(context)

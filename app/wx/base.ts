@@ -32,7 +32,7 @@ export abstract class BaseWx {
     if (need === true) {
       const data = await this.fetch(() => this.tokenUrl, 'get', {}, false);
       token = data.access_token;
-      this.app.setCache(this.tokenCacheName, `${ token }^_^${ now }^_^${ data.expires_in * 1000 }`, 'other');
+      await this.app.setCache(this.tokenCacheName, `${ token }^_^${ now }^_^${ data.expires_in * 1000 }`, 'other');
     }
     return token;
   }

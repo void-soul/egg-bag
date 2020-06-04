@@ -125,10 +125,10 @@ export default {
           if (minutes) {
             const old = await this.redis.get(redisName).get(key);
             if (old) {
-              this.redis.get(redisName).set(key, old, 'EX', minutes * 60);
+              await this.redis.get(redisName).set(key, old, 'EX', minutes * 60);
             }
           } else {
-            this.redis.get(redisName).del(key);
+            await this.redis.get(redisName).del(key);
           }
         }
         break;

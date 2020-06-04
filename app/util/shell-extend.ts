@@ -4,7 +4,7 @@ const transientMeda = Symbol('Transient');
 export class DataConfigDefined {}
 function dataSource() {
   return (clazz: any, tableName: string, ...idNames: string[]) => {
-    return <T extends {new(...args: any[]): {}}>(constructor: T) => {
+    return <T extends {new(...args: any[]): any}>(constructor: T) => {
       return class extends constructor {
         tableName = tableName;
         idNames = idNames;
@@ -15,7 +15,7 @@ function dataSource() {
 }
 function mongo() {
   return (clazz: any, tableName: string, dbName?: string) => {
-    return <T extends {new(...args: any[]): {}}>(constructor: T) => {
+    return <T extends {new(...args: any[]): any}>(constructor: T) => {
       return class extends constructor {
         tableName = tableName;
         db = dbName;
@@ -31,7 +31,7 @@ function mongo() {
  */
 function logicDelete() {
   return (stateFileName: string, deleteState = '0') => {
-    return <T extends {new(...args: any[]): {}}>(constructor: T) => {
+    return <T extends {new(...args: any[]): any}>(constructor: T) => {
       return class extends constructor {
         stateFileName = stateFileName;
         deleteState = deleteState;

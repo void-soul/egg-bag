@@ -67,7 +67,7 @@ export default class {
     await flushRedis.call(this.app);
     // redis 订阅 key 过期
     // 需要配置redis.conf: notify-keyspace-events "Ex" */
-    redisPsub.call(this.app);
+    await redisPsub.call(this.app);
     // mongo连接
     await connMongo.call(this.app);
     // nuxt初始化

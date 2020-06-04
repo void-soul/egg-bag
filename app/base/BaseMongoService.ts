@@ -852,7 +852,7 @@ export default abstract class BaseMongoService<T> extends Service {
         session
       });
       const result = await cursor.toArray();
-      cursor.close();
+      await cursor.close();
       cursor.destroy();
       return result;
     }, transction);
@@ -901,7 +901,7 @@ export default abstract class BaseMongoService<T> extends Service {
         session
       });
       const result = await cursor.toArray();
-      cursor.close();
+      await cursor.close();
       cursor.destroy();
       return result;
     }, transction);
@@ -973,7 +973,7 @@ export default abstract class BaseMongoService<T> extends Service {
         session
       });
       const result = await cursor.toArray();
-      cursor.close();
+      await cursor.close();
       cursor.destroy();
       return result;
     }, transction);
@@ -1069,7 +1069,7 @@ export default abstract class BaseMongoService<T> extends Service {
         session
       });
       const result = await cursor.toArray();
-      cursor.close();
+      await cursor.close();
       cursor.destroy();
       return result;
     }, transction);
@@ -1156,7 +1156,7 @@ export default abstract class BaseMongoService<T> extends Service {
             projection
           });
           const result = await cursor.toArray();
-          cursor.close();
+          await cursor.close();
           cursor.destroy();
           return result;
         }, transction);
@@ -1263,7 +1263,7 @@ export default abstract class BaseMongoService<T> extends Service {
         session
       });
       const result = await cursor.toArray();
-      cursor.close();
+      await cursor.close();
       cursor.destroy();
       return result;
     }, transction);
@@ -1483,7 +1483,7 @@ export default abstract class BaseMongoService<T> extends Service {
         session
       });
       const result = await cursor.toArray();
-      cursor.close();
+      await cursor.close();
       cursor.destroy();
       return result;
     }, transction);
