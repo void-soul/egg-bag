@@ -25,7 +25,7 @@ export function loadFlow(this: Application) {
             const flowData = require(path.join(oneFlowPath, 'data.json'));
             Object.assign(flow, {flowData});
             debug(`found flow ${ flowName }`);
-          } else if (subFileName !== 'data' && subFileName !== 'field') {
+          } else if (subFileName !== 'data' && subFileName !== 'defined') {
             nodes[subFileName] = new (require(subFullPath).default)();
           }
         }

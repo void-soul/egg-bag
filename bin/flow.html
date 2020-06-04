@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible"
+        content="IE=edge">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+  <title>流程设置</title>
+  <link rel="stylesheet"
+        href="/public/GooFlow.css">
+  <link rel="stylesheet"
+        href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.4.0/css/font-awesome.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.bootcdn.net/ajax/libs/element-ui/2.13.2/theme-chalk/index.css">
+  <style>
+    .field-box .el-form-item__label {
+      height: 60px;
+    }
+
+    .field-box .el-form-item:nth-child(even) {
+      background-color: #0e01010d;
+    }
+
+    .field-box .el-form-item:nth-child(odd) {
+      background-color: #aba8a80d;
+      margin-bottom: 0 !important;
+    }
+
+    .field-box .el-form-item {
+      margin-bottom: 0 !important;
+    }
+
+    .field-box .el-form-item__content {
+      margin-left: 0 !important;
+    }
+
+    ::-webkit-scrollbar-track-piece {
+      width: 5px;
+      background-color: #f9f9f9;
+    }
+
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      height: 5px;
+      background: radial-gradient(circle, #35a2ff 0%, #014a88 100%);
+      cursor: pointer;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: radial-gradient(circle, #35a2ff 0%, #014a88 100%);
+      cursor: pointer;
+    }
+
+    * {
+      font-family: 'Avenir', Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <el-row>
+      <el-col :span="16">
+        <div id="flow"></div>
+      </el-col>
+      <el-col :span="8"
+              style="padding: 0 10px">
+        <el-form v-if="form.type"
+                 :model="form"
+                 label-position="left"
+                 label-width="150px"
+                 size="mini">
+          <el-card :body-style="{ padding: '5px' }">
+            <div slot="header">
+              <el-tag type="warnning"
+                      style="margin-top:10px">
+                {{=<% %>=}}
+                {{id}} <%={{ }}=%> </el-tag>
+              <el-tag v-if="label"
+                      type="success"
+                      style="margin-top:10px"> {{=<% %>=}} {{label}} <%={{ }}=%> </el-tag>
+              <el-tag v-if="fn"
+                      type="danger"
+                      style="margin-top:10px"> {{=<% %>=}} {{fn}} <%={{ }}=%> </el-tag>
+              <el-tag v-if="fromNode"
+                      type="info"
+                      style="margin-top:10px"> {{=<% %>=}} {{fromNode}} <%={{ }}=%> => {{=<% %>=}} {{toNode}}
+                <%={{ }}=%> </el-tag>
+            </div>
+            <template v-if="fromNodeType !== 'auto' && fromNodeType !== 'shunt'">
+              <el-form-item label="名称">
+                <el-input v-model="form.name"
+                          placeholder="名称"></el-input>
+              </el-form-item>
+              <el-tooltip class="item"
+                          effect="dark"
+                          content="节点的编码对应 项目文件,操作的编码可以用来查找操作id"
+                          placement="left">
+                <el-form-item label="编码">
+                  <el-input v-model="form.code"
+                            placeholder="编码"></el-input>
+                </el-form-item>
+              </el-tooltip>
+            </template>
+            <template v-if="itemType === 'node'">
+              <el-tooltip class="item"
+                          content="注意：类型必须和代码的父类对应."
+                          placement="left">
+                <el-form-item label="类型">
+                  <el-select v-model="form.type"
+                             placeholder="请选择">
+                    <el-option v-for="item in types"
+                               :key="item.value"
+                               :label="item.label"
+                               :value="item.value">
+                    </el-option>
+                  </el-select>
+                </el-form-item>
+              </el-tooltip>
+              <el-tooltip v-if="form.type === 'task' || form.type === 'skip' || form.type === 'end' || form.type === 'sys'"
+                          class="item"
+                          effect="dark"
+                          content="节点作为本次执行最后一个节点时，是否上报父流程?"
+                          placement="left">
+                <el-form-item label="上报?">
+                  <el-switch v-model="form.up"
+                             active-color="#13ce66"
+                             inactive-color="#ff4949">
+                  </el-switch>
+                </el-form-item>
+              </el-tooltip>
+              <el-tooltip v-if="form.type === 'child'"
+                          class="item"
+                          content="注意：此属性对应一个流程文件夹."
+                          placement="left">
+                <el-form-item label="子流程">
+                  <el-input v-model="form.child"
+                            placeholder="子流程">
+                    <el-button slot="append"
+                               @click="openChild"
+                               icon="el-icon-search"></el-button>
+                  </el-input>
+                </el-form-item>
+              </el-tooltip>
+              <el-tooltip class="item"
+                          content="注意：类型必须和代码的父类对应."
+                          placement="left">
+                <el-form-item label="代码文件"
+                              v-if="form.code">
+                  <el-input :value="`${flowCode}/${form.code}.ts`"
+                            readonly
+                            placeholder="">
+                    <el-button slot="append"
+                               @click="openFile"
+                               icon="el-icon-search"></el-button>
+                  </el-input>
+                </el-form-item>
+                <el-alert v-else
+                          type="error"
+                          title="没有编码！"></el-alert>
+              </el-tooltip>
+              <template v-if="form.type === 'start' || form.type === 'task' || form.type === 'skip'">
+                <el-divider content-position="left"> 字段设置 <el-button type="text"
+                             size="mini"
+                             @click="copyField2">复制节点字段</el-button>
+                  <el-button type="text"
+                             size="mini"
+                             @click="pauseField2">粘贴节点字段</el-button>
+                </el-divider>
+                <el-radio-group v-model="showField"
+                                size="mini">
+                  <el-radio-button :label="-1"></el-radio-button>
+                  <el-radio-button :label="0"></el-radio-button>
+                  <el-radio-button :label="1"></el-radio-button>
+                  <el-radio-button :label="2"></el-radio-button>
+                  <el-radio-button :label="3"></el-radio-button>
+                </el-radio-group>
+                <el-switch v-model="showAllField"
+                           size="mini"
+                           active-text="显示全部字段"
+                           inactive-text="隐藏无效字段">
+                </el-switch>
+                <el-switch v-model="showAllVls"
+                           size="mini"
+                           active-text="显示全部值"
+                           inactive-text="隐藏无效值">
+                </el-switch>
+                <el-input v-model="vsFilter"
+                          size="mini"
+                          style="width:200px"
+                          placeholder="过滤值"></el-input>
+                <el-tabs tab-position="right"
+                         v-auto-height="-15">
+                  <el-tab-pane v-for="(specil,specilIndex) in specils"
+                               :key="specilIndex"
+                               :label="`(${specil.code})${specil.label}`"
+                               :name="specil.code"
+                               v-if="(showAllVls || specil.active) && (!vsFilter || specil.label.includes(vsFilter))"
+                               lazy>
+                    <el-button type="text"
+                               size="mini"
+                               @click="copyField(specilIndex)">复制字段</el-button>
+                    <el-button type="text"
+                               size="mini"
+                               @click="pauseField(specilIndex)">粘贴字段</el-button> | <el-switch v-model="specil.active"
+                               size="mini"
+                               active-text="需要配置"
+                               inactive-text="无需配置">
+                    </el-switch>
+                    <div v-if="specil.active"
+                         v-auto-height="-25"
+                         class="field-box">
+                      <el-tag size="mini"
+                              style="margin-bottom:5px">0=无 1=只读 2=可写 3=可写&必填</el-tag>
+                      <el-form-item v-for="(field, code) in specil.fields"
+                                    :key="code"
+                                    size="mini"
+                                    style="display: flex;align-items: center;"
+                                    v-if="(showField === -1 && (showAllField || specil.fields[code] > 0)) || specil.fields[code] === showField">
+                        <div slot="label"
+                             style="display: flex;flex-wrap: wrap;flex-direction: column;justify-content: space-around;height: 60px;">
+                          {{=<% %>=}} {{fieldLabel[code]}} <%={{ }}=%> <el-tag size="mini"
+                                  type="danger">
+                            {{=<% %>=}} {{code}} <%={{ }}=%> </el-tag>
+                        </div>
+                        <el-radio-group v-model="specil.fields[code]"
+                                        size="mini">
+                          <el-radio-button :label="0"></el-radio-button>
+                          <el-radio-button :label="1"></el-radio-button>
+                          <el-radio-button :label="2"></el-radio-button>
+                          <el-radio-button :label="3"></el-radio-button>
+                        </el-radio-group>
+                      </el-form-item>
+                    </div>
+                  </el-tab-pane>
+                </el-tabs>
+              </template>
+            </template>
+            <template v-if="itemType === 'line'">
+              <el-tooltip v-if="fromNodeType !== 'shunt' && fromNodeType !== 'child'"
+                          class="item"
+                          content="不为空时、非任务节点自动跳过时、非可跳过任务节点自动跳过时、执行此操作时，将记录日志"
+                          placement="left">
+                <el-form-item label="日志">
+                  <el-input v-model="form.log"
+                            placeholder="日志"></el-input>
+                </el-form-item>
+              </el-tooltip>
+              <el-tooltip v-if="fromNodeType !== 'auto' && fromNodeType !== 'shunt' && fromNodeType !== 'sys'  && fromNodeType !== 'child'"
+                          class="item"
+                          content="对前端不可见"
+                          placement="left">
+                <el-form-item label="隐藏">
+                  <el-switch v-model="form.hide"
+                             active-color="#13ce66"
+                             inactive-color="#ff4949">
+                  </el-switch>
+                </el-form-item>
+              </el-tooltip>
+              <el-tooltip class="item"
+                          placement="left">
+                <div slot="content">
+                  <ul>
+                    <li>当任务节点\可跳过的任务节点生成的操作人包含当前用户时,按照此操作指向进行;</li>
+                    <li>当可跳过的任务节点没有操作人时,按照此操作指向进行;</li>
+                    <li>流程重启、发起时(开始节点、系统节点、任务节点、可跳过节点)，且没有指定操作编码/id时，取默认操作；</li>
+                    <li>进入子流程时，执行开始节点的默认操作；</li>
+                    <li>自动节点处理结果无法匹配任何操作时，执行自动节点的默认操作；</li>
+                    <li>子流程上报时，父流程的【子流程入口】节点会充当自动节点的功能，按照上面提到的方式进行跳转；</li>
+                    <li>当一个节点只有一个非异常的操作时，视为默认操作；</li>
+                  </ul>
+                </div>
+                <el-form-item label="默认">
+                  <el-switch v-model="form.def"
+                             active-color="#13ce66"
+                             inactive-color="#ff4949">
+                  </el-switch>
+                </el-form-item>
+              </el-tooltip>
+              <el-tooltip class="item"
+                          content="流程处理发生异常才进入此节点"
+                          placement="left">
+                <el-form-item label="处理异常">
+                  <el-switch v-model="form.error"
+                             active-color="#13ce66"
+                             inactive-color="#ff4949">
+                  </el-switch>
+                </el-form-item>
+              </el-tooltip>
+              <el-tooltip class="item"
+                          placement="left"
+                          content="正向操作需要验证各种字段填写">
+                <el-form-item label="正向">
+                  <el-switch v-model="form.right"
+                             active-color="#13ce66"
+                             inactive-color="#ff4949">
+                  </el-switch>
+                </el-form-item>
+              </el-tooltip>
+              <el-tooltip class="item"
+                          placement="left"
+                          content="反向操作需要验证备注填写">
+                <el-form-item label="
+                          反向">
+                  <el-switch v-model="form.back"
+                             active-color="#13ce66"
+                             inactive-color="#ff4949">
+                  </el-switch>
+                </el-form-item>
+              </el-tooltip>
+              <el-form-item v-if="fromNodeType === 'auto' || fromNodeType === 'shunt'"
+                            label="节点分流">
+                <el-select v-if="specilIsAuto"
+                           v-model="form.swi"
+                           multiple
+                           filterable
+                           allow-create
+                           default-first-option
+                           placeholder="节点分流">
+                  <el-option v-for="(item, index) in specils"
+                             :key="index"
+                             :value="item.code"
+                             :label="item.label"></el-option>
+                </el-select>
+                <el-select v-else
+                           v-model="form.swi"
+                           multiple
+                           filterable
+                           allow-create
+                           default-first-option
+                           placeholder="节点分流">
+                </el-select>
+              </el-form-item>
+            </template>
+          </el-card>
+        </el-form>
+        <template v-else>
+          <div style="padding-left: 10px;">
+            <el-switch v-model="specilIsAuto"
+                       active-color="#13ce66"
+                       active-text="关键值作为自动节点分流待选"
+                       inactive-text="自动分流值任意填写"
+                       inactive-color="#ff4949">
+            </el-switch>
+          </div>
+          <el-button @click="openFlow"
+                     type="success">打开流程index.ts</el-button>
+          <el-tabs style="margin:0 20px"
+                   v-auto-height="-15">
+            <el-tab-pane label="字段"
+                         lazy>
+              <el-button @click="addField"
+                         type="text">新增</el-button>
+              <el-table :data="fields"
+                        size="mini">
+                <el-table-column label="编码"
+                                 width="120"
+                                 prop="code">
+                  <template slot-scope="{row}">
+                    <el-input size="mini"
+                              v-model="row.code"></el-input>
+                  </template>
+                </el-table-column>
+                <el-table-column label="说明"
+                                 width="150"
+                                 prop="label">
+                  <template slot-scope="{row}">
+                    <el-input size="mini"
+                              v-model="row.label"></el-input>
+                  </template>
+                </el-table-column>
+                <el-table-column label="删除"
+                                 width="50"
+                                 prop="label">
+                  <template slot-scope="{row,$index}">
+                    <el-button type="danger"
+                               size="mini"
+                               icon="el-icon-delete"
+                               @click="removeField($index)"
+                               circle></el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-tab-pane>
+            <el-tab-pane label="关键值"
+                         lazy>
+              <el-button @click="addSpecil"
+                         type="text">新增</el-button>
+              <el-table :data="specils"
+                        size="mini">
+                <el-table-column label="编码"
+                                 width="120"
+                                 prop="code">
+                  <template slot-scope="{row}">
+                    <el-input size="mini"
+                              v-model="row.code"></el-input>
+                  </template>
+                </el-table-column>
+                <el-table-column label="说明"
+                                 width="150"
+                                 prop="label">
+                  <template slot-scope="{row}">
+                    <el-input size="mini"
+                              v-model="row.label"></el-input>
+                  </template>
+                </el-table-column>
+                <el-table-column label="删除"
+                                 width="50"
+                                 prop="label">
+                  <template slot-scope="{row,$index}">
+                    <el-button type="danger"
+                               size="mini"
+                               icon="el-icon-delete"
+                               @click="removeSpecil($index)"
+                               circle></el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-tab-pane>
+          </el-tabs>
+        </template>
+      </el-col>
+    </el-row>
+  </div>
+  <script src="https://cdn.bootcdn.net/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+  <script src="/public/GooFlow.js"></script>
+  <script src="https://cdn.bootcdn.net/ajax/libs/vue/2.6.11/vue.min.js"></script>
+  <script src="https://cdn.bootcdn.net/ajax/libs/element-ui/2.13.2/index.js"></script>
+  <script>
+    const flowCode = '{{code}}';
+    const specilIsAuto = true;
+    const data = {{{ data }}};
+  </script>
+  <script>
+    let oldFieldMap = {};
+    let oldFieldArray = [];
+    for (const item of data.fields) {
+      oldFieldMap[item.code] = 0;
+      oldFieldArray.push(item.code);
+    }
+    for (const item of data.specils) {
+      item.fields = { ...oldFieldMap };
+      item.active = false;
+    }
+    $(function () {
+      let flow;
+      const App = Vue.extend({
+        data() {
+          return {
+            vsFilter: '',
+            showAllVls: true,
+            showField: -1,
+            showAllField: true,
+            specilIsAuto,
+            form: {},
+
+            oldFieldMap,
+            oldFieldArray,
+            fields: data.fields,
+            specils: data.specils,
+            flowCode,
+
+            fromNode: '',
+            fromNodeType: '',
+            toNode: '',
+            toNodeType: '',
+
+            oldType: '',
+            id: '',
+            itemType: '',
+
+            types: [{ 'value': 'auto', 'label': '自动结点' }, { 'value': 'shunt', 'label': '分流结点' }, { 'value': 'task', 'label': '任务结点' }, { 'value': 'skip', 'label': '可跳过的任务节点' }, { 'value': 'child', 'label': '子流程入口' }, { 'value': 'sys', 'label': '系统节点' }, { 'value': 'shunt', 'label': '分发节点' }, { 'value': 'start', 'label': '开始' }, { 'value': 'end', 'label': '结束' }],
+            labels: {
+              cursor: '选择指针',
+              direct: '连线',
+              start: '开始结点(一个流程可以有多个开始节点,除了子流程的开始节点外,所有开始节点都不能被指向)',
+              task: '任务结点(若找不到执行人员,将抛出异常)',
+              skip: '可跳过的任务节点(若找不到执行人员,将跳过该节点)',
+              auto: '自动结点(无需人为,不能暂停,返回数字|undefined决定流程走向.)',
+              shunt: '分流结点(无需人为,不能暂停,返回key-value.key=走向,value=走向的上下文)',
+              sys: '系统节点(无需人为,可暂停并作为执行入口)',
+              child: '子流程入口(存在于父流程中,需要指定一个子流程编号,一个父流程目前仅支持一个同名子流程编号)',
+              end: '结束结点(一个流程可以有多个结束节点)',
+              group: '区域编辑开关',
+              line: '操作',
+              out: '子流程出口'
+            },
+            fns: {
+              start: 'FlowStartNode',
+              task: 'FlowTaskNode',
+              skip: 'FlowSkipNode',
+              sys: 'FlowSysNode',
+              end: 'FlowEndNode',
+              auto: 'FlowAutoNode',
+              shunt: 'FlowShuntNode',
+              child: 'FlowChildNode'
+            },
+
+            copy: {},
+            copy2: {}
+          };
+        },
+        mounted() {
+          const that = this;
+          flow = $('#flow').createGooFlow({
+            headBtns: ['undo', 'redo', 'save'],
+            headBtnRemarks: ['撤销', '重做', '输出结构'],
+            toolBtns: ['start', 'task', 'skip', 'auto', 'shunt', 'sys', 'child', 'end'],
+            toolBtnRemarks: that.labels,
+            height: $(document).height() - 20,
+            workWidth: 2000,
+            workHeight: 2000,
+            onItemFocus(id, type) {
+              const info = flow.getItemInfo(id, type);
+              if (type === 'line') {
+                const fromNode = flow.getItemInfo(info.from, 'node');
+                that.fromNodeType = fromNode.type;
+                that.fromNode = fromNode.name;
+
+                const toNode = flow.getItemInfo(info.to, 'node');
+                that.toNodeType = toNode.type;
+                that.toNode = toNode.name;
+              } else {
+                if (info.fields) {
+                  that.setFields(info.fields);
+                }
+              }
+              that.id = id;
+              that.itemType = type;
+              that.oldType = info.type;
+              that.form = { ...info };
+              return true;
+            },
+            onItemBlur(id, type) {
+              that.fix();
+              return true;
+            },
+            onItemAdd(id, type, data) {
+              if (type === 'node') {
+                if (!data.code) {
+                  data.code = id;
+                }
+                if (data.child === undefined) {
+                  data.child = '';
+                }
+                if (data.fields === undefined) {
+                  data.fields = {};
+                }
+                if (data.up === undefined) {
+                  data.up = false;
+                }
+              } else if (type === 'line') {
+                if (data.code === undefined) {
+                  data.code = '';
+                }
+                if (data.swi === undefined) {
+                  data.swi = [];
+                }
+                if (data.def === undefined) {
+                  data.def = false;
+                }
+                if (data.hide === undefined) {
+                  data.hide = false;
+                }
+                if (data.error === undefined) {
+                  data.error = false;
+                }
+                if (data.right === undefined) {
+                  data.right = false;
+                }
+                if (data.back === undefined) {
+                  data.back = false;
+                }
+                if (data.log === undefined) {
+                  data.log = '';
+                }
+              }
+              return true;
+            },
+            onBtnSaveClick() {
+              that.fix();
+              const data = flow.exportData();
+              data.specils = that.specils.map(item => {
+                return {
+                  code: item.code,
+                  label: item.label
+                };
+              });
+              data.fields = that.fields;
+              for (const info of Object.values(data.nodes)) {
+                if (info.type === 'start' || info.type === 'task' || info.type === 'skip') {
+                  for (const specil of that.specils) {
+                    if (info.fields[specil.code]) {
+                      const fieldsResult = {};
+                      let has = false;
+                      for (const name of that.oldFieldArray) {
+                        if (info.fields[specil.code] && info.fields[specil.code][name]) {
+                          fieldsResult[name] = info.fields[specil.code][name];
+                          has = true;
+                        }
+                      }
+                      if (has === true) {
+                        info.fields[specil.code] = fieldsResult;
+                      } else {
+                        delete info.fields[specil.code];
+                      }
+                    }
+                  }
+                } else {
+                  info.fields = {};
+                }
+              }
+              $.ajax({
+                url: '/save?code={{code}}',
+                type: 'POST',
+                data: { content: JSON.stringify(data) },
+                success() {
+                  that.$message('保存成功');
+                }
+              });
+              console.log(JSON.stringify(data));
+            }
+          });
+          flow.loadData(data);
+          flow.setTitle(data.title);
+        },
+        computed: {
+          label() {
+            return this.labels[this.form.type];
+          },
+          fn() {
+            return this.fns[this.form.type];
+          },
+          fieldLabel() {
+            const result = {};
+            for (const item of this.fields) {
+              result[item.code] = item.label;
+            }
+            return result;
+          },
+          specVif() {
+            return this.specils.filter(specil => this.showAllVls || specil.active);
+          }
+        },
+        watch: {
+          form: {
+            deep: true,
+            handler() {
+              if (this.id) {
+                const info = flow.getItemInfo(this.id, this.itemType);
+                if (info) {
+                  if (this.itemType === 'node') {
+                    info.code = this.form.code;
+                    flow.setNodeType(this.id, this.oldType, this.form.type);
+                    this.oldType = this.form.type;
+                    info.child = this.form.child;
+                    info.up = this.form.up;
+                    flow.setName(this.id, this.form.name, this.itemType);
+                  } else {
+                    info.code = this.form.code;
+                    info.def = this.form.def;
+                    info.right = this.form.right;
+                    info.back = this.form.back;
+                    info.hide = this.form.hide;
+                    info.error = this.form.error;
+                    info.swi = this.form.swi;
+                    info.log = this.form.log;
+                    let label;
+                    if (this.fromNodeType === 'auto' || this.fromNodeType === 'shunt') {
+                      label = this.form.swi.join(',');
+                    } else {
+                      label = this.form.name;
+                    }
+                    flow.setName(this.id, label, this.itemType);
+                  }
+                } else {
+                  console.error(this.id, this.itemType);
+                }
+              }
+            }
+          },
+          fields: {
+            immediate: true,
+            deep: true,
+            handler() {
+              const add = [];
+              const remove = [];
+              const newFieldMap = {};
+              const newFieldCopy = {};
+              const newFieldArray = [];
+              for (const item of this.fields) {
+                if (this.oldFieldMap[item.code] === undefined) {
+                  add.push(item.code);
+                }
+                newFieldMap[item.code] = 0;
+                newFieldCopy[item.code] = this.copy[item.code];
+                newFieldArray.push(item.code);
+              }
+              for (const item of this.oldFieldArray) {
+                if (newFieldArray.includes(item) === false) {
+                  remove.push(item.code);
+                }
+              }
+              this.oldFieldArray = newFieldArray;
+              this.oldFieldMap = newFieldMap;
+              this.copy = newFieldCopy;
+              for (const specil of this.specils) {
+                specil.fields = { ...newFieldMap };
+              }
+            }
+          }
+        },
+        methods: {
+          fix() {
+            if (this.id) {
+              const info = flow.getItemInfo(this.id, this.itemType);
+              info.fields = {};
+              if (info.type === 'start' || info.type === 'task' || info.type === 'skip') {
+                for (const specil of this.specils) {
+                  let has = false;
+                  let result = {};
+                  if (specil.active === true) {
+                    for (const name of this.oldFieldArray) {
+                      if (specil.fields[name] !== 0) {
+                        result[name] = specil.fields[name];
+                        has = true;
+                      }
+                    }
+                  }
+                  if (has === true) {
+                    info.fields[specil.code] = result;
+                  }
+                }
+              }
+              this.form = {};
+              this.fromNodeType = '';
+              this.fromNode = '';
+              this.toNodeType = '';
+              this.toNode = '';
+              this.id = '';
+              this.oldType = '';
+              this.itemType = '';
+            }
+          },
+          setFields(fields) {
+            if (fields) {
+              for (const specil of this.specils) {
+                if (fields[specil.code]) {
+                  specil.active = true;
+                  for (const name of this.oldFieldArray) {
+                    specil.fields[name] = fields[specil.code][name] === undefined ? 0 : fields[specil.code][name];
+                  }
+                } else {
+                  specil.active = false;
+                  specil.fields = { ...this.oldFieldMap };
+                }
+              }
+            }
+          },
+          openFile() {
+            if (this.form.code) {
+              $.get(`/open?code={{code}}&node=${ this.form.code }&type=${ this.fns[this.form.type] }`);
+            }
+          },
+          openFlow() {
+            $.get(`/open?code={{code}}&node=index&type=Flow`);
+          },
+          openChild() {
+            if (this.form.child) {
+              window.open(`/flow?code=${ this.form.child }`);
+            }
+          },
+          removeField(index) {
+            this.fields.splice(index, 1);
+          },
+          addField() {
+            this.fields.push({ code: '', label: '' });
+          },
+          removeSpecil(index) {
+            this.specils.splice(index, 1);
+          },
+          addSpecil() {
+            this.specils.push({ code: '', label: '' });
+          },
+          copyField(index) {
+            this.copy = { ...this.specils[index].fields };
+          },
+          pauseField(index) {
+            if (Object.keys(this.copy).length > 0) {
+              this.specils[index].active = true;
+              this.specils[index].fields = { ...this.copy };
+            }
+          },
+          copyField2() {
+            const fields = {};
+            for (const specil of this.specils) {
+              let has = false;
+              let result = {};
+              if (specil.active === true) {
+                for (const name of this.oldFieldArray) {
+                  if (specil.fields[name] !== 0) {
+                    result[name] = specil.fields[name];
+                    has = true;
+                  }
+                }
+              }
+              if (has === true) {
+                fields[specil.code] = result;
+              }
+            }
+            this.copy2 = fields;
+          },
+          pauseField2() {
+            this.setFields(this.copy2);
+          }
+        },
+        directives: {
+          autoHeight: {
+            inserted(el, binding) {
+              el.style.height =
+                document.documentElement.clientHeight -
+                el.getBoundingClientRect().top +
+                (binding.value || 0) +
+                'px';
+              el.style.overflowY = 'auto';
+            }
+          }
+        }
+      });
+      new App().$mount('#app');
+    });
+  </script>
+</body>
+
+</html>

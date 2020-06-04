@@ -35,6 +35,12 @@ module.exports = {
     'no-this-assignment': 'off',
     'no-prototype-builtins': 'off',
     'no-return-await': 'off',
-    'no-fallthrough': 'off'
+    'no-fallthrough': 'off',
+    '@typescript-eslint/explicit-module-boundary-types': 'off',
+    '@typescript-eslint/no-unsafe-return': 'off',
+    '@typescript-eslint/no-unsafe-member-access': 'off',
+    '@typescript-eslint/restrict-template-expressions': 'off',
+    '@typescript-eslint/no-unsafe-call': 'off',
+    '@typescript-eslint/no-unsafe-assignment': 'off'
   }
 };

@@ -43,6 +43,8 @@ export abstract class FlowContext<D, M> {
   readonly lineCode?: string;
   /** 当前处理的操作文字 */
   readonly lineLabel?: string;
+  /** 当前处理的操作日志 */
+  readonly lingLog?: string;
   /** 当前生效字段列表 */
   field: FlowField;
 
@@ -53,8 +55,7 @@ export abstract class FlowContext<D, M> {
   /** 日志 */
   readonly logs: string[];
   /** 可能存在的异常信息,每个节点处理完异常后，可以将异常对象从上下文移除，以通知其他节点异常已经解决 */
-  readonly error?: Error;
-  readonly _errorMsg: string[];
+  readonly error: string[];
 
   /** 实现类缓存 */
   readonly nodes: {[key: string]: FlowContext<D, M>};
@@ -76,7 +77,7 @@ export abstract class Flow<D, M> extends FlowContext<D, M>{
   readonly flowData: FlowData = {nodes: {}, lines: {}};
   /** 实现类缓存 */
   readonly nodes: {[key: string]: FlowContext<D, M>} = {};
-  /** 保存数据 */
+  /** 当流程结束、暂停时，保存数据 */
   abstract save(): Promise<void>;
   /**  流程开始前、暂停后重新执行前、子流程开始前、子流程上报到父流程后执行父流程前，会执行init方法。 */
   abstract init(): Promise<void>;
@@ -121,6 +122,11 @@ export abstract class FlowAutoNode<D, M> extends FlowContext<D, M> implements Fl
   /** 节点作为目标时执行,返回string可影响流程走向,抛出异常会被error-action捕获并处理.若没有error-action,则抛出异常 */
   abstract excute(): Promise<string | void>;
 }
+/**  分流结点(无需人为,不能暂停,返回key-value.key=走向,value=走向的上下文) */
+export abstract class FlowShuntNode<D, M> extends FlowContext<D, M> implements FlowNode {
+  /** 节点作为目标时执行,返回key-value.key=走向,value=走向的上下文,返回void表示不分流，按默认line进行.抛出异常会被error-action捕获并处理.若没有error-action,则抛出异常 */
+  abstract excute(): Promise<{[k: string]: D} | void>;
+}
 /** 可跳过的任务节点(若找不到执行人员,将跳过该节点)*/
 export abstract class FlowSkipNode<D, M> extends FlowContext<D, M> implements FlowNode {
   /** 前端调用fetch-flow获取流程数据时调用 */
@@ -151,16 +157,8 @@ export abstract class FlowChildNode<D, M, C> extends FlowContext<D, M> implement
   abstract excute(): Promise<void>;
   /** 当发起子流程时，可以在这里根据自己的上下文构建子流程的上下文 */
   abstract childContext(): Promise<C>;
-  /** 子流程上报时执行，返回结果 含义同自动节点 */
-  abstract report(): Promise<string | void>;
-}
-/** 子流程上报(相当于一种特殊的结束节点,不过会根据此节点返回值反调父流程中的 【子流程入口】的对应操作) */
-
-export abstract class FlowReportNode<D, M, P> extends FlowContext<D, M> implements FlowNode {
-  /** 可以在这里根据自己的上下文构建父流程的上下文 */
-  abstract parentContext(): Promise<P>;
-  /** 节点作为目标时执行,执行完毕后上报父流程 */
-  abstract excute(): Promise<void>;
-  /** 在这里可以对流程上下文的noticeList进行操作。只有流程暂停、结束前最后一个目标节点的notice方法会被调用 */
-  abstract notice(): Promise<void>;
+  /** 子流程上报时执行 */
+  abstract report(): Promise<void>;
+  /** 可以在这里根据子流程上下文构建父流程的上下文 */
+  abstract parentContext(childContext: C): Promise<D>;
 }

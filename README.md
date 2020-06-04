@@ -316,3 +316,9 @@ import initDataFlow from 'app/flow-help/init-data-flow';
 # 1.35.0
 1. service增加clear方法
 2. 增加工作流支持：测试
+
+
+# 1.36.0
+
+1. 增加流程分流节点
+2. 增加流程设计工具: `yarn bag flow [port]` 会启动一个简易http服务,默认端口4000.
