@@ -1,53 +1,19 @@
 import {FlowField, FlowData, FlowLine, SqlSession, Application, IService, FlowNodeConfig, FlowNode} from '../../typings';
 import {Context} from 'egg';
+import lodash = require('lodash');
 
 /**
  * 流程上下文
  * D: 流转data 类型定义
- * R: 流程输出类型
+ * M: 消息类型
  */
 export abstract class FlowContext<D, M> {
-  readonly _specialValue: string;
   readonly ctx: Context;
   readonly service: IService;
   readonly app: Application;
-  /** 事务 */
   readonly conn: SqlSession;
   /** 提交流程时，业务相关参数 */
   readonly biz: D;
-
-  /** 查询、执行必须参数 */
-  readonly flowPath: string;
-  readonly flowCode: string;
-  readonly flowPaths: string[];
-  readonly flowCodeIndex: number;
-
-  /** 源节点 */
-  readonly fromNodeCode?: string;
-  readonly fromNodeId?: string;
-  readonly fromNodeLabel?: string;
-  readonly fromNodeConfig?: FlowNodeConfig;
-  readonly fromNode?: FlowNode;
-  readonly fromNodeLines?: Array<{id: string; line: FlowLine}>;
-  /** 目标节点*/
-  readonly toNodeCode?: string;
-  readonly toNodeId?: string;
-  readonly toNodeLabel?: string;
-  readonly toNodeConfig?: FlowNodeConfig;
-  readonly toNode?: FlowNode;
-  readonly toNodeLines?: Array<{id: string; line: FlowLine}>;
-
-  /** 当前处理的操作id或者操作编码:处理时前端必传 */
-  readonly lineId?: string;
-  /** 当前处理的操作id或者操作编码:处理时前端必传 */
-  readonly lineCode?: string;
-  /** 当前处理的操作文字 */
-  readonly lineLabel?: string;
-  /** 当前处理的操作日志 */
-  readonly lingLog?: string;
-  /** 当前生效字段列表 */
-  field: FlowField;
-
   /** 消息通知 */
   readonly noticeList: M[];
   /** 任务执行人id */
@@ -56,21 +22,11 @@ export abstract class FlowContext<D, M> {
   readonly logs: string[];
   /** 可能存在的异常信息,每个节点处理完异常后，可以将异常对象从上下文移除，以通知其他节点异常已经解决 */
   readonly error: string[];
-
-  /** 实现类缓存 */
-  readonly nodes: {[key: string]: FlowContext<D, M>};
-  /** 流程配置 */
-  readonly flowData: FlowData;
-  /** 保存数据 */
-  abstract save(): Promise<void>;
-  /** 当本次流程[处理]完毕时,可以根据上下文返回数据给前端. */
-  abstract finish(): Promise<D>;
 }
-
 /**
  * 流程定义
- * D: 流转上下文 类型定义
- * FlowField: 流程字段类型
+ * D: 流转data 类型定义
+ * M: 消息类型
  */
 export abstract class Flow<D, M> extends FlowContext<D, M>{
   /** 流程配置 */
@@ -92,6 +48,23 @@ export abstract class Flow<D, M> extends FlowContext<D, M>{
 export abstract class FlowTaskNode<D, M> extends FlowContext<D, M> implements FlowNode {
   /** 前端调用fetch-flow获取流程数据时调用 */
   abstract fetch(): Promise<void>;
+  /** 当节点被fetch时，前端需要根据节点返回的特殊字段值得到字段信息 */
+  abstract special(): Promise<string | void>;
+  /** 流程暂停后重新执行时，如果以此节点为起始节点，则会执行init方法。 */
+  abstract init(): Promise<void>;
+  /** 节点作为目标时执行,期间异常会被error-action捕获并处理.若没有error-action,则抛出异常 */
+  abstract excute(): Promise<void>;
+  /** 在这里可以对上下文的todoList进行操作.只有 流程暂停前最后一个目标节点的todo方法有效。其余节点仅作为流程过渡的判断。 */
+  abstract todo(): Promise<void>;
+  /** 在这里可以对流程上下文的noticeList进行操作。只有流程暂停、结束前最后一个目标节点的notice方法会被调用 */
+  abstract notice(): Promise<void>;
+}
+/** 任务结点(若找不到执行人员,将抛出异常)若执行人包含自己，将跳过 */
+export abstract class FlowContainsNode<D, M> extends FlowContext<D, M> implements FlowNode {
+  /** 前端调用fetch-flow获取流程数据时调用 */
+  abstract fetch(): Promise<void>;
+  /** 当节点被fetch时，前端需要根据节点返回的特殊字段值得到字段信息 */
+  abstract special(): Promise<string | void>;
   /** 流程暂停后重新执行时，如果以此节点为起始节点，则会执行init方法。 */
   abstract init(): Promise<void>;
   /** 节点作为目标时执行,期间异常会被error-action捕获并处理.若没有error-action,则抛出异常 */
@@ -105,6 +78,8 @@ export abstract class FlowTaskNode<D, M> extends FlowContext<D, M> implements Fl
 export abstract class FlowStartNode<D, M> extends FlowContext<D, M> implements FlowNode {
   /** 前端调用fetch-flow获取流程数据时调用 */
   abstract fetch(): Promise<void>;
+  /** 当节点被fetch时，前端需要根据节点返回的特殊字段值得到字段信息 */
+  abstract special(): Promise<string | void>;
   /**  流程开始时、子流程开始时，会执行init方法。 */
   abstract init(): Promise<void>;
 }
@@ -131,6 +106,8 @@ export abstract class FlowShuntNode<D, M> extends FlowContext<D, M> implements F
 export abstract class FlowSkipNode<D, M> extends FlowContext<D, M> implements FlowNode {
   /** 前端调用fetch-flow获取流程数据时调用 */
   abstract fetch(): Promise<void>;
+  /** 当节点被fetch时，前端需要根据节点返回的特殊字段值得到字段信息 */
+  abstract special(): Promise<string | void>;
   /** 流程暂停后重新执行时，如果以此节点为起始节点，则会执行init方法。 */
   abstract init(): Promise<void>;
   /** 节点作为目标时执行,抛出异常会被error-action捕获并处理.若没有error-action,则抛出异常 */
@@ -149,6 +126,10 @@ export abstract class FlowSysNode<D, M> extends FlowContext<D, M> implements Flo
   abstract excute(): Promise<void>;
   /** 在这里可以对流程上下文的noticeList进行操作。只有流程暂停、结束前最后一个目标节点的notice方法会被调用 */
   abstract notice(): Promise<void>;
+  /** 前端调用fetch-flow获取流程数据时调用 */
+  abstract fetch(): Promise<void>;
+  /** 当节点被fetch时，前端需要根据节点返回的特殊字段值得到字段信息 */
+  abstract special(): Promise<string | void>;
 }
 
 /** 子流程入口(存在于父流程中,需要指定一个子流程编号,一个父流程目前仅支持一个同名子流程编号) */
@@ -161,4 +142,613 @@ export abstract class FlowChildNode<D, M, C> extends FlowContext<D, M> implement
   abstract report(): Promise<void>;
   /** 可以在这里根据子流程上下文构建父流程的上下文 */
   abstract parentContext(childContext: C): Promise<D>;
+}
+class StatusError extends Error {
+  egg: number;
+  constructor (message: string) {
+    super(message);
+    this.egg = 1;
+  }
+}
+const debugFlow = require('debug')('egg-bag:flow');
+const nodeType = {
+  start: FlowStartNode,
+  task: FlowTaskNode,
+  skip: FlowSkipNode,
+  sys: FlowSysNode,
+  end: FlowEndNode,
+  auto: FlowAutoNode,
+  shunt: FlowShuntNode,
+  child: FlowChildNode,
+  contains: FlowContainsNode
+};
+interface NodeFilter {
+  child?: string; id?: string; code?: string; start?: boolean
+}
+const explainCode = /([A-Za-z]+)(\d*)[-]*(\d*)/;
+interface FlowCore<D, M> {
+  /** 查询、执行必须参数 */
+  flowCode: string;
+  srcFlowCode: string;
+  appFlowCode: string;
+  /** 源节点 */
+  fromNodeId?: string;
+  fromNodeConfig?: FlowNodeConfig;
+  fromNode?: FlowNode;
+  fromNodeLines?: Array<{id: string; line: FlowLine}>;
+  /** 目标节点*/
+  toNodeId?: string;
+  toNodeConfig?: FlowNodeConfig;
+  toNode?: FlowNode;
+  toNodeLines?: Array<{id: string; line: FlowLine}>;
+
+  /** 当前处理的操作id或者操作编码:处理时前端必传 */
+  lineId?: string;
+  lineConfig?: FlowLine;
+  /** 当前生效字段列表 */
+  field: FlowField;
+
+  context: FlowContext<D, M>;
+  specialValue: string;
+  flow: Flow<D, M>;
+}
+export class FlowExcute<D, M> {
+  private cores: {
+    [key: string]: FlowCore<D, M>;
+  };
+  private conn: SqlSession;
+  private app: Application;
+  private ctx: Context;
+  private service: IService;
+  private activeCode = '';
+  private flowCodes: string[];
+  constructor (ctx: Context, service: IService, app: Application, conn: SqlSession) {
+    this.ctx = ctx;
+    this.service = service;
+    this.app = app;
+    this.conn = conn;
+    this.cores = {};
+    this.flowCodes = [];
+  }
+  public async fetch({flowPath, fromNodeId, fromNodeCode, biz}: {
+    flowPath: string;
+    fromNodeId?: string;
+    fromNodeCode?: string;
+    biz: D;
+  }) {
+    await this.append(flowPath)
+      .defFlow()
+      .active(this.activeCode, biz)
+      .from({id: fromNodeId, code: fromNodeCode, start: true})
+      .checkFrom()
+      .from2To(true)
+      .specil();
+    const core = this.cores[this.activeCode];
+    if (core.fromNode! instanceof FlowTaskNode || core.fromNode! instanceof FlowStartNode || core.fromNode! instanceof FlowSkipNode || core.fromNode! instanceof FlowSysNode) {
+      core.field = core.fromNodeConfig
+        && core.fromNodeConfig.fields
+        && core.fromNodeConfig.fields[core.specialValue] || {};
+      await core.flow.fetch.call(core.context);
+      await core.fromNode.fetch.call(core.context);
+      return await this.getResult(false);
+    }
+    this.throwNow('起始节点只能是task、start、skip');
+  }
+  public async do({
+    flowPath,
+    fromNodeId,
+    fromNodeCode,
+    actionId,
+    actionCode,
+    toNodeId,
+    toNodeCode,
+    biz
+  }: {
+    flowPath: string;
+    fromNodeId?: string;
+    fromNodeCode?: string;
+    actionId?: string;
+    actionCode?: string;
+    toNodeId?: string;
+    toNodeCode?: string;
+    biz: D;
+  }) {
+    this.append(flowPath).defFlow().active(this.activeCode, biz);
+    if (fromNodeCode || fromNodeId) {
+      this.from({id: fromNodeId, code: fromNodeCode, start: false});
+    } else if (toNodeId || toNodeCode) {
+      this.to({id: toNodeId, code: toNodeCode, start: false});
+    } else {
+      this.from({start: true});
+    }
+    const core = this.cores[this.activeCode];
+    if (core.toNode) {
+      lodash.assign(core, {
+        lineId: 'unkonwn',
+        lineCode: 'unkonwn',
+        lineLabel: 'unkonwn'
+      });
+      if (!core.fromNode) {
+        lodash.assign(core, {
+          fromNodeCode: 'unkonwn',
+          fromNodeId: 'unkonwn',
+          fromNodeLabel: 'unkonwn'
+        });
+      }
+    } else {
+      this.throwIf(!core.fromNodeLines || core.fromNodeLines.length === 0, '起始节点没有任何出线');
+      let action: {id: string; line: FlowLine} | undefined;
+      if (actionId) {
+        action = core.fromNodeLines!.find(item => item.id === actionId);
+      } else if (actionCode) {
+        action = core.fromNodeLines!.find(item => item.line.code === actionCode);
+      } else {
+        action = core.fromNodeLines!.find(item => item.line.def);
+      }
+      if (!action) {
+        const lines = core.fromNodeLines!.filter(item => item.line.error === false);
+        if (lines.length === 1) {
+          action = lines[0];
+        }
+      }
+      this.throwIf(!action, '操作无效');
+      this.to({id: action!.line.to});
+      this.throwIf(!core.toNode, '找不到目标节点');
+      this.line(action!);
+    }
+    await this.init();
+    await this._doFlow(false);
+    return await this.getResult(true);
+  }
+  private async init(): Promise<this> {
+    const core = this.cores[this.activeCode];
+    await core.flow.init.call(core.context);
+    if (core.fromNode && (core.fromNode instanceof FlowTaskNode || core.fromNode instanceof FlowStartNode || core.fromNode instanceof FlowSkipNode || core.fromNode instanceof FlowSysNode)) {
+      await core.fromNode.init.call(core.context);
+    }
+    return this;
+  }
+  private append(flowPath: string): this {
+    const flowCodes = flowPath.split('/');
+    const setCheck = new Set<string>(flowCodes);
+    this.throwIf(setCheck.size !== flowCodes.length, '流程路径中有重复值');
+    this.flowCodes.splice(this.flowCodes.length, 0, ...flowCodes);
+    return this;
+  }
+  private defFlow(): this {
+    this.activeCode = this.flowCodes[this.flowCodes.length - 1];
+    return this;
+  }
+  private active(flowCode: string, biz?: D): this {
+    const explains = explainCode.exec(flowCode);
+    this.throwIf(!explains, `${ flowCode }格式错误`);
+    const appFlowCode = explains![1];
+    const srcFlowCode = `${ explains![1] }${ explains![2] }`;
+    if (!this.cores[srcFlowCode]) {
+      this.cores[srcFlowCode] = {
+        flowCode: srcFlowCode,
+        appFlowCode,
+        srcFlowCode,
+        field: {},
+        context: {
+          ctx: this.ctx,
+          service: this.service,
+          app: this.app,
+          conn: this.conn,
+          biz: {} as D,
+          noticeList: [],
+          todoList: new Set(),
+          logs: [],
+          error: []
+        },
+        flow: this.app._flowMap[appFlowCode],
+        specialValue: ''
+      };
+    }
+    if (!this.cores[flowCode]) {
+      this.cores[flowCode] = {
+        flowCode,
+        appFlowCode,
+        srcFlowCode,
+        field: lodash.cloneDeep(this.cores[srcFlowCode].field),
+        context: {
+          ctx: this.ctx,
+          service: this.service,
+          app: this.app,
+          conn: this.conn,
+          biz: lodash.cloneDeep(this.cores[srcFlowCode].context.biz),
+          noticeList: lodash.cloneDeep(this.cores[srcFlowCode].context.noticeList),
+          todoList: lodash.cloneDeep(this.cores[srcFlowCode].context.todoList),
+          logs: lodash.cloneDeep(this.cores[srcFlowCode].context.logs),
+          error: lodash.cloneDeep(this.cores[srcFlowCode].context.error)
+        },
+        flow: this.app._flowMap[appFlowCode],
+        specialValue: ''
+      };
+    }
+    if (biz) {
+      lodash.assign(this.cores[flowCode].context.biz, biz);
+    }
+    this.activeCode = flowCode;
+    return this;
+  }
+  private from(filter: NodeFilter): this {
+    const result = this.filter(filter);
+    if (result) {
+      lodash.assign(this.cores[this.activeCode], {
+        fromNodeId: result.nodeId,
+        fromNodeConfig: result.nodeConfig,
+        fromNodeLines: result.lines,
+        fromNode: result.node
+      });
+    } else {
+      lodash.assign(this.cores[this.activeCode], {
+        fromNodeId: undefined,
+        fromNodeConfig: undefined,
+        fromNodeLines: undefined,
+        fromNode: undefined
+      });
+    }
+    return this;
+  }
+  private to(filter: NodeFilter): this {
+    const result = this.filter(filter);
+    if (result) {
+      lodash.assign(this.cores[this.activeCode], {
+        toNodeId: result.nodeId,
+        toNodeConfig: result.nodeConfig,
+        toNodeLines: result.lines,
+        toNode: result.node
+      });
+    } else {
+      lodash.assign(this.cores[this.activeCode], {
+        toNodeId: undefined,
+        toNodeConfig: undefined,
+        toNodeLines: undefined,
+        toNode: undefined
+      });
+    }
+    return this;
+  }
+  private from2To(copy: boolean): this {
+    const core = this.cores[this.activeCode];
+    lodash.assign(core, {
+      toNodeId: core.fromNodeId,
+      toNodeConfig: core.fromNodeConfig,
+      toNodeLines: core.fromNodeLines,
+      toNode: core.fromNode
+    });
+    if (copy === false) {
+      lodash.assign(core, {
+        fromNodeId: undefined,
+        fromNodeConfig: undefined,
+        fromNodeLines: undefined,
+        fromNode: undefined
+      });
+    }
+    return this;
+  }
+  private to2From(copy: boolean): this {
+    const core = this.cores[this.activeCode];
+    lodash.assign(core, {
+      fromNodeId: core.toNodeId,
+      fromNodeConfig: core.toNodeConfig,
+      fromNodeLines: core.toNodeLines,
+      fromNode: core.toNode
+    });
+    if (copy === false) {
+      lodash.assign(core, {
+        toNodeId: undefined,
+        toNodeConfig: undefined,
+        toNodeLines: undefined,
+        toNode: undefined
+      });
+    }
+    return this;
+  }
+  private explainLines(lines: Array<{id: string; line: FlowLine}>) {
+    const noError = lines.filter(item => item.line.error === false);
+    return {
+      noError,
+      def: noError.length === 1 ? noError[0] : noError.find(item => item.line.def),
+      error: lines.find(item => item.line.error === true)
+    };
+  }
+  private checkFrom(): this {
+    this.throwIf(!this.cores[this.activeCode].fromNode, '起始节点没有实现');
+    return this;
+  }
+  private line(action: {
+    id: string;
+    line: FlowLine;
+  }): this {
+    lodash.assign(this.cores[this.activeCode], {
+      lineId: action.id,
+      lineConfig: action.line
+    });
+    return this;
+  }
+  private async specil(): Promise<this> {
+    const core = this.cores[this.activeCode];
+    let specialValue: string | void;
+    if (core.fromNode && (core.fromNode instanceof FlowTaskNode || core.fromNode instanceof FlowStartNode || core.fromNode instanceof FlowSkipNode || core.fromNode instanceof FlowSysNode)) {
+      specialValue = await core.fromNode.special.call(core.context);
+    }
+    if (!specialValue) {
+      specialValue = await core.flow.special.call(core.context);
+    }
+    core.specialValue = specialValue;
+    return this;
+  }
+  private async _doFlow(skip: boolean) {
+    let core = this.cores[this.activeCode];
+    const to = core.toNodeConfig?.name || core.toNodeId || 'unkonwn';
+    let from = core.fromNodeConfig?.name || core.fromNodeId || 'unkonwn';
+    debugFlow(`${ core.flowCode }::from[${ from }]=>[${ core.lineConfig?.name || core.lineConfig?.code || core.lineId || 'unkonwn' }]=>[${ to }]`);
+    core.context.todoList.clear();
+    if (core.lineConfig?.log && skip !== true) {
+      core.context.logs.push(core.lineConfig.log);
+    }
+    const toType = core.toNodeConfig!.type;
+    const lines = this.explainLines(core.toNodeLines!);
+    this.throwIf(toType !== 'end' && lines.noError.length === 0, `${ to }无非错误出线`);
+
+    let nextAction: {id: string; line: FlowLine} | undefined;
+    let skipDo = false;
+    switch (toType) {
+      case 'start': {
+        this.throwNow('开始节点不能被指向');
+        break;
+      }
+      case 'task': {
+        try {
+          const node = core.toNode! as FlowTaskNode<D, M>;
+          await node.excute.call(core.context);
+          await node.todo.call(core.context);
+          this.throwIf(core.context.todoList.size === 0, `${ to }找不到可执行人`);
+        } catch (error) {
+          if (error.eggBag !== 1 && lines.error) {
+            core.context.error.push(error.message);
+            nextAction = lines.error;
+          } else {
+            throw error;
+          }
+        }
+        break;
+      }
+      case 'contains': {
+        try {
+          const node = core.toNode! as FlowContainsNode<D, M>;
+          await node.excute.call(core.context);
+          await node.todo.call(core.context);
+          this.throwIf(core.context.todoList.size === 0, `${ to }找不到可执行人`);
+          if (lines.def && core.context.todoList.has(this.ctx.me.userid)) {
+            nextAction = lines.def;
+            skipDo = true;
+          }
+        } catch (error) {
+          if (error.eggBag !== 1 && lines.error) {
+            core.context.error.push(error.message);
+            nextAction = lines.error;
+          } else {
+            throw error;
+          }
+        }
+        break;
+      }
+      case 'skip': {
+        try {
+          const node = core.toNode! as FlowSkipNode<D, M>;
+          await node.excute.call(core.context);
+          await node.todo.call(core.context);
+          if (lines.def && core.context.todoList.size === 0 || core.context.todoList.has(this.ctx.me.userid)) {
+            nextAction = lines.def;
+            skipDo = true;
+          }
+        } catch (error) {
+          if (error.eggBag !== 1 && lines.error) {
+            core.context.error.push(error.message);
+            nextAction = lines.error;
+          } else {
+            throw error;
+          }
+        }
+        break;
+      }
+      case 'auto': {
+        try {
+          const node = core.toNode! as FlowAutoNode<D, M>;
+          const nextSwitch = await node.excute.call(core.context);
+          if (lines.noError.length > 1 && typeof nextSwitch === 'string') {
+            nextAction = lines.noError.find(item => item.line.swi.includes(nextSwitch));
+          }
+          if (!nextAction) {
+            nextAction = lines.def;
+          }
+          this.throwIf(!nextAction, `${ to }结果为${ nextSwitch },但无匹配的操作`);
+        } catch (error) {
+          if (error.eggBag !== 1 && lines.error) {
+            core.context.error.push(error.message);
+            nextAction = lines.error;
+          } else {
+            throw error;
+          }
+        }
+        break;
+      }
+      case 'shunt': {
+        try {
+          const node = core.toNode! as FlowShuntNode<D, M>;
+          const nextSwitch = await node.excute.call(core.context);
+          if (lines.noError.length > 1 && typeof nextSwitch === 'object') {
+            let i = 0;
+            for (const [k, biz] of Object.entries(nextSwitch)) {
+              const matchAction = lines.noError.find(item => item.line.swi.includes(k)) || lines.def;
+              this.throwIf(!matchAction, `${ to }结果为${ k },但无匹配的操作`);
+              await this.active(`${ core.flowCode }-${ i++ }`, biz).to2From(false).line(matchAction!).to({id: matchAction?.line.to})._doFlow(false);
+            }
+            return;
+          } else {
+            this.throwIf(!lines.def, `${ to }无匹配的操作`);
+            nextAction = lines.def;
+          }
+        } catch (error) {
+          if (error.eggBag !== 1 && lines.error) {
+            core.context.error.push(error.message);
+            nextAction = lines.error;
+          } else {
+            throw error;
+          }
+        }
+        break;
+      }
+      case 'child': {
+        const child = core.toNodeConfig!.child!;
+        this.throwIf(!core.toNodeConfig?.child, '未声明子流程');
+        const node = core.toNode! as FlowChildNode<D, M, any>;
+        await node.excute.call(core.context);
+        await this.save();
+        const biz = await node.childContext.call(core.context);
+        await this.append(child).active(child, biz).from({start: true}).checkFrom().init();
+        core = this.cores[this.activeCode];
+        const childLines = this.explainLines(core.fromNodeLines!);
+        from = core.fromNodeConfig?.name || core.fromNodeId || 'unkonwn';
+        this.throwIf(!childLines.def, `${ from }无默认出线`);
+        nextAction = childLines.def;
+        break;
+      }
+      case 'sys': {
+        try {
+          const node = core.toNode! as FlowSysNode<D, M>;
+          await node.excute.call(core.context);
+        } catch (error) {
+          if (error.eggBag !== 1 && lines.error) {
+            core.context.error.push(error.message);
+            nextAction = lines.error;
+          } else {
+            throw error;
+          }
+        }
+        break;
+      }
+      case 'end': {
+        const node = core.toNode! as FlowEndNode<D, M>;
+        await node.excute.call(core.context);
+        break;
+      }
+    }
+    if (nextAction) {
+      await this.to2From(false).line(nextAction).to({id: nextAction.line.to})._doFlow(skipDo);
+    } else if (core.toNode && (core.toNode instanceof FlowTaskNode || core.toNode instanceof FlowEndNode || core.toNode instanceof FlowSkipNode || core.toNode instanceof FlowSysNode)) {
+      await core.toNode.notice.call(core.context);
+      await this.save();
+      const activeIndex = this.flowCodes.indexOf(this.activeCode);
+      if (core.toNodeConfig!.up === true && activeIndex > 0) {
+        const childBiz = core.context.biz;
+        const child = core.flowCode;
+        this.active(this.flowCodes[activeIndex - 1]).from({child});
+        core = this.cores[this.activeCode];
+        from = core.fromNodeConfig?.name || core.fromNodeId || 'unkonwn';
+        if (core.fromNode) {
+          this.throwIf(core.fromNodeLines!.length !== 1, `${ from }只能有一个出线`);
+          const parentNode = core.fromNode as FlowChildNode<D, M, any>;
+          const biz = await parentNode.parentContext.call(core.context, childBiz);
+          this.active(core.flowCode, biz);
+          await this.line(core.fromNodeLines![0]).to({id: core.fromNodeLines![0].line.to})._doFlow(true);
+        }
+      }
+    } else {
+      await this.save();
+    }
+  }
+  private async save() {
+    const core = this.cores[this.activeCode];
+    await core.flow.save.call(core.context);
+    core.context.error.length = core.context.logs.length = 0;
+  }
+  private async getResult(isDo: boolean) {
+    const core = this.cores[this.activeCode];
+    return {
+      biz: isDo ? await core.flow.finish.call(core.context) : core.context.biz,
+      flowCode: core.flowCode,
+      fromNodeId: core.toNodeId,
+      fromNodeCode: core.toNodeConfig?.code,
+      lines: core.toNodeLines ? core.toNodeLines.filter(item => item.line.hide === false && item.line.error === false).map(item => {
+        return {
+          name: item.line.name,
+          code: item.line.code,
+          from: item.line.from,
+          to: item.line.to,
+          right: item.line.right,
+          back: item.line.back,
+          id: item.id
+        };
+      }) : [],
+      fields: core.field,
+      error: core.context.error
+    };
+  }
+  private throwIf(test: boolean, message: string) {
+    if (test === true) {
+      throw new StatusError(message);
+    }
+  }
+  private throwIfNot(test: boolean, message: string) {
+    if (test === false) {
+      throw new StatusError(message);
+    }
+  }
+  private throwNow(message: string) {
+    throw new StatusError(message);
+  }
+  private filter(filter: NodeFilter) {
+    let nodeId: string | undefined;
+    let nodeConfig: FlowNodeConfig | undefined;
+    const flowData = this.cores[this.activeCode].flow.flowData;
+    const nodes = this.cores[this.activeCode].flow.nodes;
+    if (filter.id && flowData.nodes[filter.id]) {
+      nodeId = filter.id;
+      nodeConfig = flowData.nodes[filter.id];
+    } else if (filter.code) {
+      for (const [id, node] of Object.entries(flowData.nodes)) {
+        if (node.code === filter.code) {
+          nodeId = id;
+          nodeConfig = node;
+          break;
+        }
+      }
+    } else if (filter.child) {
+      for (const [id, node] of Object.entries(flowData.nodes)) {
+        if (node.type === 'child' && node.child === filter.child) {
+          nodeId = id;
+          nodeConfig = node;
+          break;
+        }
+      }
+    } else if (filter.start === true) {
+      for (const [id, node] of Object.entries(flowData.nodes)) {
+        if (node.type === 'start') {
+          nodeId = id;
+          nodeConfig = node;
+          break;
+        }
+      }
+    }
+    if (nodeId && nodeConfig) {
+      const lines = new Array<{line: FlowLine; id: string}>();
+      for (const [id, line] of Object.entries(flowData.lines)) {
+        if (line.from === nodeId) {
+          lines.push({id, line});
+        }
+      }
+      this.throwIf(nodeType[nodeConfig.type] !== undefined && !nodeConfig.code, `${ nodeConfig.name }(${ nodeId })没有实现!`);
+      this.throwIf(!nodes[nodeConfig.code!], `${ nodeConfig.name }(${ nodeId })没有实现!`);
+      const node = nodes[nodeConfig.code!]!;
+      this.throwIfNot(node instanceof nodeType[nodeConfig.type], `${ nodeConfig.name }(${ nodeId })定义是${ nodeConfig.type },但实现不是`);
+
+      return {
+        node, nodeId, nodeConfig, lines
+      };
+    }
+  }
 }

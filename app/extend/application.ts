@@ -1,5 +1,5 @@
 import Enum from '../enums/Enum';
-import StatusError from '../util/shell/exception/status-error';
+import {StatusError} from '../util/shell';
 import {Application} from 'egg';
 import md5Util = require('md5');
 import {Context} from 'vm';

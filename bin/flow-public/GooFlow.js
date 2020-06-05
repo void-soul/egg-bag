@@ -1875,10 +1875,10 @@ $.fn.extend({
             initLabelText: 'newFlow_1',
             workWidth: null,    // 此两个变量定义画布的宽高, 如忽略, 则这两个变量根据 width 和 height 自动计算。
             workHeight: null,   // 目的是不产生拖动/滚动条, 刚好适配宽高
-            toolBtns: ["start", "end", "shunt", "merge", "child", "auto", "task", "chat", "sys", "skip"],
+            toolBtns: ["start", "end", "shunt", "merge", "child", "auto", "task", "chat", "sys", "skip", "contains"],
             toolBtnRemarks: {
                 cursor: "选择指针", direct: "连线", start: "开始结点", end: "结束结点",
-                task: "任务结点", auto: "自动结点", chat: "决策结点", sys: "状态结点", skip: "附加插件",
+                task: "任务结点", auto: "自动结点", chat: "决策结点", sys: "状态结点", skip: "附加插件", contains: "附加插件",
                 out: "分支结点", merge: "联合结点", child: "复合结点", group: "组织划分框编辑开关", shunt: '分流节点'
             },
             haveHead: true,      //是否显示头部工具栏

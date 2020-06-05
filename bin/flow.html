@@ -126,7 +126,7 @@
                   </el-select>
                 </el-form-item>
               </el-tooltip>
-              <el-tooltip v-if="form.type === 'task' || form.type === 'skip' || form.type === 'end' || form.type === 'sys'"
+              <el-tooltip v-if="form.type === 'task' || form.type === 'skip' || form.type === 'contains'  || form.type === 'end' || form.type === 'sys'"
                           class="item"
                           effect="dark"
                           content="节点作为本次执行最后一个节点时，是否上报父流程?"
@@ -168,7 +168,8 @@
                           type="error"
                           title="没有编码！"></el-alert>
               </el-tooltip>
-              <template v-if="form.type === 'start' || form.type === 'task' || form.type === 'skip'">
+              <template
+                        v-if="form.type === 'start' || form.type === 'task' || form.type === 'contains' || form.type === 'skip'">
                 <el-divider content-position="left"> 字段设置 <el-button type="text"
                              size="mini"
                              @click="copyField2">复制节点字段</el-button>
@@ -246,7 +247,7 @@
               </template>
             </template>
             <template v-if="itemType === 'line'">
-              <el-tooltip v-if="fromNodeType !== 'shunt' && fromNodeType !== 'child'"
+              <el-tooltip v-if="fromNodeType !== 'child'"
                           class="item"
                           content="不为空时、非任务节点自动跳过时、非可跳过任务节点自动跳过时、执行此操作时，将记录日志"
                           placement="left">
@@ -270,7 +271,7 @@
                           placement="left">
                 <div slot="content">
                   <ul>
-                    <li>当任务节点\可跳过的任务节点生成的操作人包含当前用户时,按照此操作指向进行;</li>
+                    <li>当同一人可跳过节点\可跳过的任务节点生成的操作人包含当前用户时,按照此操作指向进行;</li>
                     <li>当可跳过的任务节点没有操作人时,按照此操作指向进行;</li>
                     <li>流程重启、发起时(开始节点、系统节点、任务节点、可跳过节点)，且没有指定操作编码/id时，取默认操作；</li>
                     <li>进入子流程时，执行开始节点的默认操作；</li>
@@ -478,13 +479,14 @@
             id: '',
             itemType: '',
 
-            types: [{ 'value': 'auto', 'label': '自动结点' }, { 'value': 'shunt', 'label': '分流结点' }, { 'value': 'task', 'label': '任务结点' }, { 'value': 'skip', 'label': '可跳过的任务节点' }, { 'value': 'child', 'label': '子流程入口' }, { 'value': 'sys', 'label': '系统节点' }, { 'value': 'shunt', 'label': '分发节点' }, { 'value': 'start', 'label': '开始' }, { 'value': 'end', 'label': '结束' }],
+            types: [{ 'value': 'auto', 'label': '自动结点' }, { 'value': 'shunt', 'label': '分流结点' }, { 'value': 'task', 'label': '任务结点' }, { 'value': 'contains', 'label': '同一操作人可跳过' }, { 'value': 'skip', 'label': '可跳过的任务节点' }, { 'value': 'child', 'label': '子流程入口' }, { 'value': 'sys', 'label': '系统节点' }, { 'value': 'shunt', 'label': '分发节点' }, { 'value': 'start', 'label': '开始' }, { 'value': 'end', 'label': '结束' }],
             labels: {
               cursor: '选择指针',
               direct: '连线',
               start: '开始结点(一个流程可以有多个开始节点,除了子流程的开始节点外,所有开始节点都不能被指向)',
               task: '任务结点(若找不到执行人员,将抛出异常)',
-              skip: '可跳过的任务节点(若找不到执行人员,将跳过该节点)',
+              contains: '任务结点(若执行人员包含自己,将根据默认操作跳过;若找不到执行人员,将抛出异常)',
+              skip: '可跳过的任务节点(若执行人员包含自己、找不到执行人员,将根据默认操作跳过该节点)',
               auto: '自动结点(无需人为,不能暂停,返回数字|undefined决定流程走向.)',
               shunt: '分流结点(无需人为,不能暂停,返回key-value.key=走向,value=走向的上下文)',
               sys: '系统节点(无需人为,可暂停并作为执行入口)',
@@ -497,6 +499,7 @@
             fns: {
               start: 'FlowStartNode',
               task: 'FlowTaskNode',
+              contains: 'FlowContainsNode',
               skip: 'FlowSkipNode',
               sys: 'FlowSysNode',
               end: 'FlowEndNode',
@@ -514,7 +517,7 @@
           flow = $('#flow').createGooFlow({
             headBtns: ['undo', 'redo', 'save'],
             headBtnRemarks: ['撤销', '重做', '输出结构'],
-            toolBtns: ['start', 'task', 'skip', 'auto', 'shunt', 'sys', 'child', 'end'],
+            toolBtns: ['start', 'task', 'skip', 'auto', 'shunt', 'sys', 'child', 'end', 'contains'],
             toolBtnRemarks: that.labels,
             height: $(document).height() - 20,
             workWidth: 2000,
@@ -597,7 +600,7 @@
               });
               data.fields = that.fields;
               for (const info of Object.values(data.nodes)) {
-                if (info.type === 'start' || info.type === 'task' || info.type === 'skip') {
+                if (info.type === 'start' || info.type === 'task' || info.type === 'contains' || info.type === 'skip') {
                   for (const specil of that.specils) {
                     if (info.fields[specil.code]) {
                       const fieldsResult = {};
@@ -724,7 +727,7 @@
             if (this.id) {
               const info = flow.getItemInfo(this.id, this.itemType);
               info.fields = {};
-              if (info.type === 'start' || info.type === 'task' || info.type === 'skip') {
+              if (info.type === 'start' || info.type === 'task' || info.type === 'skip' || info.type === 'contains') {
                 for (const specil of this.specils) {
                   let has = false;
                   let result = {};

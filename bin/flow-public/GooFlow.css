@@ -437,7 +437,8 @@ v\:group,v\:rect,v\:imagedata,v\:oval,v\:line,v\:polyline,v\:stroke,v\:textbox {
 .GooFlow .ico_task:before{content: "\f007";color:#FF0000;}
 .GooFlow .ico_chat:before{content: "\f1b3";color:#FF7865;}
 .GooFlow .ico_sys:before{content: "\f0f4";color: rgb(29, 14, 238);}
-.GooFlow .ico_skip:before{content: "\f007";color: rgb(5, 5, 5);}
+.GooFlow .ico_skip:before{content: "\f007";color: rgb(243, 169, 8);}
+.GooFlow .ico_contains:before{content: "\f007";color: rgb(27, 110, 16);}
 .GooFlow .ico_group:before{content: "\f248";color: #ff3300;}
 /**
 * 采用font awesome 的图标重绘头部工具栏
