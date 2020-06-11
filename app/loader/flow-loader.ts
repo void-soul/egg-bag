@@ -2,7 +2,7 @@ import {Application} from 'egg';
 import path = require('path');
 import * as fs from 'fs';
 import {Flow} from '../util/flow';
-import {FlowNode} from 'typings';
+import {FlowNodeBase} from 'typings';
 const debug = require('debug')('egg-bag:loader');
 
 export function loadFlow(this: Application) {
@@ -14,7 +14,7 @@ export function loadFlow(this: Application) {
       const oneFlowPath = path.join(flowPath, flowName);
       const subFiles = fs.readdirSync(oneFlowPath);
       let flow: Flow<any, any> | undefined;
-      const nodes: {[code: string]: FlowNode} = {};
+      const nodes: {[code: string]: FlowNodeBase} = {};
       for (const subFile of subFiles) {
         const subFileName = subFile.replace(path.extname(subFile), '');
         const subFullPath = path.join(oneFlowPath, subFile);

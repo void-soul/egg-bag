@@ -131,4 +131,13 @@ export default class extends BaseService<Empty> {
       });
     }
   }
+  public getLine(param: {
+    flowCode: string;
+    fromNodeId?: string;
+    fromNodeCode?: string;
+    actionId?: string;
+    actionCode?: string;
+  }) {
+    return (new FlowExcute(this.ctx, this.ctx.service, this.app, {} as SqlSession)).getLine(param);
+  }
 }

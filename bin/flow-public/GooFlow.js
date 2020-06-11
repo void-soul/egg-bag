@@ -697,7 +697,7 @@ GooFlow.prototype = {
         if (json.left < 0) json.left = 0;
         var hack = 0;
         if (navigator.userAgent.indexOf("8.0") != -1) hack = 2;
-        this.$nodeDom[id] = $("<div class='GooFlow_item" + mark + "' id='" + id + "' style='top:" + json.top + "px;left:" + json.left + "px'><table cellspacing='1' style='width:" + (json.width - 2) + "px;height:" + (json.height - 2) + "px;'><tr><td class='ico'><i class='fa ico_" + json.type + "'></i></td><td>" + `${ json.up ? '⬆' : '' }${ json.name }(${ json.code || '无编码' })` + "</td></tr></table><div style='display:none'><div class='rs_bottom'></div><div class='rs_right'></div><div class='rs_rb'></div><div class='rs_close'></div></div></div>");
+        this.$nodeDom[id] = $("<div class='GooFlow_item" + mark + "' id='" + id + "' style='top:" + json.top + "px;left:" + json.left + "px'><table cellspacing='1' style='width:" + (json.width - 2) + "px;height:" + (json.height - 2) + "px;'><tr><td class='ico'><i class='fa ico_" + json.type + "'></i></td><td>" + this.nameAdvance(json) + "</td></tr></table><div style='display:none'><div class='rs_bottom'></div><div class='rs_right'></div><div class='rs_rb'></div><div class='rs_close'></div></div></div>");
         if (json.type == 'child') this.$nodeDom[id].addClass('item_child');
         var ua = navigator.userAgent.toLowerCase();
         if (ua.indexOf('msie') != -1 && ua.indexOf('8.0') != -1)
@@ -997,6 +997,28 @@ GooFlow.prototype = {
         //重画转换线
         this.resetLines(id, this.$nodeData[id]);
     },
+    nameAdvance (item, names) {
+        const name = [];
+        if (item.up) {
+            name.push('⬆️');
+        }
+        if (item.type === 'task') {
+            if (item.empty === 2) {
+                name.push('⛔');
+            }
+            if (item.empty === 1) {
+                name.push('↪️');
+            }
+            if (item.me === 1) {
+                name.push('😊');
+            }
+        }
+        name.push(names || item.name);
+        name.push('[');
+        name.push(item.code || '无编码');
+        name.push(']');
+        return name.join('');
+    },
     //设置结点/连线/分组区域的文字信息
     setName: function (id, name, type) {
         var oldName;
@@ -1006,7 +1028,7 @@ GooFlow.prototype = {
             if (this.onItemRename != null && !this.onItemRename(id, name, "node")) return;
             oldName = this.$nodeData[id].name;
             this.$nodeData[id].name = name;
-            this.$nodeDom[id].find("td:eq(1)").text(`${ this.$nodeData[id].up ? '⬆' : '' }${ name }(${ this.$nodeData[id].code || '无编码' })`);
+            this.$nodeDom[id].find("td:eq(1)").text(this.nameAdvance(this.$nodeData[id], name));
             var hack = 0;
             if (navigator.userAgent.indexOf("8.0") != -1) hack = 2;
             var width = this.$nodeDom[id].outerWidth();
@@ -1039,6 +1061,9 @@ GooFlow.prototype = {
             }
             if (this.$lineData[id].back) {
                 label += '[反]';
+            }
+            if (this.$lineData[id].fast) {
+                label += '[快]';
             }
             if (GooFlow.prototype.useSVG != "") {
                 this.$lineDom[id].childNodes[2].textContent = name + label;
@@ -1486,9 +1511,9 @@ GooFlow.prototype = {
         }
         var n1 = this.$nodeData[json.from], n2 = this.$nodeData[json.to];//获取开始/结束结点的数据
         if (!n1 || !n2) return;
-        if (n1.type === 'end') {
-            return;
-        }
+        // if (n1.type === 'end') {
+        //     return;
+        // }
         if (n2.type === 'start') {
             return;
         }
@@ -1509,7 +1534,9 @@ GooFlow.prototype = {
         this.$lineData[id].name = json.name;
         this.$lineData[id].def = json.def;
         this.$lineData[id].log = json.log;
+        this.$lineData[id].index = json.index;
         this.$lineData[id].right = json.right;
+        this.$lineData[id].fast = json.fast;
         this.$lineData[id].back = json.back;
         this.$lineData[id].hide = json.hide;
         this.$lineData[id].error = json.error;
@@ -1539,6 +1566,9 @@ GooFlow.prototype = {
         }
         if (json.back) {
             label += '[反]';
+        }
+        if (json.fast) {
+            label += '[快]';
         }
         if (GooFlow.prototype.useSVG == "") {
             this.$lineDom[id].childNodes[1].innerHTML = json.name + label;
@@ -1607,6 +1637,9 @@ GooFlow.prototype = {
             if (this.$lineData[i].back) {
                 label += '[反]';
             }
+            if (this.$lineData[i].fast) {
+                label += '[快]';
+            }
             if (GooFlow.prototype.useSVG == "") {
                 this.$lineDom[i].childNodes[1].innerHTML = this.$lineData[i].name + label;
                 if (this.$lineData[i].type != "sl") {
@@ -1656,6 +1689,9 @@ GooFlow.prototype = {
         }
         if (this.$lineData[id].back) {
             label += '[反]';
+        }
+        if (this.$lineData[id].fast) {
+            label += '[快]';
         }
         var res;
         //如果是变成折线
@@ -1709,6 +1745,9 @@ GooFlow.prototype = {
         }
         if (this.$lineData[id].back) {
             label += '[反]';
+        }
+        if (this.$lineData[id].fast) {
+            label += '[快]';
         }
         this.$lineData[id].M = M;
         var ps = GooFlow.prototype.calcPolyPoints(this.$nodeData[from], this.$nodeData[to], this.$lineData[id].type, this.$lineData[id].M);
@@ -1875,10 +1914,10 @@ $.fn.extend({
             initLabelText: 'newFlow_1',
             workWidth: null,    // 此两个变量定义画布的宽高, 如忽略, 则这两个变量根据 width 和 height 自动计算。
             workHeight: null,   // 目的是不产生拖动/滚动条, 刚好适配宽高
-            toolBtns: ["start", "end", "shunt", "merge", "child", "auto", "task", "chat", "sys", "skip", "contains"],
+            toolBtns: ["start", "end", "shunt", "merge", "child", "auto", "task", "chat", "sys"],
             toolBtnRemarks: {
                 cursor: "选择指针", direct: "连线", start: "开始结点", end: "结束结点",
-                task: "任务结点", auto: "自动结点", chat: "决策结点", sys: "状态结点", skip: "附加插件", contains: "附加插件",
+                task: "任务结点", auto: "自动结点", chat: "决策结点", sys: "状态结点",
                 out: "分支结点", merge: "联合结点", child: "复合结点", group: "组织划分框编辑开关", shunt: '分流节点'
             },
             haveHead: true,      //是否显示头部工具栏

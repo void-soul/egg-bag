@@ -3095,17 +3095,17 @@ declare class PaasService extends BaseService<Empty> {
     flowPath: string;
     fromNodeId: string | undefined;
     fromNodeCode: string | undefined;
-    lines: {
-      name: string | number;
-      code: string;
-      from: string;
-      to: string;
-      back: boolean;
-      right: boolean;
-      id: string;
-    }[];
+    lines: SimplyFlowLine[];
     fields: FlowField;
   }>;
+  /** 获取指定流程、指定节点操作 */
+  getLine(param: {
+    flowCode: string;
+    fromNodeId?: string;
+    fromNodeCode?: string;
+    actionId?: string;
+    actionCode?: string;
+  }): SimplyFlowLine[] | undefined;
 }
 declare type RedisChannel = 'user' | 'other' | 'static' | 'sub';
 declare interface RedisConfig {
@@ -3195,27 +3195,49 @@ export interface FlowLine {
   right: boolean;
   /** 反向操作，前端用来验证备注必填 */
   back: boolean;
+  /** 可以在列表上快速执行 */
+  fast: boolean;
+  /** 排序 */
+  index: number;
   /** 不为空时、非任务节点自动跳过时、非可跳过任务节点自动跳过时、执行此操作时，将记录日志 */
   log: string;
+}
+/** 流程执行后，返回的操作列表 */
+export interface SimplyFlowLine {
+  name: string | number;
+  code: string;
+  from: string;
+  to: string;
+  right: boolean;
+  back: boolean;
+  fast: boolean;
+  id: string;
+  flow: string;
 }
 export interface FlowNodeConfig {
   name?: string;
   left: number;
   top: number;
-  type: 'start' | 'auto' | 'task' | 'skip' | 'sys' | 'child' | 'shunt' | 'end' | 'contains';
+  type: 'start' | 'auto' | 'task' | 'sys' | 'child' | 'shunt' | 'end';
   code?: string;
   width: number;
   height: number;
   // 子流程
   child?: string;
-  // 执行上报?
+  /**执行上报?*/
   up?: boolean;
+  /** 没人时 0=pause 1=skip 2=error */
+  empty?: 0 | 1 | 2;
+  /** 有自己时 0=pause 1=skip */
+  me?: 0 | 1;
   fields?: {
     [special: string]: FlowField;
   };
 }
 
+/** 0=无 1=只读 2=可选输入 3=必填输入 */
 export interface FlowField {
+  /** 0=无 1=只读 2=可选输入 3=必填输入 */
   [code: string]: number;
 }
 
@@ -3238,7 +3260,7 @@ export interface FlowData {
     };
   };
 }
-export interface FlowNode {
+export interface FlowNodeBase {
 
 }
 
@@ -3262,6 +3284,12 @@ export abstract class FlowContext<D, M> {
   readonly logs: string[];
   /** 可能存在的异常信息,每个节点处理完异常后，可以将异常对象从上下文移除，以通知其他节点异常已经解决 */
   readonly error: string[];
+  /** 最终呈现时，过滤哪些操作可以展示。如果这里返回true，那么hide类型的line也会展示 */
+  readonly filterLineShow: {
+    [lineCodeOrId: string]: boolean;
+  }
+  /** 当前生效字段列表 */
+  readonly field: FlowField;
 }
 /**
  * 流程定义
@@ -3285,22 +3313,7 @@ export abstract class Flow<D, M> extends FlowContext<D, M>{
   abstract special(): Promise<string>;
 }
 /** 任务结点(若找不到执行人员,将抛出异常) */
-export abstract class FlowTaskNode<D, M> extends FlowContext<D, M> implements FlowNode {
-  /** 前端调用fetch-flow获取流程数据时调用 */
-  abstract fetch(): Promise<void>;
-  /** 当节点被fetch时，前端需要根据节点返回的特殊字段值得到字段信息 */
-  abstract special(): Promise<string | void>;
-  /** 流程暂停后重新执行时，如果以此节点为起始节点，则会执行init方法。 */
-  abstract init(): Promise<void>;
-  /** 节点作为目标时执行,期间异常会被error-action捕获并处理.若没有error-action,则抛出异常 */
-  abstract excute(): Promise<void>;
-  /** 在这里可以对上下文的todoList进行操作.只有 流程暂停前最后一个目标节点的todo方法有效。其余节点仅作为流程过渡的判断。 */
-  abstract todo(): Promise<void>;
-  /** 在这里可以对流程上下文的noticeList进行操作。只有流程暂停、结束前最后一个目标节点的notice方法会被调用 */
-  abstract notice(): Promise<void>;
-}
-/** 任务结点(若找不到执行人员,将抛出异常)若执行人包含自己，将跳过 */
-export abstract class FlowContainsNode<D, M> extends FlowContext<D, M> implements FlowNode {
+export abstract class FlowNode<D, M> extends FlowContext<D, M> implements FlowNodeBase {
   /** 前端调用fetch-flow获取流程数据时调用 */
   abstract fetch(): Promise<void>;
   /** 当节点被fetch时，前端需要根据节点返回的特殊字段值得到字段信息 */
@@ -3315,7 +3328,7 @@ export abstract class FlowContainsNode<D, M> extends FlowContext<D, M> implement
   abstract notice(): Promise<void>;
 }
 /** 开始结点 所有开始节点都不能被指向 */
-export abstract class FlowStartNode<D, M> extends FlowContext<D, M> implements FlowNode {
+export abstract class FlowNodeStart<D, M> extends FlowContext<D, M> implements FlowNodeBase {
   /** 前端调用fetch-flow获取流程数据时调用 */
   abstract fetch(): Promise<void>;
   /** 当节点被fetch时，前端需要根据节点返回的特殊字段值得到字段信息 */
@@ -3326,40 +3339,25 @@ export abstract class FlowStartNode<D, M> extends FlowContext<D, M> implements F
 /**
  * 结束节点：不能指向其他节点
  */
-export abstract class FlowEndNode<D, M> extends FlowContext<D, M> implements FlowNode {
+export abstract class FlowNodeEnd<D, M> extends FlowContext<D, M> implements FlowNodeBase {
   /** 节点作为目标时执行 */
   abstract excute(): Promise<void>;
   /** 在这里可以对流程上下文的noticeList进行操作。只有流程暂停、结束前最后一个目标节点的notice方法会被调用 */
   abstract notice(): Promise<void>;
 }
 /**  自动结点 无需人为,不能暂停,返回数字|undefined决定流程走向. */
-export abstract class FlowAutoNode<D, M> extends FlowContext<D, M> implements FlowNode {
+export abstract class FlowNodeAuto<D, M> extends FlowContext<D, M> implements FlowNodeBase {
   /** 节点作为目标时执行,返回string可影响流程走向,抛出异常会被error-action捕获并处理.若没有error-action,则抛出异常 */
   abstract excute(): Promise<string | void>;
 }
 /**  分流结点(无需人为,不能暂停,返回key-value.key=走向,value=走向的上下文) */
-export abstract class FlowShuntNode<D, M> extends FlowContext<D, M> implements FlowNode {
+export abstract class FlowNodeShunt<D, M> extends FlowContext<D, M> implements FlowNodeBase {
   /** 节点作为目标时执行,返回key-value.key=走向,value=走向的上下文,返回void表示不分流，按默认line进行.抛出异常会被error-action捕获并处理.若没有error-action,则抛出异常 */
   abstract excute(): Promise<{[k: string]: D} | void>;
 }
-/** 可跳过的任务节点(若找不到执行人员,将跳过该节点)*/
-export abstract class FlowSkipNode<D, M> extends FlowContext<D, M> implements FlowNode {
-  /** 前端调用fetch-flow获取流程数据时调用 */
-  abstract fetch(): Promise<void>;
-  /** 当节点被fetch时，前端需要根据节点返回的特殊字段值得到字段信息 */
-  abstract special(): Promise<string | void>;
-  /** 流程暂停后重新执行时，如果以此节点为起始节点，则会执行init方法。 */
-  abstract init(): Promise<void>;
-  /** 节点作为目标时执行,抛出异常会被error-action捕获并处理.若没有error-action,则抛出异常 */
-  abstract excute(): Promise<void>;
-  /** 在这里可以对上下文的todoList进行操作.只有 流程暂停前最后一个节点的todo方法有效。其余节点仅作为流程过渡的判断。 */
-  abstract todo(): Promise<void>;
-  /** 在这里可以对流程上下文的noticeList进行操作。只有流程暂停、结束前最后一个目标节点的notice方法会被调用 */
-  abstract notice(): Promise<void>;
-}
 
 /** 系统节点(无需人为,可暂停并作为执行入口)*/
-export abstract class FlowSysNode<D, M> extends FlowContext<D, M> implements FlowNode {
+export abstract class FlowNodeSystem<D, M> extends FlowContext<D, M> implements FlowNodeBase {
   /** 流程暂停后重新执行时，如果以此节点为起始节点，则会执行init方法。 */
   abstract init(): Promise<void>;
   /** 节点作为目标时执行,抛出异常会被error-action捕获并处理.若没有error-action,则抛出异常 */
@@ -3373,7 +3371,7 @@ export abstract class FlowSysNode<D, M> extends FlowContext<D, M> implements Flo
 }
 
 /** 子流程入口(存在于父流程中,需要指定一个子流程编号,一个父流程目前仅支持一个同名子流程编号) */
-export abstract class FlowChildNode<D, M, C> extends FlowContext<D, M> implements FlowNode {
+export abstract class FlowNodeChild<D, M, C> extends FlowContext<D, M> implements FlowNodeBase {
   /** 进入子流程前执行，进入子流程后执行子流程的开始节点的默认操作 */
   abstract excute(): Promise<void>;
   /** 当发起子流程时，可以在这里根据自己的上下文构建子流程的上下文 */
@@ -3607,15 +3605,7 @@ declare module 'egg' {
       flowPath: string;
       fromNodeId: string | undefined;
       fromNodeCode: string | undefined;
-      lines: {
-        name: string | number;
-        code: string;
-        from: string;
-        to: string;
-        back: boolean;
-        right: boolean;
-        id: string;
-      }[];
+      lines: SimplyFlowLine[];
       fields: FlowField;
     }>;
   }
@@ -4088,15 +4078,7 @@ declare module 'egg' {
       flowPath: string;
       fromNodeId: string | undefined;
       fromNodeCode: string | undefined;
-      lines: {
-        name: string | number;
-        code: string;
-        from: string;
-        to: string;
-        back: boolean;
-        right: boolean;
-        id: string;
-      }[];
+      lines: SimplyFlowLine[];
       fields: FlowField;
     }>;
   }

@@ -173,6 +173,16 @@ const doFlow = {
     return await this.service.paasService.doFlow({flowPath, fromNodeId, fromNodeCode, actionId, actionCode, biz});
   }
 };
+const getFlowLine = {
+  path: '/get-flow-line',
+  method: 'get',
+  before: [ILogin],
+  handel(this: Controller, {query: {flowCode, fromNodeId, fromNodeCode, actionId, actionCode}}) {
+    return this.service.paasService.getLine({
+      flowCode, fromNodeId, fromNodeCode, actionId, actionCode
+    });
+  }
+};
 const socketRoomIn = {
   path: '/login',
   before: [ILogin],
@@ -190,7 +200,7 @@ const socketRoomOut = {
 };
 
 export const routes = [
-  now, phoneCode, picCode, getConfigJson, today, getWxIds, getWxQr, wxDecrypt, fetchFlow, doFlow
+  now, phoneCode, picCode, getConfigJson, today, getWxIds, getWxQr, wxDecrypt, fetchFlow, doFlow, getFlowLine
 ];
 export const querys = [
   query, queryMongo

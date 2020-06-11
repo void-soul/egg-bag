@@ -46,10 +46,11 @@ export default abstract class BaseService<T> extends Service {
     ) => serviceTableName
   ): Promise<number> {
     return await this.transction(async (conn) => {
-      const result = await conn.insert<T>(tableName(this.tableName), data, {
-        columns: this.keys
-      });
-
+      const result = await conn.insert<T>(
+        tableName(this.tableName),
+        this.filterEmptyAndTransient<T>(data, false),
+        {columns: this.keys}
+      );
       return result.insertId;
     }, transction);
   }
@@ -81,7 +82,7 @@ export default abstract class BaseService<T> extends Service {
       });
       const result = await conn.insertIF<T>(
         tableName(this.tableName),
-        [{row: data, where}],
+        [{row: this.filterEmptyAndTransient<T>(data, false), where}],
         this.keys
       );
 
@@ -111,10 +112,13 @@ export default abstract class BaseService<T> extends Service {
       this.app.throwIf(!data[idName], `id must be set!${ this.tableName }`);
     }
     return await this.transction(async (conn) => {
-      const result = await conn.replace<T>(tableName(this.tableName), data, {
-        columns: this.keys,
-        ids: this.idNames
-      });
+      const result = await conn.replace<T>(
+        tableName(this.tableName),
+        this.filterEmptyAndTransient<T>(data, false),
+        {
+          columns: this.keys,
+          ids: this.idNames
+        });
 
       return result.insertId;
     }, transction);
@@ -306,7 +310,7 @@ export default abstract class BaseService<T> extends Service {
       const table = tableName(this.tableName);
       const length = Math.ceil(datas.length / this.max);
       for (let i = 0; i < length; i++) {
-        const ret = await conn.insert<T>(table, datas.slice(i * this.max, (i + 1) * this.max), {
+        const ret = await conn.insert<T>(table, this.filterEmptyAndTransients<T>(datas.slice(i * this.max, (i + 1) * this.max), false), {
           columns: this.keys
         });
         result.push(ret.insertId);
@@ -347,7 +351,7 @@ export default abstract class BaseService<T> extends Service {
         });
         options.push({
           where,
-          row: item
+          row: this.filterEmptyAndTransient<T>(item, false)
         });
       });
       const result = new Array<number>();
@@ -393,7 +397,7 @@ export default abstract class BaseService<T> extends Service {
       for (let i = 0; i < length; i++) {
         const ret = await conn.replace<T>(
           table,
-          datas.slice(i * this.max, (i + 1) * this.max),
+          this.filterEmptyAndTransients<T>(datas.slice(i * this.max, (i + 1) * this.max), false),
           {
             columns: this.keys,
             ids: this.idNames
@@ -688,7 +692,7 @@ export default abstract class BaseService<T> extends Service {
         this.app.throwIf(!data[idName], `id must be set!${ this.tableName }`);
         where[idName] = data[idName];
       }
-      const result = await conn.update<T>(tableName(this.tableName), data, {
+      const result = await conn.update<T>(tableName(this.tableName), this.filterEmptyAndTransient<T>(data, false), {
         where,
         columns: this.keys
       });
@@ -780,7 +784,7 @@ export default abstract class BaseService<T> extends Service {
           where[idName] = data[idName];
         }
         options.push({
-          row: data,
+          row: this.filterEmptyAndTransient<T>(data, false),
           where,
           columns: this.keys
         });

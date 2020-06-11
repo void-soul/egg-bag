@@ -126,7 +126,7 @@
                   </el-select>
                 </el-form-item>
               </el-tooltip>
-              <el-tooltip v-if="form.type === 'task' || form.type === 'skip' || form.type === 'contains'  || form.type === 'end' || form.type === 'sys'"
+              <el-tooltip v-if="form.type === 'task' || form.type === 'end' || form.type === 'sys'"
                           class="item"
                           effect="dark"
                           content="节点作为本次执行最后一个节点时，是否上报父流程?"
@@ -138,6 +138,28 @@
                   </el-switch>
                 </el-form-item>
               </el-tooltip>
+              <el-form-item v-if="form.type === 'task'"
+                            label="没有执行人时">
+                <el-select v-model="form.empty"
+                           placeholder="没有执行人时">
+                  <el-option label="暂停"
+                             :value="0"></el-option>
+                  <el-option label="跳过"
+                             :value="1"></el-option>
+                  <el-option label="报错"
+                             :value="2"></el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item v-if="form.type === 'task'"
+                            label="执行人包含自己时">
+                <el-select v-model="form.me"
+                           placeholder="执行人包含自己时">
+                  <el-option label="暂停"
+                             :value="0"></el-option>
+                  <el-option label="跳过"
+                             :value="1"></el-option>
+                </el-select>
+              </el-form-item>
               <el-tooltip v-if="form.type === 'child'"
                           class="item"
                           content="注意：此属性对应一个流程文件夹."
@@ -168,8 +190,7 @@
                           type="error"
                           title="没有编码！"></el-alert>
               </el-tooltip>
-              <template
-                        v-if="form.type === 'start' || form.type === 'task' || form.type === 'contains' || form.type === 'skip'">
+              <template v-if="form.type === 'start' || form.type === 'task' ">
                 <el-divider content-position="left"> 字段设置 <el-button type="text"
                              size="mini"
                              @click="copyField2">复制节点字段</el-button>
@@ -247,6 +268,10 @@
               </template>
             </template>
             <template v-if="itemType === 'line'">
+              <el-form-item label="排序">
+                <el-input-number v-model="form.index"
+                                 :step="1"></el-input-number>
+              </el-form-item>
               <el-tooltip v-if="fromNodeType !== 'child'"
                           class="item"
                           content="不为空时、非任务节点自动跳过时、非可跳过任务节点自动跳过时、执行此操作时，将记录日志"
@@ -256,7 +281,7 @@
                             placeholder="日志"></el-input>
                 </el-form-item>
               </el-tooltip>
-              <el-tooltip v-if="fromNodeType !== 'auto' && fromNodeType !== 'shunt' && fromNodeType !== 'sys'  && fromNodeType !== 'child'"
+              <el-tooltip v-if="fromNodeType !== 'auto' && fromNodeType !== 'shunt' && fromNodeType !== 'child'"
                           class="item"
                           content="对前端不可见"
                           placement="left">
@@ -297,7 +322,8 @@
                   </el-switch>
                 </el-form-item>
               </el-tooltip>
-              <el-tooltip class="item"
+              <el-tooltip v-if="fromNodeType !== 'auto' && fromNodeType !== 'shunt' && fromNodeType !== 'child'"
+                          class="item"
                           placement="left"
                           content="正向操作需要验证各种字段填写">
                 <el-form-item label="正向">
@@ -307,12 +333,23 @@
                   </el-switch>
                 </el-form-item>
               </el-tooltip>
-              <el-tooltip class="item"
+              <el-tooltip v-if="fromNodeType !== 'auto' && fromNodeType !== 'shunt' && fromNodeType !== 'child'"
+                          class="item"
                           placement="left"
                           content="反向操作需要验证备注填写">
-                <el-form-item label="
-                          反向">
+                <el-form-item label="反向">
                   <el-switch v-model="form.back"
+                             active-color="#13ce66"
+                             inactive-color="#ff4949">
+                  </el-switch>
+                </el-form-item>
+              </el-tooltip>
+              <el-tooltip v-if="fromNodeType !== 'auto' && fromNodeType !== 'shunt' && fromNodeType !== 'child'"
+                          class="item"
+                          placement="left"
+                          content="可以在列表上快速操作">
+                <el-form-item label="快速">
+                  <el-switch v-model="form.fast"
                              active-color="#13ce66"
                              inactive-color="#ff4949">
                   </el-switch>
@@ -479,14 +516,12 @@
             id: '',
             itemType: '',
 
-            types: [{ 'value': 'auto', 'label': '自动结点' }, { 'value': 'shunt', 'label': '分流结点' }, { 'value': 'task', 'label': '任务结点' }, { 'value': 'contains', 'label': '同一操作人可跳过' }, { 'value': 'skip', 'label': '可跳过的任务节点' }, { 'value': 'child', 'label': '子流程入口' }, { 'value': 'sys', 'label': '系统节点' }, { 'value': 'shunt', 'label': '分发节点' }, { 'value': 'start', 'label': '开始' }, { 'value': 'end', 'label': '结束' }],
+            types: [{ 'value': 'auto', 'label': '自动结点' }, { 'value': 'shunt', 'label': '分流结点' }, { 'value': 'task', 'label': '任务结点' }, { 'value': 'child', 'label': '子流程入口' }, { 'value': 'sys', 'label': '系统节点' }, { 'value': 'shunt', 'label': '分发节点' }, { 'value': 'start', 'label': '开始' }, { 'value': 'end', 'label': '结束' }],
             labels: {
               cursor: '选择指针',
               direct: '连线',
               start: '开始结点(一个流程可以有多个开始节点,除了子流程的开始节点外,所有开始节点都不能被指向)',
               task: '任务结点(若找不到执行人员,将抛出异常)',
-              contains: '任务结点(若执行人员包含自己,将根据默认操作跳过;若找不到执行人员,将抛出异常)',
-              skip: '可跳过的任务节点(若执行人员包含自己、找不到执行人员,将根据默认操作跳过该节点)',
               auto: '自动结点(无需人为,不能暂停,返回数字|undefined决定流程走向.)',
               shunt: '分流结点(无需人为,不能暂停,返回key-value.key=走向,value=走向的上下文)',
               sys: '系统节点(无需人为,可暂停并作为执行入口)',
@@ -497,15 +532,13 @@
               out: '子流程出口'
             },
             fns: {
-              start: 'FlowStartNode',
-              task: 'FlowTaskNode',
-              contains: 'FlowContainsNode',
-              skip: 'FlowSkipNode',
-              sys: 'FlowSysNode',
-              end: 'FlowEndNode',
-              auto: 'FlowAutoNode',
-              shunt: 'FlowShuntNode',
-              child: 'FlowChildNode'
+              start: 'FlowNodeStart',
+              task: 'FlowNode',
+              sys: 'FlowNodeSystem',
+              end: 'FlowNodeEnd',
+              auto: 'FlowNodeAuto',
+              shunt: 'FlowNodeShunt',
+              child: 'FlowNodeChild'
             },
 
             copy: {},
@@ -517,7 +550,7 @@
           flow = $('#flow').createGooFlow({
             headBtns: ['undo', 'redo', 'save'],
             headBtnRemarks: ['撤销', '重做', '输出结构'],
-            toolBtns: ['start', 'task', 'skip', 'auto', 'shunt', 'sys', 'child', 'end', 'contains'],
+            toolBtns: ['start', 'task', 'auto', 'shunt', 'sys', 'child', 'end'],
             toolBtnRemarks: that.labels,
             height: $(document).height() - 20,
             workWidth: 2000,
@@ -561,6 +594,12 @@
                 if (data.up === undefined) {
                   data.up = false;
                 }
+                if (data.empty === undefined) {
+                  data.empty = 2;
+                }
+                if (data.me === undefined) {
+                  data.me = 0;
+                }
               } else if (type === 'line') {
                 if (data.code === undefined) {
                   data.code = '';
@@ -586,6 +625,12 @@
                 if (data.log === undefined) {
                   data.log = '';
                 }
+                if (data.index === undefined) {
+                  data.index = 0;
+                }
+                if (data.fast === undefined) {
+                  data.fast = false;
+                }
               }
               return true;
             },
@@ -600,7 +645,7 @@
               });
               data.fields = that.fields;
               for (const info of Object.values(data.nodes)) {
-                if (info.type === 'start' || info.type === 'task' || info.type === 'contains' || info.type === 'skip') {
+                if (info.type === 'start' || info.type === 'task') {
                   for (const specil of that.specils) {
                     if (info.fields[specil.code]) {
                       const fieldsResult = {};
@@ -666,6 +711,8 @@
                     flow.setNodeType(this.id, this.oldType, this.form.type);
                     this.oldType = this.form.type;
                     info.child = this.form.child;
+                    info.empty = this.form.empty;
+                    info.me = this.form.me;
                     info.up = this.form.up;
                     flow.setName(this.id, this.form.name, this.itemType);
                   } else {
@@ -677,6 +724,8 @@
                     info.error = this.form.error;
                     info.swi = this.form.swi;
                     info.log = this.form.log;
+                    info.fast = this.form.fast;
+                    info.index = this.form.index;
                     let label;
                     if (this.fromNodeType === 'auto' || this.fromNodeType === 'shunt') {
                       label = this.form.swi.join(',');
@@ -727,7 +776,7 @@
             if (this.id) {
               const info = flow.getItemInfo(this.id, this.itemType);
               info.fields = {};
-              if (info.type === 'start' || info.type === 'task' || info.type === 'skip' || info.type === 'contains') {
+              if (info.type === 'start' || info.type === 'task') {
                 for (const specil of this.specils) {
                   let has = false;
                   let result = {};

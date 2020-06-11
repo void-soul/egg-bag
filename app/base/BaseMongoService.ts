@@ -49,7 +49,7 @@ export default abstract class BaseMongoService<T> extends Service {
   ): Promise<number> {
     this.app.throwIf(!data[this.idName], `_id must be set!${ this.tableName }`);
     return await this.transction(async session => {
-      const id = await this.getDb().collection(tableName(this.tableName)).insertOne(data, {
+      const id = await this.getDb().collection(tableName(this.tableName)).insertOne(this.filterEmptyAndTransient(data, false), {
         session
       });
       return id.insertedCount;
@@ -86,7 +86,7 @@ export default abstract class BaseMongoService<T> extends Service {
         session
       });
       if (exist === 0) {
-        return this.insert(data, session, tableName);
+        return this.insert(this.filterEmptyAndTransient(data, false), session, tableName);
       } else {
         return 0;
       }
@@ -119,9 +119,9 @@ export default abstract class BaseMongoService<T> extends Service {
         session
       });
       if (exist > 0) {
-        return this.updateById(data, session, tableName);
+        return this.updateById(this.filterEmptyAndTransient(data, false), session, tableName);
       } else {
-        return this.insert(data, session, tableName);
+        return this.insert(this.filterEmptyAndTransient(data, false), session, tableName);
       }
     }, transction);
   }
@@ -277,7 +277,7 @@ export default abstract class BaseMongoService<T> extends Service {
       this.app.throwIf(!data[this.idName], `_id must be set!${ this.tableName }`);
     }
     return await this.transction(async session => {
-      const result = await this.getDb().collection(tableName(this.tableName)).insertMany(datas, {
+      const result = await this.getDb().collection(tableName(this.tableName)).insertMany(this.filterEmptyAndTransients(datas, false), {
         session
       });
       return result.insertedCount;
@@ -308,7 +308,7 @@ export default abstract class BaseMongoService<T> extends Service {
     return await this.transction(async session => {
       let result = 0;
       for (const data of datas) {
-        result += await this.insertIfNotExists(data, columns, session, tableName);
+        result += await this.insertIfNotExists(this.filterEmptyAndTransient(data, false), columns, session, tableName);
       }
       return result;
     }, transction);
@@ -337,7 +337,7 @@ export default abstract class BaseMongoService<T> extends Service {
     return await this.transction(async session => {
       let result = 0;
       for (const data of datas) {
-        result += await this.replace(data, session, tableName);
+        result += await this.replace(this.filterEmptyAndTransient(data, false), session, tableName);
       }
       return result;
     }, transction);
@@ -511,7 +511,7 @@ export default abstract class BaseMongoService<T> extends Service {
       const filter = {
         _id: data[this.idName]
       };
-      const result = await this.getDb().collection(tableName(this.tableName)).updateOne(filter, data, {
+      const result = await this.getDb().collection(tableName(this.tableName)).updateOne(filter, this.filterEmptyAndTransient(data, false), {
         session
       });
       return result.modifiedCount;
@@ -582,7 +582,7 @@ export default abstract class BaseMongoService<T> extends Service {
     return await this.transction(async session => {
       let result = 0;
       for (const data of datas) {
-        result += await this.updateById(data, session, tableName);
+        result += await this.updateById(this.filterEmptyAndTransient(data, false), session, tableName);
       }
       return result;
     }, transction);
