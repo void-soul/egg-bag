@@ -183,17 +183,21 @@ export class FlowExcute<D, M> {
     this.cores = {};
     this.flowCodes = [];
   }
-  public async fetch({flowPath, fromNodeId, fromNodeCode, biz}: {
+  public async fetch({flowPath, fromNodeId, fromNodeCode, biz, skipError}: {
     flowPath: string;
     fromNodeId?: string;
     fromNodeCode?: string;
     biz: D;
+    skipError?: number;
   }) {
-    await this.append(flowPath)
+    this.append(flowPath)
       .defFlow()
       .active(this.activeCode, biz)
-      .from({id: fromNodeId, code: fromNodeCode, start: true})
-      .checkFrom()
+      .from({id: fromNodeId, code: fromNodeCode, start: true});
+    if (skipError === 1 && !this.cores[this.activeCode].fromNode) {
+      return {};
+    }
+    await this.checkFrom()
       .from2To(true)
       .specilAndField();
     const core = this.cores[this.activeCode];
@@ -203,7 +207,11 @@ export class FlowExcute<D, M> {
       await this.specilAndField();
       return await this.getResult(false);
     }
-    this.throwNow('起始节点只能是task、start、system');
+    if (skipError !== 1) {
+      this.throwNow('起始节点只能是task、start、system');
+    } else {
+      return {};
+    }
   }
   public async do({
     flowPath,
@@ -276,7 +284,10 @@ export class FlowExcute<D, M> {
   public getLine({flowCode, fromNodeId, fromNodeCode, actionId, actionCode}: {
     flowCode: string; fromNodeId?: string; fromNodeCode?: string; actionId?: string; actionCode?: string;
   }) {
-    this.append(flowCode).defFlow().active(this.activeCode).from({id: fromNodeId, code: fromNodeCode, start: false}).checkFrom();
+    this.append(flowCode).defFlow().active(this.activeCode).from({id: fromNodeId, code: fromNodeCode, start: false});
+    if (!this.cores[this.activeCode].fromNode) {
+      return [];
+    }
     const core = this.cores[this.activeCode];
     if (actionId || actionCode) {
       return core.fromNodeLines?.filter(item => item.id === actionId || item.line.code === actionCode).sort((a, b) => a.line.index > b.line.index ? 1 : -1).map(item => this.line2Simply(item, core));

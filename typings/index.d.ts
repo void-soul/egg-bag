@@ -3061,6 +3061,7 @@ declare class PaasService extends BaseService<Empty> {
     fromNodeCode?: string;
     biz: D;
     conn?: SqlSession;
+    skipError?: number;
   }): Promise<{
     biz: D;
     flowCode: string;
@@ -3571,6 +3572,7 @@ declare module 'egg' {
       fromNodeCode?: string;
       biz: D;
       conn?: SqlSession;
+      skipError?: number;
     }, devid?: string): Promise<{
       biz: D;
       flowCode: string;
@@ -4044,6 +4046,7 @@ declare module 'egg' {
       fromNodeCode?: string;
       biz: D;
       conn?: SqlSession;
+      skipError?: number;
     }, devid?: string): Promise<{
       biz: D;
       flowCode: string;

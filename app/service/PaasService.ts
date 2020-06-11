@@ -64,22 +64,23 @@ export default class extends BaseService<Empty> {
     await this.ctx.delCache(`${ key }-pic`, 'other');
   }
   public async fetchFlow<D, M>({
-    flowPath, fromNodeId, fromNodeCode, biz, conn
+    flowPath, fromNodeId, fromNodeCode, biz, conn, skipError
   }: {
     flowPath: string;
     fromNodeId?: string;
     fromNodeCode?: string;
     biz: D;
     conn?: SqlSession;
+    skipError?: number;
   }) {
     if (conn) {
       return (new FlowExcute<D, M>(this.ctx, this.ctx.service, this.app, conn)).fetch({
-        flowPath, fromNodeId, fromNodeCode, biz
+        flowPath, fromNodeId, fromNodeCode, biz, skipError
       });
     } else {
       return await this.transction(async conn2 => {
         return (new FlowExcute<D, M>(this.ctx, this.ctx.service, this.app, conn2)).fetch({
-          flowPath, fromNodeId, fromNodeCode, biz
+          flowPath, fromNodeId, fromNodeCode, biz, skipError
         });
       });
     }

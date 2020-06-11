@@ -231,6 +231,7 @@ export default {
     toNodeCode?: string;
     biz: D;
     conn?: SqlSession;
+    skipError?: number;
   }, devid?: string): Promise<{
     biz: D;
     flowCode: string;

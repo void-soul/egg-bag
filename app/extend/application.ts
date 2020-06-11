@@ -209,6 +209,7 @@ export default {
     fromNodeCode?: string;
     biz: D;
     conn?: SqlSession;
+    skipError?: number;
   }, devid?: string): Promise<{
     biz: D;
     flowCode: string;
