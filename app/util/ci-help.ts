@@ -1,6 +1,6 @@
 import {Nuxt, Builder, Generator} from 'nuxt';
 import shell = require('shelljs');
-import {writeFileSync, readFileSync} from 'fs';
+import {writeFileSync, readFileSync, existsSync, readdirSync} from 'fs';
 import {merge} from 'lodash';
 import {join} from 'path';
 import 'tsconfig-paths/register';
@@ -145,6 +145,13 @@ run/
   `);
   // 删除临时目录
   shell.rm('-rf', `./${ serviceDistDir }/`);
+  // 工作流读取
+  if (existsSync('./app/flow/')) {
+    const flows = readdirSync('./app/flow/');
+    cp(flows.map(flow => {
+      return new Resource(`./app/flow/${ flow }/data.json`, `../${ serviceDistDir }/app/flow/${ flow }/data.json`, false);
+    }));
+  }
   // tslint:disable-next-line: no-console
   console.log('[egg-bag] finish');
 };
