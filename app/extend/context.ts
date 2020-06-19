@@ -145,6 +145,9 @@ export default {
           break;
       }
     }
+    if (!devid) {
+      devid = this.request.query.devid;
+    }
     return devid || null;
   },
   async getUser(this: Context, devid: string) {

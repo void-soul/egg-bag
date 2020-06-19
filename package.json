@@ -1,6 +1,6 @@
 {
   "name": "egg-bag",
-  "version": "1.36.11",
+  "version": "1.37.2",
   "description": "egg-bag framework beta",
   "keywords": [
     "egg",
@@ -92,7 +92,8 @@
     "tslib": "2.0.0",
     "typescript": "3.9.2",
     "vue-meta": "2.3.4",
-    "xml2js": "0.4.23"
+    "xml2js": "0.4.23",
+    "ejsexcel": "3.6.0"
   },
   "devDependencies": {
     "@types/shelljs": "0.8.8",

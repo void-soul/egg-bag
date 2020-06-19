@@ -1,13 +1,13 @@
 'use strict';
 
-const { METHOD_METADATA, PATH_METADATA, BEFORE_METADATA, AFTER_METADATA, CONTENT_TYPE_METADATA, VIEW_METADATA, LOCK_METADATA } = require('../constants');
+const { METHOD_METADATA, PATH_METADATA, BEFORE_METADATA, AFTER_METADATA, CONTENT_TYPE_METADATA, NAME_METADATA, VIEW_METADATA, LOCK_METADATA } = require('../constants');
 const RequestMethod = require('../enum/request-method');
 
 const createMappingDecorator = Symbol('createMappingDecorator');
 const createSingleDecorator = Symbol('createSingleDecorator');
 const createArrayDecorator = Symbol('createArrayDecorator');
 const createTwoDecorator = Symbol('createTwoDecorator');
-
+const createThreeDecorator = Symbol('createThreeDecorator');
 const mappingRequest = Symbol('mappingRequest');
 
 class MethodHandler {
@@ -22,6 +22,7 @@ class MethodHandler {
     const after = Reflect.getMetadata(AFTER_METADATA, targetCb) || [];
     const contentType = Reflect.getMetadata(CONTENT_TYPE_METADATA, targetCb);
     const view = Reflect.getMetadata(VIEW_METADATA, targetCb);
+    const name = Reflect.getMetadata(NAME_METADATA, targetCb);
     const lock = Reflect.getMetadata(LOCK_METADATA, targetCb);
 
     return {
@@ -31,7 +32,8 @@ class MethodHandler {
       before,
       after,
       contentType,
-      lock
+      lock,
+      name
     };
   }
   nuxt () {
@@ -39,6 +41,9 @@ class MethodHandler {
   }
   render () {
     return this[createTwoDecorator](RequestMethod.Render);
+  }
+  excel () {
+    return this[createThreeDecorator](RequestMethod.Excel);
   }
   io () {
     return this[createMappingDecorator](RequestMethod.IO);
@@ -104,9 +109,20 @@ class MethodHandler {
       });
     };
   }
+  [createThreeDecorator] (method) {
+    return (path, view, name) => {
+      return this[mappingRequest]({
+        [PATH_METADATA]: path,
+        [VIEW_METADATA]: view,
+        [NAME_METADATA]: name,
+        [METHOD_METADATA]: method
+      });
+    };
+  }
   [mappingRequest] (metadata) {
     const path = metadata[PATH_METADATA];
     const view = metadata[VIEW_METADATA];
+    const name = metadata[NAME_METADATA];
     const reqMethod = metadata[METHOD_METADATA];
 
     return (target, _key, descriptor) => {
@@ -114,6 +130,7 @@ class MethodHandler {
       Reflect.defineMetadata(PATH_METADATA, path, descriptor.value);
       Reflect.defineMetadata(METHOD_METADATA, reqMethod, descriptor.value);
       Reflect.defineMetadata(VIEW_METADATA, view, descriptor.value);
+      Reflect.defineMetadata(NAME_METADATA, name, descriptor.value);
       return descriptor;
     };
   }

@@ -322,3 +322,8 @@ import initDataFlow from 'app/flow-help/init-data-flow';
 
 1. 增加流程分流节点
 2. 增加流程设计工具: `yarn bag flow [port]` 会启动一个简易http服务,默认端口4000.
+
+
+# 1.37.0
+
+1. 增加excel导出

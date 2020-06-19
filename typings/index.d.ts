@@ -4168,6 +4168,8 @@ export const Lock: () => Decorator;
 export const NUXT: (value?: string) => Decorator;
 /** controller方法标记为view渲染 */
 export const Render: (path: string, view?: string) => Decorator;
+/** controller方法标记为excel导出 */
+export const Excel: (path: string, excelTemplateName?: string, excelDownloadName?: string) => Decorator;
 /** controller方法标记为get请求 */
 export const Get: (value?: string) => Decorator;
 /** controller方法标记为post请求 */

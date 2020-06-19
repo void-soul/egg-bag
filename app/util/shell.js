@@ -2,7 +2,10 @@
 
 require('reflect-metadata');
 const _ = require('lodash');
-
+const fs = require('fs');
+const os = require('os');
+const { join } = require('path');
+const ejsexcel = require('ejsexcel');
 const ControllerHandler = require('./shell/handler/controller-handler');
 const MethodHandler = require('./shell/handler/method-handler');
 const StatusError = require('./shell/exception/status-error');
@@ -11,6 +14,7 @@ const ctMap = new Map();
 const ctHandler = new ControllerHandler();
 const methodHandler = new MethodHandler(ctMap);
 const debug = require('debug')('egg-bag:router');
+const tempDir = os.tmpdir();
 // 路由统计
 const routers = [];
 const EggShell = (app, options = {}) => {
@@ -43,9 +47,10 @@ const EggShell = (app, options = {}) => {
     }
     for (const pName of propertyNames) {
       // 解析函数元数据
-      let { reqMethod, path, view, before, after, contentType, lock } = methodHandler.getMetada(c[pName]);
+      let { reqMethod, path, view, before, after, contentType, lock, name } = methodHandler.getMetada(c[pName]);
       let nuxt = false;
       let render = false;
+      let excel = false;
       if (reqMethod === RequestMethod.NUXT) {
         if (app._nuxtReady === true) {
           nuxt = true;
@@ -53,6 +58,9 @@ const EggShell = (app, options = {}) => {
         reqMethod = 'get';
       } else if (reqMethod === RequestMethod.Render) {
         render = true;
+        reqMethod = 'get';
+      } else if (reqMethod === RequestMethod.Excel) {
+        excel = true;
         reqMethod = 'get';
       }
       if (reqMethod && router[reqMethod]) {
@@ -92,6 +100,21 @@ const EggShell = (app, options = {}) => {
                 globalValues: app._globalValues || false,
                 ...ctx.req.asyncData
               });
+            } else if (excel === true) {
+              result = await instance[pName](ctx);
+              let templateName = view;
+              if (!templateName) {
+                templateName = path.replace(/\//g, '');
+              }
+              app.throwIf(!templateName, '没有指定模板路径！');
+              templateName = templateName.indexOf('.') === -1 ? `${ templateName }.xlsx` : templateName;
+              const exlBuf = await fs.promises.readFile(view ? join(app.baseDir, 'app', 'excel', templateName) : join(app.baseDir, 'excel', 'app', prefix, templateName));
+              const exlBuf2 = await ejsexcel.renderExcel(exlBuf, result, { cachePath: tempDir });
+              ctx.response.type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+              if (name) {
+                ctx.response.attachment(name);
+              }
+              ctx.response.body = exlBuf2;
             } else {
               ctx.body = ctx.request ? ctx.request.body : null;
               // 异步操作改装
@@ -227,7 +250,21 @@ const EggInstall = (target, app, options = {}) => {
           logger: ctx.logger
         };
         const result = await target.handel.call(that, ctx);
-        if (target.type) {
+        if (target.excel === true) {
+          let templateName = ctx.query.templateName;
+          if (!templateName) {
+            templateName = target.path.replace(/\//g, '');
+          }
+          app.throwIf(!templateName, '没有指定模板路径！');
+          templateName = templateName.indexOf('.') === -1 ? `${ templateName }.xlsx` : templateName;
+          const exlBuf = await fs.promises.readFile(join(app.baseDir, 'app', 'excel', templateName));
+          const exlBuf2 = await ejsexcel.renderExcel(exlBuf, result, { cachePath: tempDir });
+          ctx.response.type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+          if (ctx.query.downLoadName) {
+            ctx.response.attachment(ctx.query.downLoadName);
+          }
+          ctx.response.body = exlBuf2;
+        } else if (target.type) {
           ctx.response.type = target.type;
           ctx.response.body = result;
         } else {
@@ -308,6 +345,7 @@ module.exports = {
 
   NUXT: methodHandler.nuxt(),
   Render: methodHandler.render(),
+  Excel: methodHandler.excel(),
   Get: methodHandler.get(),
   Post: methodHandler.post(),
   Put: methodHandler.put(),

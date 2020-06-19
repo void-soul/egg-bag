@@ -3,6 +3,7 @@
 module.exports = {
   PATH_METADATA: 'path',
   VIEW_METADATA: 'view',
+  NAME_METADATA: 'name',
   LOCK_METADATA: 'lock',
   METHOD_METADATA: 'method',
   BEFORE_METADATA: 'before',

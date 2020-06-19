@@ -1,7 +1,7 @@
 import {Controller} from 'egg';
 import ILogin from '../middleware/ILogin';
 import * as dayjs from 'dayjs';
-import {dateTime, date} from '../util/now';
+import {dateTime, date, nowTime} from '../util/now';
 import lodash = require('lodash');
 const debug = require('debug')('egg-bag:auth');
 const query = {
@@ -43,7 +43,49 @@ const query = {
     return await page.select();
   }
 };
-
+const excel = {
+  path: '/excel.xlsx',
+  method: 'get',
+  excel: true,
+  before: [ILogin],
+  async handel(this: Controller, {
+    query: {sqlCode, sortName, sortType},
+    queries
+  }) {
+    this.app.throwIf(!sqlCode, '没有指定sql语句编码!');
+    const params: {
+      [key: string]: any;
+    } = {};
+    if (this.app.config.queryDefaultParam) {
+      for (const [name, key] of Object.entries(this.app.config.queryDefaultParam)) {
+        params[name] = lodash.get(
+          this.ctx.me,
+          key
+        );
+      }
+    }
+    Object.keys(queries).forEach((item) => {
+      if (queries[item].length > 1) {
+        params[item] = queries[item];
+      } else {
+        params[item] = queries[item][0];
+      }
+    });
+    const page = this.service.paasService
+      .pageQueryMe(sqlCode)
+      .params(params);
+    if (sortName && sortType) {
+      page.orderBy(`${ sortName } ${ sortType }`);
+    }
+    await page.select();
+    return {
+      list: page.list,
+      config: this.app._globalValues.GlobalMap,
+      now: nowTime(),
+      me: this.ctx.me
+    };
+  }
+};
 const queryMongo = {
   path: '/query-mongo.json',
   before: [ILogin],
@@ -80,7 +122,46 @@ const queryMongo = {
     return await page.select();
   }
 };
-
+const excelMongo = {
+  path: '/excel-mongo.xlsx',
+  method: 'get',
+  excel: true,
+  before: [ILogin],
+  async handel(this: Controller, {
+    query: {sqlCode, sortName, sortType},
+    queries
+  }) {
+    this.app.throwIf(!sqlCode, '没有指定sql语句编码!');
+    const params: {
+      [key: string]: any;
+    } = {};
+    if (this.app.config.queryDefaultParam) {
+      for (const [name, key] of Object.entries(this.app.config.queryDefaultParam)) {
+        params[name] = this.ctx.me[key];
+      }
+    }
+    Object.keys(queries).forEach((item) => {
+      if (queries[item].length > 1) {
+        params[item] = queries[item];
+      } else {
+        params[item] = queries[item][0];
+      }
+    });
+    const page = this.service.paasMongoService
+      .pageQueryMe(sqlCode)
+      .params(params);
+    if (sortName && sortType) {
+      page.orderByMongo(sortName, sortType === 'asc' ? 1 : -1);
+    }
+    await page.select();
+    return {
+      list: page.list,
+      config: this.app._globalValues.GlobalMap,
+      now: nowTime(),
+      me: this.ctx.me
+    };
+  }
+};
 const now = {
   path: '/now.json',
   method: 'get',
@@ -203,7 +284,7 @@ export const routes = [
   now, phoneCode, picCode, getConfigJson, today, getWxIds, getWxQr, wxDecrypt, fetchFlow, doFlow, getFlowLine
 ];
 export const querys = [
-  query, queryMongo
+  query, queryMongo, excel, excelMongo
 ];
 export const sockets = [
   socketRoomOut, socketRoomIn

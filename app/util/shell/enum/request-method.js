@@ -10,5 +10,6 @@ module.exports = {
   HEAD: 'head',
   IO: 'io',
   NUXT: 'nuxt',
-  Render: 'render'
+  Render: 'render',
+  Excel: 'excel'
 };
