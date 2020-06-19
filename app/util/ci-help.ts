@@ -79,7 +79,8 @@ export const ci = async (serviceDistDir: string, resources?: string[], dirs?: st
     new Resource('./app/sql-fn/', `../${ serviceDistDir }/app/sql-fn/`, true),
     new Resource('./app/public/', `../${ serviceDistDir }/app/public/`, true),
     new Resource('./app/views/', `../${ serviceDistDir }/app/views/`, true),
-    new Resource('./app/cert/', `../${ serviceDistDir }/app/cert/`, true)
+    new Resource('./app/cert/', `../${ serviceDistDir }/app/cert/`, true),
+    new Resource('./app/excel/', `../${ serviceDistDir }/app/excel/`, true)
   ];
   if (resources) {
     for (const res of resources) {
