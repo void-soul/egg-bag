@@ -82,7 +82,8 @@ const excel = {
       list: page.list,
       config: this.app._globalValues.GlobalMap,
       now: nowTime(),
-      me: this.ctx.me
+      me: this.ctx.me,
+      params
     };
   }
 };
@@ -158,7 +159,8 @@ const excelMongo = {
       list: page.list,
       config: this.app._globalValues.GlobalMap,
       now: nowTime(),
-      me: this.ctx.me
+      me: this.ctx.me,
+      params
     };
   }
 };
