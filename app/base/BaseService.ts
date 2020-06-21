@@ -966,6 +966,190 @@ export default abstract class BaseService<T> extends Service {
     }, transction);
   }
   /**
+   * 根据id主键，为某个值+1
+   * @param {T[]} datas
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  @MethodDebug()
+  async incr(
+    id: any,
+    columnName: keyof T,
+    transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName
+  ): Promise<number> {
+    return await this.incrBy(id, columnName, 1, transction, tableName);
+  }
+  /**
+   * 根据id主键，为某个值-1
+   * @param {T[]} datas
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  @MethodDebug()
+  async decr(
+    id: any,
+    columnName: keyof T,
+    transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName
+  ): Promise<number> {
+    return await this.incrBy(id, columnName, -1, transction, tableName);
+  }
+  /**
+   * 根据id主键，为某个值-value
+   * @param {T[]} datas
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  @MethodDebug()
+  async decrBy(
+    id: any,
+    columnName: keyof T,
+    value: number,
+    transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName
+  ): Promise<number> {
+    return await this.incrBy(id, columnName, 0 - value, transction, tableName);
+  }
+  /**
+    * 根据id主键，为某个值+value
+    * @param {T[]} datas
+    * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
+    * @param {(serviceTableName: string) => string} [tableName=(
+    *       serviceTableName: string
+    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+    * @returns
+    */
+  @MethodDebug()
+  async incrBy(
+    id: any,
+    columnName: keyof T,
+    value: number,
+    transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName
+  ): Promise<number> {
+    this.app.throwIfNot(
+      this.idNames.length === 1,
+      'this table is muti id(or not set id), please use deleteByIdMuti'
+    );
+    this.app.throwIf(!id, 'id must be set for deleteById');
+    return await this.transction(async (conn: any) => {
+      const result = await conn.query(`UPDATE ${ tableName(this.tableName) } SET ${ columnName } = IFNULL(${ columnName },0) + ${ value } WHERE ${ this.idNames[0] } = :id`, {
+        id
+      });
+      return result.affectedRows;
+    }, transction);
+  }
+  /**
+   * 根据复合id主键，为某个值+1
+   * @param {T[]} datas
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  @MethodDebug()
+  async incrMulite(
+    data: {[P in keyof T]?: T[P]},
+    columnName: keyof T,
+    transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName
+  ): Promise<number> {
+    return await this.incrMutiBy(data, columnName, 1, transction, tableName);
+  }
+  /**
+   * 根据复合id主键，为某个值-1
+   * @param {T[]} datas
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  @MethodDebug()
+  async decrMuti(
+    data: {[P in keyof T]?: T[P]},
+    columnName: keyof T,
+    transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName
+  ): Promise<number> {
+    return await this.incrMutiBy(data, columnName, -1, transction, tableName);
+  }
+  /**
+   * 根据复合id主键，为某个值-value
+   * @param {T[]} datas
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  @MethodDebug()
+  async decrMutiBy(
+    data: {[P in keyof T]?: T[P]},
+    columnName: keyof T,
+    value: number,
+    transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName
+  ): Promise<number> {
+    return await this.incrMutiBy(data, columnName, 0 - value, transction, tableName);
+  }
+  /**
+    * 根据复合id主键，为某个值+value
+    * @param {T[]} datas
+    * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
+    * @param {(serviceTableName: string) => string} [tableName=(
+    *       serviceTableName: string
+    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+    * @returns
+    */
+  @MethodDebug()
+  async incrMutiBy(
+    data: {[P in keyof T]?: T[P]},
+    columnName: keyof T,
+    value: number,
+    transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName
+  ): Promise<number> {
+    return await this.transction(async (conn: any) => {
+      const where = new Array<string>();
+      const param: {[P in keyof T]?: T[P]} = {};
+      for (const idName of this.idNames) {
+        this.app.throwIf(!data[idName], `id must be set!${ this.tableName }`);
+        where.push(`${ idName } = :${ idName }`);
+        param[idName] = data[idName];
+      }
+      const result = await conn.query(`UPDATE ${ tableName(this.tableName) } SET ${ columnName } = IFNULL(${ columnName },0) + ${ value } WHERE ${ where.join('') }`, param);
+      return result.affectedRows;
+    }, transction);
+  }
+  /**
    *
    * 全部删除,如果service开启注解：logicDelete,那么将逻辑删除
    * @param {T} where
@@ -1034,7 +1218,6 @@ export default abstract class BaseService<T> extends Service {
       }
     }, transction);
   }
-
   /**
    *
    * 根据复合主键删除
@@ -1194,7 +1377,6 @@ export default abstract class BaseService<T> extends Service {
   ): Promise<T> {
     return await this.unique<T>(id, error, transction, tableName);
   }
-
   /**
    * 根据复合主键查询，若查询不到结果，抛出异常
    * @param {T} data
@@ -1231,7 +1413,6 @@ export default abstract class BaseService<T> extends Service {
     this.app.throwIf(!result, error || 'not found data!');
     return result;
   }
-
   /**
    * 根据复合主键查询，若查询不到结果，抛出异常
    * @param {T} data
@@ -1285,7 +1466,6 @@ export default abstract class BaseService<T> extends Service {
       );
     }
   }
-
   /**
    *
    * 根据主键查询，若查询不到结果，不抛出异常
@@ -1458,7 +1638,6 @@ export default abstract class BaseService<T> extends Service {
   ): Promise<T[]> {
     return await this.allPage<T>(start, size, transction, tableName);
   }
-
   /**
    * 返回总条数
    * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
@@ -1483,7 +1662,6 @@ export default abstract class BaseService<T> extends Service {
       );
     }
   }
-
   /**
    * 根据模版查询所有数据
    *
@@ -1516,7 +1694,6 @@ export default abstract class BaseService<T> extends Service {
       );
     }
   }
-
   /**
    * 根据模版查询所有数据
    *
@@ -1537,7 +1714,6 @@ export default abstract class BaseService<T> extends Service {
   ): Promise<T[]> {
     return await this.template<T>(where, transction, tableName);
   }
-
   /**
    * 根据模版查询所有一条数据
    * @param {T} data ，仅支持 = 操作符
@@ -1571,7 +1747,6 @@ export default abstract class BaseService<T> extends Service {
       );
     }
   }
-
   /**
    * 根据模版查询所有一条数据
    * @param {T} data ，仅支持 = 操作符
@@ -1591,7 +1766,6 @@ export default abstract class BaseService<T> extends Service {
   ): Promise<T> {
     return await this.templateOne<T>(data, transction, tableName);
   }
-
   /**
    *
    * 根据模版分页查询数据
@@ -1632,7 +1806,6 @@ export default abstract class BaseService<T> extends Service {
       );
     }
   }
-
   /**
    *
    * 根据模版分页查询数据
@@ -1657,7 +1830,6 @@ export default abstract class BaseService<T> extends Service {
   ): Promise<T[]> {
     return await this.templatePage<T>(data, start, size, transction, tableName);
   }
-
   /**
    *
    * 根据模版查询条数
@@ -1692,7 +1864,6 @@ export default abstract class BaseService<T> extends Service {
       );
     }
   }
-
   /**
    * 执行数据库操作
    *
@@ -1713,7 +1884,6 @@ export default abstract class BaseService<T> extends Service {
       return result.affectedRows;
     }, transction);
   }
-
   /**
    *
    * 执行数据库操作
@@ -1733,7 +1903,6 @@ export default abstract class BaseService<T> extends Service {
       return result.affectedRows;
     }, transction);
   }
-
   /**
    *
    * 执行数据库查询 多列多行
@@ -1750,7 +1919,6 @@ export default abstract class BaseService<T> extends Service {
   ): Promise<T[]> {
     return await this.queryMutiRowMutiColumnBySqlId<T>(sqlid, param, transction);
   }
-
   /**
    *
    * 执行数据库查询 多列多行
@@ -1767,7 +1935,6 @@ export default abstract class BaseService<T> extends Service {
   ): Promise<L[]> {
     return await this.queryMutiRowMutiColumnBySql<L>(sql, param, transction);
   }
-
   /**
    *
    * 执行数据库查询 多列多行
@@ -1784,7 +1951,6 @@ export default abstract class BaseService<T> extends Service {
   ): Promise<L[]> {
     return await this.queryMutiRowMutiColumnBySqlId<L>(sqlid, param, transction);
   }
-
   /**
    *
    * 执行数据库查询 ,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组,与sql语句的顺序对应
@@ -1827,7 +1993,6 @@ export default abstract class BaseService<T> extends Service {
       return await this.transction((conn) => conn.query(sql as string, param), transction);
     }
   }
-
   /**
    *
    * 执行数据库查询 多列多行
@@ -1861,7 +2026,6 @@ export default abstract class BaseService<T> extends Service {
     const sql = this.app._getSql(this.ctx, false, sqlid, param);
     return await this.queryMutiRowMutiColumnBySql<L>(sql as string, param, transction);
   }
-
   /**
    *
    * 执行数据库查询 多列多行
@@ -1882,7 +2046,6 @@ export default abstract class BaseService<T> extends Service {
       return await this.transction((conn) => conn.query(sql, param), transction);
     }
   }
-
   /**
    *
    * 执行数据库查询 多列单行
@@ -1904,7 +2067,6 @@ export default abstract class BaseService<T> extends Service {
       return null;
     }
   }
-
   /**
    *
    * 执行数据库查询 多列单行
@@ -1922,7 +2084,6 @@ export default abstract class BaseService<T> extends Service {
     const data = await this.queryMutiRowMutiColumnBySql<L>(sql, param, transction);
     return data && data.length > 0 ? null : data[0];
   }
-
   /**
    *
    * 执行数据库查询 单列多行
@@ -1945,7 +2106,6 @@ export default abstract class BaseService<T> extends Service {
     });
     return result;
   }
-
   /**
    *
    * 执行数据库查询 单列多行
@@ -1968,7 +2128,6 @@ export default abstract class BaseService<T> extends Service {
     });
     return result;
   }
-
   /**
    *
    * 执行数据库查询 单列单行
@@ -1990,7 +2149,6 @@ export default abstract class BaseService<T> extends Service {
       ? null
       : (Object.values(data[data.length - 1])[0] as M);
   }
-
   /**
    *
    * 执行数据库查询 单列单行
@@ -2010,7 +2168,6 @@ export default abstract class BaseService<T> extends Service {
     } = await this.queryMutiRowMutiColumnBySql(sql, param, transction);
     return data.length === 0 ? null : (Object.values(data[0])[0] as M);
   }
-
   /**
    *
    * 创建分页查询语句
@@ -2099,7 +2256,6 @@ export default abstract class BaseService<T> extends Service {
   pageQueryMe(sqlid: string, transction?: SqlSession): PageQuery<T> {
     return this.pageQuery<T>(sqlid, transction);
   }
-
   /**
    * 创建复杂查询、修改、删除对象
    * 例如: lambdaQuery()
@@ -2145,7 +2301,6 @@ export default abstract class BaseService<T> extends Service {
   ): LambdaQuery<T> {
     return this.lambdaQuery<T>(transction, tableName);
   }
-
   /**
    * 简单自定义查询
    * @param {{
@@ -2199,7 +2354,6 @@ export default abstract class BaseService<T> extends Service {
       );
     }
   }
-
   /**
    * 简单自定义查询
    * @param {{

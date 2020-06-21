@@ -327,3 +327,8 @@ import initDataFlow from 'app/flow-help/init-data-flow';
 # 1.37.0
 
 1. 增加excel导出
+
+
+# 1.37.5
+
+1. 增加数据库的incr、decr、incrBy、decrBy方法
