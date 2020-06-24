@@ -1,4 +1,4 @@
-import {FlowField, FlowData, FlowLine, SqlSession, Application, IService, FlowNodeConfig, FlowNodeBase} from '../../typings';
+import {FlowField, FlowData, FlowLine, SqlSession, Application, IService, FlowNodeConfig, FlowNodeBase, SimplyFlowLine} from '../../typings';
 import {Context} from 'egg';
 import lodash = require('lodash');
 
@@ -174,7 +174,7 @@ export class FlowExcute<D, M> {
   private ctx: Context;
   private service: IService;
   private activeCode = '';
-  private flowCodes: string[];
+  private flowCodes: string[][];
   constructor (ctx: Context, service: IService, app: Application, conn: SqlSession) {
     this.ctx = ctx;
     this.service = service;
@@ -307,12 +307,27 @@ export class FlowExcute<D, M> {
     const flowCodes = flowPath.split('/');
     const setCheck = new Set<string>(flowCodes);
     this.throwIf(setCheck.size !== flowCodes.length, '流程路径中有重复值');
-    this.flowCodes.splice(this.flowCodes.length, 0, ...flowCodes);
+    this.flowCodes.splice(this.splitIndex(), 0, ...flowCodes.map(item => [item]));
     return this;
   }
   private defFlow(): this {
-    this.activeCode = this.flowCodes[this.flowCodes.length - 1];
+    this.activeCode = this.flowCodes[this.flowCodes.length - 1][0];
     return this;
+  }
+  private activeIndex() {
+    let activeIndex = -1;
+    if (this.activeCode) {
+      const explains = explainCode.exec(this.activeCode);
+      activeIndex = this.flowCodes.findIndex(item => item.includes(explains![1]));
+    }
+    return activeIndex;
+  }
+  private splitIndex() {
+    let splitIndex = this.activeIndex() + 1;
+    if (splitIndex === 0) {
+      splitIndex = this.flowCodes.length;
+    }
+    return splitIndex;
   }
   private active(flowCode: string, biz?: D): this {
     const explains = explainCode.exec(flowCode);
@@ -622,19 +637,22 @@ export class FlowExcute<D, M> {
     } else if (core.toNode && (core.toNode instanceof FlowNode || core.toNode instanceof FlowNodeEnd || core.toNode instanceof FlowNodeSystem)) {
       await core.toNode.notice.call(core.context);
       await this.save();
-      const activeIndex = this.flowCodes.indexOf(this.activeCode);
+      const activeIndex = this.activeIndex();
       if (core.toNodeConfig!.up === true && activeIndex > 0) {
-        const childBiz = core.context.biz;
-        const child = core.flowCode;
-        this.active(this.flowCodes[activeIndex - 1]).from({child});
-        core = this.cores[this.activeCode];
-        from = core.fromNodeConfig?.name || core.fromNodeId || 'unkonwn';
-        if (core.fromNode) {
-          this.throwIf(core.fromNodeLines!.length !== 1, `${ from }只能有一个出线`);
-          const parentNode = core.fromNode as FlowNodeChild<D, M, any>;
-          const biz = await parentNode.parentContext.call(core.context, childBiz);
-          this.active(core.flowCode, biz);
-          await this.line(core.fromNodeLines![0]).to({id: core.fromNodeLines![0].line.to})._doFlow(true);
+        const parentCodes = this.flowCodes[activeIndex - 1];
+        for (const parentCode of parentCodes) {
+          const childBiz = core.context.biz;
+          const child = core.flowCode;
+          this.active(parentCode).from({child});
+          core = this.cores[this.activeCode];
+          from = core.fromNodeConfig?.name || core.fromNodeId || 'unkonwn';
+          if (core.fromNode) {
+            this.throwIf(core.fromNodeLines!.length !== 1, `${ from }只能有一个出线`);
+            const parentNode = core.fromNode as FlowNodeChild<D, M, any>;
+            const biz = await parentNode.parentContext.call(core.context, childBiz);
+            this.active(core.flowCode, biz);
+            await this.line(core.fromNodeLines![0]).to({id: core.fromNodeLines![0].line.to})._doFlow(true);
+          }
         }
       }
     } else {
@@ -648,12 +666,32 @@ export class FlowExcute<D, M> {
   }
   private async getResult(isDo: boolean) {
     const core = this.cores[this.activeCode];
+    let tmplines: {id: string; line: FlowLine;}[] = [];
+    let lines: SimplyFlowLine[] = [];
+    if (core.toNodeLines) {
+      tmplines = core.toNodeLines.filter(item => {
+        const show = core.context.filterLineShow[item.id] || core.context.filterLineShow[item.line.code] || (item.line.hide === false && item.line.error === false);
+        if (show === true) {
+          if (item.line.blackList && item.line.blackList.length > 0 && item.line.blackList.includes(core.specialValue)) {
+            return false;
+          }
+          if (item.line.whiteList && item.line.whiteList.length > 0 && item.line.whiteList.includes(core.specialValue)) {
+            return true;
+          }
+          return true;
+        } else {
+          return false;
+        }
+      });
+      tmplines.sort((a, b) => a.line.index > b.line.index ? 1 : -1);
+      lines = tmplines.map(item => this.line2Simply(item, core));
+    }
     return {
       biz: isDo ? await core.flow.finish.call(core.context) : core.context.biz,
       flowCode: core.flowCode,
       fromNodeId: core.toNodeId,
       fromNodeCode: core.toNodeConfig?.code,
-      lines: core.toNodeLines ? core.toNodeLines.filter(item => core.context.filterLineShow[item.id] || core.context.filterLineShow[item.line.code] || (item.line.hide === false && item.line.error === false)).sort((a, b) => a.line.index > b.line.index ? 1 : -1).map(item => this.line2Simply(item, core)) : [],
+      lines,
       fields: core.context.field,
       error: core.context.error
     };
@@ -721,7 +759,9 @@ export class FlowExcute<D, M> {
       };
     }
   }
-  private line2Simply(item: {id: string; line: FlowLine}, core: FlowCore<D, M>) {
+  private line2Simply(item: {id: string; line: FlowLine}, core: FlowCore<D, M>): SimplyFlowLine {
+    const explains = explainCode.exec(core.flowCode);
+    const activeIndex = this.flowCodes.findIndex(item => item.includes(explains![1]));
     return {
       name: item.line.name,
       code: item.line.code,
@@ -731,7 +771,7 @@ export class FlowExcute<D, M> {
       back: item.line.back,
       id: item.id,
       fast: item.line.fast,
-      flow: this.flowCodes.slice(0, this.flowCodes.indexOf(core.flowCode) + 1).join('/')
+      flow: this.flowCodes.slice(0, activeIndex + 1).map(item => item[0]).join('/')
     };
   }
 }

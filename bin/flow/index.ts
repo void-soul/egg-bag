@@ -1,9 +1,10 @@
+#!/usr/bin/env node
 import Fastify from 'fastify';
 import {join, sep} from 'path';
 import {readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync} from 'fs';
 import * as Mustache from 'mustache';
 import launch = require('launch-editor');
-const baseDir = join(__dirname, '..', '..', '..', 'app');
+const baseDir = join(__dirname, '..', '..', '..', '..', 'app');
 const html = readFileSync(join(__dirname, 'flow.html'), {encoding: 'utf-8'});
 
 const mdDir = (dir: string) => {
@@ -21,7 +22,7 @@ const mdDir = (dir: string) => {
   }
 };
 
-export const flow = async (port = 4000) => {
+const flow = async (port: number) => {
   const server = Fastify({logger: false});
   if (existsSync(join(baseDir, 'flow'))) {
     const flowCodes = readdirSync(join(baseDir, 'flow'));
@@ -30,7 +31,7 @@ export const flow = async (port = 4000) => {
     }
   }
   await server.register(require("fastify-static"), {
-    root: join(__dirname, 'flow-public'),
+    root: join(__dirname, 'public'),
     prefix: '/public/'
   });
   await server.register(require('fastify-formbody'));
@@ -102,3 +103,7 @@ export default class extends ${ type }<?, ?>{
     console.log(`Server listening at ${ address }`);
   });
 };
+const portStr = process.argv[2] || '4000';
+if (portStr) {
+  flow(parseInt(portStr, 10)).then(() => console.log('ready')).catch(err => console.error(err));
+}

@@ -3291,6 +3291,8 @@ export interface FlowLine {
   index: number;
   /** 不为空时、非任务节点自动跳过时、非可跳过任务节点自动跳过时、执行此操作时，将记录日志 */
   log: string;
+  blackList: string[];
+  whiteList: string[];
 }
 /** 流程执行后，返回的操作列表 */
 export interface SimplyFlowLine {

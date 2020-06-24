@@ -355,6 +355,42 @@
                   </el-switch>
                 </el-form-item>
               </el-tooltip>
+              <template v-if="fromNodeType !== 'auto' && fromNodeType !== 'shunt' && fromNodeType !== 'child'"
+                        class="item"
+                        placement="left">
+                <el-alert>
+                  <ul>
+                    <li>禁止哪些关键值：如果一个都不设置,表示不禁止任何关键值;</li>
+                    <li>允许哪些关键值：如果一个都不设置,表示允许任何关键值;</li>
+                    <li>代码里设置filterLineShow优先级=1</li>
+                    <li>这里设置隐藏优先级=2</li>
+                    <li>黑名单、白名单优先级=3</li>
+                    <li>要想禁止所有的关键值，只要设置为隐藏即可</li>
+                  </ul>
+                </el-alert>
+                <el-form-item label="禁止关键值">
+                  <el-select v-model="form.blackList"
+                             multiple
+                             filterable
+                             placeholder="禁止关键值">
+                    <el-option v-for="(item, index) in specils"
+                               :key="index"
+                               :value="item.code"
+                               :label="item.label"></el-option>
+                  </el-select>
+                </el-form-item>
+                <el-form-item label="允许关键值">
+                  <el-select v-model="form.whiteList"
+                             multiple
+                             filterable
+                             placeholder="允许关键值">
+                    <el-option v-for="(item, index) in specils"
+                               :key="index"
+                               :value="item.code"
+                               :label="item.label"></el-option>
+                  </el-select>
+                </el-form-item>
+              </template>
               <el-form-item v-if="fromNodeType === 'auto' || fromNodeType === 'shunt'"
                             label="节点分流">
                 <el-select v-if="specilIsAuto"
@@ -631,6 +667,12 @@
                 if (data.fast === undefined) {
                   data.fast = false;
                 }
+                if (data.blackList === undefined) {
+                  data.blackList = [];
+                }
+                if (data.whiteList === undefined) {
+                  data.whiteList = [];
+                }
               }
               return true;
             },
@@ -726,6 +768,8 @@
                     info.log = this.form.log;
                     info.fast = this.form.fast;
                     info.index = this.form.index;
+                    info.blackList = this.form.blackList;
+                    info.whiteList = this.form.whiteList;
                     let label;
                     if (this.fromNodeType === 'auto' || this.fromNodeType === 'shunt') {
                       label = this.form.swi.join(',');

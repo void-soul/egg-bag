@@ -33,4 +33,4 @@ config/**/*.map
 .launch.json
 dist
 /dist
-!bin/flow-public/GooFlow.js
+!bin/flow/public/GooFlow.js

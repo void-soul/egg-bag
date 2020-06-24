@@ -1,6 +1,6 @@
 {
   "name": "egg-bag",
-  "version": "1.37.5",
+  "version": "1.37.10",
   "description": "egg-bag framework beta",
   "keywords": [
     "egg",
@@ -15,7 +15,8 @@
   "author": "dedede",
   "types": "index.d.ts",
   "bin": {
-    "bag": "./bin.js"
+    "bag-flow": "./bin/flow/index.js",
+    "bag-code": "./bin/code/index.js"
   },
   "files": [
     "index.js",
