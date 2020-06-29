@@ -651,6 +651,7 @@ export class FlowExcute<D, M> {
             const parentNode = core.fromNode as FlowNodeChild<D, M, any>;
             const biz = await parentNode.parentContext.call(core.context, childBiz);
             this.active(core.flowCode, biz);
+            await this.init();
             await this.line(core.fromNodeLines![0]).to({id: core.fromNodeLines![0].line.to})._doFlow(true);
           }
         }
