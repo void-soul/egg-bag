@@ -143,6 +143,8 @@ export const ci = async (serviceDistDir: string, resources?: string[], dirs?: st
   writeFileSync(`../${ serviceDistDir }/.gitignore`, `
 node_modules/
 run/
+.travis.yml
+appveyor.yml
   `);
   // 删除临时目录
   shell.rm('-rf', `./${ serviceDistDir }/`);
