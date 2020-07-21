@@ -55,6 +55,37 @@ export default abstract class BaseService<T> extends Service {
     }, transction);
   }
   /**
+   * 插入或者更新所有列
+   * 返回自增主键或者0，新增或者插入的依据是：是否有主键.仅用于单主键
+   * @param {T} data
+   * @param {*} [transction=true] 独立事务
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  @MethodDebug()
+  async insertOrUpdate<I>(
+    data: {[P in keyof T]?: T[P]},
+    transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName
+  ): Promise<I> {
+    this.app.throwIfNot(
+      this.idNames.length === 1,
+      'this table is muti id(or not set id), can not use this method'
+    );
+    const idName = this.idNames[0];
+    const id = data[idName];
+    if (id) {
+      return await this.insert(data, transction, tableName) as unknown as I;
+    } else {
+      await this.updateById(data, transction, tableName);
+      return id as unknown as I;
+    }
+  }
+  /**
    * 如果指定列名不存在数据库中，则插入所有列
    * 返回自增主键或者0
    * @param {T} data
@@ -154,6 +185,40 @@ export default abstract class BaseService<T> extends Service {
       return result.insertId;
     }, transction);
   }
+
+  /**
+   * 插入或者更新非空字段(排除undefined、null、空字符串)
+   * 返回自增主键或者0，新增或者插入的依据是：是否有主键.仅用于单主键
+   * @param {T} data
+   * @param {*} [transction=true] 独立事务
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  @MethodDebug()
+  async insertOrUpdateTemplate<I>(
+    data: {[P in keyof T]?: T[P]},
+    transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName,
+    dealEmptyString = true
+  ): Promise<I> {
+    this.app.throwIfNot(
+      this.idNames.length === 1,
+      'this table is muti id(or not set id), can not use this method'
+    );
+    const idName = this.idNames[0];
+    const id = data[idName];
+    if (id) {
+      return await this.insertTemplate(data, transction, tableName, dealEmptyString) as unknown as I;
+    } else {
+      await this.updateTemplateById(data, transction, tableName, dealEmptyString);
+      return id as unknown as I;
+    }
+  }
+
   /**
    *
    * 只插入非空字段(排除undefined、null)
@@ -175,6 +240,29 @@ export default abstract class BaseService<T> extends Service {
   ): Promise<number> {
     return await this.insertTemplate(data, transction, tableName, false);
   }
+
+
+  /**
+   * 插入或者更新非空字段(排除undefined、null)
+   * 返回自增主键或者0，新增或者插入的依据是：是否有主键.仅用于单主键
+   * @param {T} data
+   * @param {*} [transction=true] 独立事务
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  @MethodDebug()
+  async insertOrUpdateTemplateLoose<I>(
+    data: {[P in keyof T]?: T[P]},
+    transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName
+  ): Promise<I> {
+    return await this.insertOrUpdateTemplate<I>(data, transction, tableName, false);
+  }
+
   /**
    * 如果指定列名不存在数据库中，则插入非空列(排除undefined、null、空字符串)
    * 返回自增主键或者0
@@ -318,6 +406,48 @@ export default abstract class BaseService<T> extends Service {
       return result;
     }, transction);
   }
+
+  /**
+   * 批量插入或者更新所有列
+   * 返回自增主键或者0，新增或者插入的依据是：是否有主键.仅用于单主键
+   * @param {T} data
+   * @param {*} [transction=true] 独立事务
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  @MethodDebug()
+  async insertOrUpdateBatch<I>(
+    datas: {[P in keyof T]?: T[P]}[],
+    transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName
+  ): Promise<I[]> {
+    this.app.throwIfNot(
+      this.idNames.length === 1,
+      'this table is muti id(or not set id), can not use this method'
+    );
+    if (datas.length === 0) {
+      return [];
+    }
+    return await this.transction(async (conn) => {
+      const idName = this.idNames[0];
+      const result = new Array<I>();
+      for (const item of datas) {
+        const id = item[idName];
+        if (id) {
+          result.push(await this.insert(item, conn, tableName) as unknown as I);
+        } else {
+          await this.updateById(item, conn, tableName);
+          result.push(id as unknown as I);
+        }
+      }
+      return result;
+    }, transction);
+  }
+
   /**
    * 如果指定列名不存在数据库中，则批量插入所有列
    * 返回自增主键或者0
@@ -448,6 +578,49 @@ export default abstract class BaseService<T> extends Service {
       return result;
     }, transction);
   }
+
+  /**
+   * 批量插入或者更新(排除undefined、null、空字符串)
+   * 返回自增主键或者0，新增或者插入的依据是：是否有主键.仅用于单主键
+   * @param {T} data
+   * @param {*} [transction=true] 独立事务
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  @MethodDebug()
+  async insertOrUpdateBatchTemplate<I>(
+    datas: {[P in keyof T]?: T[P]}[],
+    transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName,
+    dealEmptyString = true
+  ): Promise<I[]> {
+    this.app.throwIfNot(
+      this.idNames.length === 1,
+      'this table is muti id(or not set id), can not use this method'
+    );
+    if (datas.length === 0) {
+      return [];
+    }
+    return await this.transction(async (conn) => {
+      const idName = this.idNames[0];
+      const result = new Array<I>();
+      for (const item of datas) {
+        const id = item[idName];
+        if (id) {
+          result.push(await this.insertTemplate(item, conn, tableName, dealEmptyString) as unknown as I);
+        } else {
+          await this.updateTemplateById(item, conn, tableName, dealEmptyString);
+          result.push(id as unknown as I);
+        }
+      }
+      return result;
+    }, transction);
+  }
+
   /**
    *
    * 批量插入非空字段(排除undefined、null)
@@ -469,6 +642,29 @@ export default abstract class BaseService<T> extends Service {
   ): Promise<number[]> {
     return await this.insertBatchTemplate(datas, transction, tableName, false);
   }
+
+
+  /**
+   * 批量插入或者更新(排除undefined、null)
+   * 返回自增主键或者0，新增或者插入的依据是：是否有主键.仅用于单主键
+   * @param {T} data
+   * @param {*} [transction=true] 独立事务
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  @MethodDebug()
+  async insertOrUpdateBatchTemplateLoose<I>(
+    datas: {[P in keyof T]?: T[P]}[],
+    transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName
+  ): Promise<I[]> {
+    return await this.insertOrUpdateBatchTemplate<I>(datas, transction, tableName, false);
+  }
+
   /**
    * 如果指定列名不存在数据库中，则批量插入所有非空列(排除undefined、null、空字符串)
    * 返回自增主键或者0

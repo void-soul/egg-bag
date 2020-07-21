@@ -332,3 +332,8 @@ import initDataFlow from 'app/flow-help/init-data-flow';
 # 1.37.5
 
 1. 增加数据库的incr、decr、incrBy、decrBy方法
+
+
+# 1.37.16
+
+1. 增加 insertOrUpdate 方法

@@ -177,6 +177,20 @@ const now = {
       .add(year || 0, 'year').format(format || dateTime);
   }
 };
+const unix = {
+  path: '/unix.json',
+  method: 'get',
+  handel() {
+    return dayjs().unix();
+  }
+};
+const stamp = {
+  path: '/stamp.json',
+  method: 'get',
+  handel() {
+    return dayjs().valueOf();
+  }
+};
 const today = {
   path: '/today.json',
   method: 'get',
@@ -283,7 +297,7 @@ const socketRoomOut = {
 };
 
 export const routes = [
-  now, phoneCode, picCode, getConfigJson, today, getWxIds, getWxQr, wxDecrypt, fetchFlow, doFlow, getFlowLine
+  now, phoneCode, picCode, getConfigJson, today, getWxIds, getWxQr, wxDecrypt, fetchFlow, doFlow, getFlowLine, unix, stamp
 ];
 export const querys = [
   query, queryMongo, excel, excelMongo

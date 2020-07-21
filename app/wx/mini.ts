@@ -116,7 +116,7 @@ export class WxMini extends BaseWx {
   }
   async getLiveInfo(start: number, limit: number): Promise<WxLiveInfo[]> {
     const data = await this.fetch(
-      (token: string) => `http://api.weixin.qq.com/wxa/business/getliveinfo?access_token=${ token }`,
+      (token: string) => `https://api.weixin.qq.com/wxa/business/getliveinfo?access_token=${ token }`,
       'post',
       {start, limit}
     );
@@ -124,7 +124,7 @@ export class WxMini extends BaseWx {
   }
   async getLiveReplay(room_id: number, start: number, limit: number): Promise<WxLiveReplay[]> {
     const data = await this.fetch(
-      (token: string) => `http://api.weixin.qq.com/wxa/business/getliveinfo?access_token=${ token }`,
+      (token: string) => `https://api.weixin.qq.com/wxa/business/getliveinfo?access_token=${ token }`,
       'post',
       {room_id, start, limit, action: 'get_replay'}
     );

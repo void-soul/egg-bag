@@ -2065,18 +2065,31 @@ export abstract class BaseMongoService<T> extends Service {
 }
 export abstract class BaseService<T> extends Service {
   /**
-    * 插入所有列
-    * 返回自增主键或者0
-    * @param {T} data
-    * @param {*} [transction=true] 独立事务
-    * @param {(serviceTableName: string) => string} [tableName=(
-    *       serviceTableName: string
-    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
-    * @returns
-    */
+     * 插入所有列
+     * 返回自增主键或者0
+     * @param {T} data
+     * @param {*} [transction=true] 独立事务
+     * @param {(serviceTableName: string) => string} [tableName=(
+     *       serviceTableName: string
+     *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+     * @returns
+     */
   insert(data: {
     [P in keyof T]?: T[P];
   }, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 插入或者更新所有列
+   * 返回自增主键或者0，新增或者插入的依据是：是否有主键.仅用于单主键
+   * @param {T} data
+   * @param {*} [transction=true] 独立事务
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertOrUpdate<I>(data: {
+    [P in keyof T]?: T[P];
+  }, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<I>;
   /**
    * 如果指定列名不存在数据库中，则插入所有列
    * 返回自增主键或者0
@@ -2119,6 +2132,19 @@ export abstract class BaseService<T> extends Service {
     [P in keyof T]?: T[P];
   }, transction?: SqlSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
   /**
+   * 插入或者更新非空字段(排除undefined、null、空字符串)
+   * 返回自增主键或者0，新增或者插入的依据是：是否有主键.仅用于单主键
+   * @param {T} data
+   * @param {*} [transction=true] 独立事务
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertOrUpdateTemplate<I>(data: {
+    [P in keyof T]?: T[P];
+  }, transction?: SqlSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<I>;
+  /**
    *
    * 只插入非空字段(排除undefined、null)
    * 返回自增主键或者0
@@ -2132,6 +2158,19 @@ export abstract class BaseService<T> extends Service {
   insertTemplateLoose(data: {
     [P in keyof T]?: T[P];
   }, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+   * 插入或者更新非空字段(排除undefined、null)
+   * 返回自增主键或者0，新增或者插入的依据是：是否有主键.仅用于单主键
+   * @param {T} data
+   * @param {*} [transction=true] 独立事务
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertOrUpdateTemplateLoose<I>(data: {
+    [P in keyof T]?: T[P];
+  }, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<I>;
   /**
    * 如果指定列名不存在数据库中，则插入非空列(排除undefined、null、空字符串)
    * 返回自增主键或者0
@@ -2199,6 +2238,19 @@ export abstract class BaseService<T> extends Service {
     [P in keyof T]?: T[P];
   }[], transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number[]>;
   /**
+   * 批量插入或者更新所有列
+   * 返回自增主键或者0，新增或者插入的依据是：是否有主键.仅用于单主键
+   * @param {T} data
+   * @param {*} [transction=true] 独立事务
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertOrUpdateBatch<I>(datas: {
+    [P in keyof T]?: T[P];
+  }[], transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<I[]>;
+  /**
    * 如果指定列名不存在数据库中，则批量插入所有列
    * 返回自增主键或者0
    * @param {T} data
@@ -2240,6 +2292,19 @@ export abstract class BaseService<T> extends Service {
     [P in keyof T]?: T[P];
   }[], transction?: SqlSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number[]>;
   /**
+   * 批量插入或者更新(排除undefined、null、空字符串)
+   * 返回自增主键或者0，新增或者插入的依据是：是否有主键.仅用于单主键
+   * @param {T} data
+   * @param {*} [transction=true] 独立事务
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertOrUpdateBatchTemplate<I>(datas: {
+    [P in keyof T]?: T[P];
+  }[], transction?: SqlSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<I[]>;
+  /**
    *
    * 批量插入非空字段(排除undefined、null)
    * 返回自增主键或者0
@@ -2253,6 +2318,19 @@ export abstract class BaseService<T> extends Service {
   insertBatchTemplateLoose(datas: {
     [P in keyof T]?: T[P];
   }[], transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number[]>;
+  /**
+   * 批量插入或者更新(排除undefined、null)
+   * 返回自增主键或者0，新增或者插入的依据是：是否有主键.仅用于单主键
+   * @param {T} data
+   * @param {*} [transction=true] 独立事务
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  insertOrUpdateBatchTemplateLoose<I>(datas: {
+    [P in keyof T]?: T[P];
+  }[], transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<I[]>;
   /**
    * 如果指定列名不存在数据库中，则批量插入所有非空列(排除undefined、null、空字符串)
    * 返回自增主键或者0
