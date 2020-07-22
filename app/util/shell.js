@@ -228,10 +228,23 @@ const EggShell = (app, options = {}) => {
 };
 const EggInstall = (target, app, options = {}) => {
   const { router } = app;
+  const lock = target.lock;
   if (router[target.method]) {
     debug(`[egg-bag] found inner-router: ${ target.path }.`);
     router[target.method](target.path, async (ctx, next) => {
       const start = +new Date();
+
+      if (lock === true && ctx.me && ctx.me.devid) {
+        const lockKey = await ctx.getCache(`${ prefix }-${ path }-${ ctx.me.devid }`, 'other');
+        if (lockKey) {
+          return (ctx.response.body = {
+            status: 'E201000',
+            message: `${ start }:重复提交,请等待上次请求处理完成`
+          });
+        }
+        await ctx.setCache(`${ prefix }-${ path }-${ (ctx.me && ctx.me.devid) || 'xxx' }`, start, 'other');
+      }
+
       try {
         const befores = [];
         const afters = [];

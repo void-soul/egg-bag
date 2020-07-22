@@ -265,6 +265,7 @@ const fetchFlow = {
 const doFlow = {
   path: '/do-flow',
   method: 'post',
+  lock: true,
   before: [ILogin],
   async handel(this: Controller, {body: {flowPath, fromNodeId, fromNodeCode, actionId, actionCode, biz}}) {
     return await this.service.paasService.doFlow({flowPath, fromNodeId, fromNodeCode, actionId, actionCode, biz});
