@@ -67,7 +67,7 @@ const cp = (resources: Resource[]) => {
     }
   }
 };
-export const ci = async (serviceDistDir: string, resources?: string[], dirs?: string[]) => {
+export const ci = async (serviceDistDir: string, resources?: string[], dirs?: string[], config?: string) => {
   const tasks = [
     // 编译结果
     new Resource(`./${ serviceDistDir }/`, `../${ serviceDistDir }/`, true),
@@ -98,7 +98,12 @@ export const ci = async (serviceDistDir: string, resources?: string[], dirs?: st
   shell.rm('-rf', `./${ serviceDistDir }`);
   // tslint:disable-next-line: no-console
   console.log('[egg-bag] typescipt compile start');
-  shell.exec('yarn tsc');
+  if (config) {
+    shell.exec(`yarn tsc -p ${ config }`);
+  } else {
+    shell.exec('yarn tsc');
+  }
+
   // tslint:disable-next-line: no-console
   console.log('[egg-bag] typescipt compile finished');
 

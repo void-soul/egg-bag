@@ -3,14 +3,8 @@ import {MongoClient, MongoClientOptions, FilterQuery, ClientSession, SessionOpti
 // tslint:disable-next-line:no-implicit-dependencies
 import {Redis} from 'ioredis';
 import {Schema} from 'fast-json-stringify';
-// tslint:disable-next-line:no-implicit-dependencies
-import {Socket} from 'socket.io';
 export * from 'egg';
 import {IncomingMessage, ServerResponse} from 'http';
-// tslint:disable-next-line:no-implicit-dependencies
-import {NuxtConfiguration} from '@nuxt/config';
-// tslint:disable-next-line:no-implicit-dependencies
-import {Transition} from '@nuxt/vue-app';
 // tslint:disable-next-line:no-implicit-dependencies
 import {Socket, Server as SocketServer, Namespace as SocketNameSpace} from 'socket.io';
 /** 链式计算 */
@@ -3200,7 +3194,7 @@ export abstract class BaseSchedule extends Subscription {
   /** 此定时任务唯一标识 */
   key: string;
   /** 定时任务单例运行，不允许多线程  */
-  singel = true;
+  singel?: boolean;
   abstract excute(): Promise<string>;
 }
 
@@ -3320,13 +3314,13 @@ export interface SqlSession {
     where: {[P in keyof T]?: T[P]};
     columns: (keyof T)[];
   }) => Promise<{affectedRows: number}>;
-  delete: (tableName: string, where?: {[P in keyof T]?: T[P]}) => Promise<{affectedRows: number}>;
+  delete: <T>(tableName: string, where?: {[P in keyof T]?: T[P]}) => Promise<{affectedRows: number}>;
   beginTransactionScope: (fn: (conn: SqlSession) => Promise<any>, ctx: Context) => Promise<any>;
 }
 
 export type MongoSession = ClientSession;
 export interface MongoFilter<T> {
-  query: {[P in keyof T]?: L[P] | FilterQuery<T>};
+  query: {[P in keyof T]?: T[P] | FilterQuery<T>};
   options: {
     limit?: number;
     skip?: number;
@@ -3468,9 +3462,9 @@ export abstract class FlowContext<D, M> {
  */
 export abstract class Flow<D, M> extends FlowContext<D, M>{
   /** 流程配置 */
-  readonly flowData: FlowData = {nodes: {}, lines: {}};
+  readonly flowData?: FlowData;
   /** 实现类缓存 */
-  readonly nodes: {[key: string]: FlowContext<D, M>} = {};
+  readonly nodes?: {[key: string]: FlowContext<D, M>};
   /** 当流程结束、暂停时，保存数据 */
   abstract save(): Promise<void>;
   /**  流程开始前、暂停后重新执行前、子流程开始前、子流程上报到父流程后执行父流程前，会执行init方法。 */
@@ -3576,7 +3570,7 @@ declare module 'egg' {
      * nuxt 是否已经准备完毕
      */
     _nuxtReady: boolean;
-    _flowMap: {[flowCode: string]: Flow<any, any>};
+    _flowMap: {[flowCode: string]: any};
     /**
      * 手动调用nuxt渲染
      * 只有配置了nuxt选项后才能使用
@@ -3587,11 +3581,11 @@ declare module 'egg' {
     _getSql<T>(ctx: Context, count: boolean, id: string, param?: {[key: string]: any}): string | MongoFilter<T>;
     stringifyUser: (user: BaseUser) => string;
     throwNow(message: string, status?: number): never;
-    throwIf(test: boolean, message: string, status?: number);
-    throwIfNot(test: boolean, message: string, status?: number);
+    throwIf(test: boolean, message: string, status?: number): void;
+    throwIfNot(test: boolean, message: string, status?: number): void;
     throwErrorNow(error: Enum): never;
-    throwErrorIf(test: boolean, error: Enum);
-    throwErrorIfNot(test: boolean, error: Enum);
+    throwErrorIf(test: boolean, error: Enum): void;
+    throwErrorIfNot(test: boolean, error: Enum): void;
     /**
      *
      * socket 发送
@@ -3601,7 +3595,7 @@ declare module 'egg' {
      * @param {{message?: string; uri?: string; params?: any; id?: string}} {message, uri, params, id}
      * @memberof Application
      */
-    emitTo(roomType: string, roomId: string, event: string, {message, uri, params, id}: {message?: string; uri?: string; params?: any; id?: string});
+    emitTo(roomType: string, roomId: string, event: string, {message, uri, params, id}: {message?: string; uri?: string; params?: any; id?: string}): void;
     /**
      *
      * 按照config中的keys进行加盐
@@ -3719,14 +3713,14 @@ declare module 'egg' {
      * @param name
      * @param fn
      */
-    subSync(name: string, fn: (this: Context, ...args: any[]) => void, ...args: any[]);
+    subSync(name: string, fn: (this: Context, ...args: any[]) => void, ...args: any[]): void;
 
     /**
      * 订阅同步消息
      * @param name
      * @param fn
      */
-    subASync(name: string, fn: (this: Context, ...args: any[]) => Promise<void>);
+    subASync(name: string, fn: (this: Context, ...args: any[]) => Promise<void>): void;
     /**
      *
      * 清空指定的方法缓存
@@ -3842,7 +3836,7 @@ declare module 'egg' {
      * @type {string}
      * @memberof EggAppConfig
      */
-    keys?: string;
+    keys: string;
     mongo?: {
       uri: string;
       options: MongoClientOptions;
@@ -3976,48 +3970,7 @@ declare module 'egg' {
       commentStart?: string;
       commentEnd?: string;
     };
-    nuxt?: {
-      build?: NuxtConfiguration.Build;
-      buildDir?: string;
-      css?: string[];
-      dev?: boolean;
-      env?: NuxtConfiguration.Env;
-      fetch?: NuxtConfiguration.Fetch;
-      generate?: NuxtConfiguration.Generate;
-      globalName?: string;
-      globals?: NuxtConfiguration.Globals;
-      head?: NuxtConfiguration.Head;
-      hooks?: NuxtConfiguration.Hooks;
-      ignorePrefix?: string;
-      ignore?: string[];
-      layoutTransition?: Transition;
-      loading?: NuxtConfiguration.Loading | false | string;
-      loadingIndicator?: NuxtConfiguration.LoadingIndicator | false | string;
-      mode?: 'spa' | 'universal';
-      modern?: 'client' | 'server' | boolean;
-      modules?: NuxtConfiguration.Module[];
-      modulesDir?: string[];
-      plugins?: NuxtConfiguration.Plugin[];
-      render?: NuxtConfiguration.Render;
-      rootDir?: string;
-      router?: NuxtConfiguration.Router;
-      srcDir?: string;
-      transition?: Transition;
-      'vue.config'?: {
-        silent?: boolean;
-        optionMergeStrategies?: any;
-        devtools?: boolean;
-        productionTip?: boolean;
-        performance?: boolean;
-        ignoredElements?: Array<string | RegExp>;
-        keyCodes?: {[key: string]: number | number[]};
-        async?: boolean;
-        errorHandler?(err: Error, vm: Vue, info: string): void;
-        warnHandler?(msg: string, vm: Vue, trace: string): void;
-      };
-      watch?: string[];
-      watchers?: NuxtConfiguration.Watchers;
-    };
+    nuxt?: any;
     security?: {
       domainWhiteList?: string[];
       protocolWhiteList?: string[];
@@ -4139,7 +4092,7 @@ declare module 'egg' {
     /** 执行某些后台任务时，默认登陆的用户 */
     defUser?: BaseUser;
   }
-  interface Context extends ExtendContextType {
+  interface Context {
     /** 当前连接的socket链接 */
     socket: Socket;
     /** 当前登录用户 */
@@ -4256,7 +4209,7 @@ declare module 'egg' {
   }
   interface IService {
     /** 内置的一个mongoservice */
-    paasMongoService: BaseMongoService;
+    paasMongoService: BaseMongoService<Empty>;
     /** 内置的一个mysqlservice */
     paasService: PaasService;
   }
@@ -4264,11 +4217,11 @@ declare module 'egg' {
 /** 空promise方法 */
 export function emptyPromise(): Promise<any>;
 /** promise化任何函数 */
-export function promise<T>(this: any, {fn, target, last = true}: {fn: (...args: any[]) => any; target?: any; last?: boolean}): (...args: any[]) => Promise<T>;
+export function promise<T>(this: any, context: {fn: (...args: any[]) => any; target?: any; last?: boolean}): (...args: any[]) => Promise<T>;
 /** 线程级休眠 */
 export function sleep(time: number): Promise<{void}>;
 /** 转换为数字 */
-export function num(val: any, def = 0): number;
+export function num(val: any, def?: number): number;
 /** 最大值 */
 export function max(...args: any[]): number;
 /** 最小值 */
@@ -4282,11 +4235,11 @@ export function mul(...args: any[]): number;
 /** 减法 */
 export function sub(...args: any[]): number;
 /** 四舍五入 */
-export function round(number: any, numDigits: number, upOrDown = 0): number;
+export function round(number: any, numDigits: number, upOrDown?: number): number;
 /** 金钱格式化可用样式 */
 export enum MoneyStyle {currency, decimal, percent}
 /** 金钱格式化 */
-export function money(value: any, style: MoneyStyle = MoneyStyle.currency, currency: string = 'CNY', prefix: number = 2, def: number = 0): string;
+export function money(value: any, style?: MoneyStyle, currency?: string, prefix?: number, def?: number): string;
 /** 计算链生成 */
 export function calc(result: any): Bus;
 /** 计算两个地理信息点之间距离 */
@@ -4327,10 +4280,10 @@ export function Mongo(clazz: any, tableName: string, dbName?: string);
 /** 实体类中忽略ORM的字段标记 */
 export function Transient();
 /** 过滤一个实体类中非ORM字段 */
-export function BuildData(target: any, emptySkip: boolean = false): any;
+export function BuildData(target: any, emptySkip?: boolean): any;
 export const TransientMeda: symbol;
 /** service的逻辑删除设置 */
-export function LogicDelete(stateFileName: string, deleteState: string = '0');
+export function LogicDelete(stateFileName: string, deleteState?: string);
 /** controller方法上添加锁，只支持单个会话不能重复请求同一个接口 */
 export const Lock: () => Decorator;
 /** controller方法标记为NUXT渲染 */
@@ -4406,9 +4359,10 @@ export function replaceChineseCode(str: string): string;
  * @param {string} serviceDistDir 编译输出目录：etc 'service-dist'
  * @param {string[]} [resources]  复制资源文件：etc ['pkg.json']
  * @param {string[]} [dirs] 复制资源文件夹：etc ['app/util/amazon', 'app/util/aws-xml-ejs', 'app/pem']
+ * @param {string[]} [config] 配置文件目录，通常用于打包测试环境。该目录下只需要有一个tsconfig.json即可,同时必须调整include、exclude、、paths为上级目录
  * @returns {Promise<void>}
  */
-export function ci(serviceDistDir: string, resources?: string[], dirs?: string[]): Promise<void>;
+export function ci(serviceDistDir: string, resources?: string[], dirs?: string[], config?: string): Promise<void>;
 /** 内置socket 房间编号 */
 export const SocketRoom: {SOCKET_ALL: string; SOCKET_USER: string; SOCKET_DEV: string};
 

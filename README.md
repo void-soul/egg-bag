@@ -337,3 +337,8 @@ import initDataFlow from 'app/flow-help/init-data-flow';
 # 1.37.16
 
 1. 增加 insertOrUpdate 方法
+
+
+# 1.37.18
+
+1. 编译时支持指定其他tsconfig.json文件
