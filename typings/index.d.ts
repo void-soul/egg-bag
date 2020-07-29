@@ -78,6 +78,10 @@ declare class LambdaQuery<T> {
   update(data?: T): Promise<number>;
   /** 按当前条件进行删除 */
   delete(): Promise<number>;
+  /** 查询单列，并返回该列数组 */
+  array<K extends T[keyof T]>(key: keyof T): Promise<K[]>;
+  /** 查询单列，并返回该列单一值 */
+  singel<K extends T[keyof T]>(key: keyof T): Promise<K | undefined>;
 }
 type JSType = 'double' | 'string' | 'object' | 'array' | 'binData' | 'undefined' | 'objectId' | 'bool' | 'date' | 'null' | 'regex' | 'javascript' | 'javascriptWithScope' | 'int' | 'timestamp' | 'long' | 'decimal' | 'minKey' | 'maxKey';
 declare class LambdaQueryMongo<T> {
@@ -201,6 +205,10 @@ declare class LambdaQueryMongo<T> {
    * @memberof LambdaQueryMongo
    */
   delete(): Promise<number>;
+  /** 查询单列，并返回该列数组 */
+  array<K extends T[keyof T]>(key: keyof T): Promise<K[]>;
+  /** 查询单列，并返回该列单一值 */
+  singel<K extends T[keyof T]>(key: keyof T): Promise<K | undefined>;
 }
 declare class PageQuery<T> {
   list: T[];

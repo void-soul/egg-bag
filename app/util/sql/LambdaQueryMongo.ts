@@ -328,6 +328,16 @@ export default class LambdaQueryMongo<T> {
   async delete(): Promise<number> {
     return await this._remove(this);
   }
+  async array<K extends T[keyof T]>(key: keyof T): Promise<K[]> {
+    const list = await this.select(key);
+    return list.map(item => item[key] as K);
+  }
+  async singel<K extends T[keyof T]>(key: keyof T): Promise<K | undefined> {
+    const one = await this.one(key);
+    if (one) {
+      return one[key] as K;
+    }
+  }
   private common(
     value: any,
     op: string,

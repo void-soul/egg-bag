@@ -269,6 +269,16 @@ export default class LambdaQuery<T> {
     }
     return await this.excute(sql, this.param);
   }
+  async array<K extends T[keyof T]>(key: keyof T): Promise<K[]> {
+    const list = await this.select(key);
+    return list.map(item => item[key] as K);
+  }
+  async singel<K extends T[keyof T]>(key: keyof T): Promise<K | undefined> {
+    const one = await this.one(key);
+    if (one) {
+      return one[key] as K;
+    }
+  }
   private nil(key: keyof T, not = ''): this {
     this.condition.push(`AND ${ key } is ${ not } null`);
     return this;
