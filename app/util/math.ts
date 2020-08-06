@@ -92,6 +92,16 @@ export const round = (number: any, numDigits: number, upOrDown = 0): number => {
     return 0;
   }
 };
+/** =value.xx,其中xx=number,如number=99，表示修正数字为value.99 */
+export const merge = function (value: any, number: any) {
+  if (isNum(value) && isNum(number)) {
+    return new Decimal(value).floor().add(`0.${ number }`).toNumber();
+  } else if (isNum(value)) {
+    return value;
+  } else {
+    return 0;
+  }
+};
 
 export enum MoneyStyle {
   currency = 'currency',
@@ -113,45 +123,79 @@ export const money = (
   });
 };
 
+const IF = function () {
+  return function (_target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
+    const fn = descriptor.value;
+    descriptor.value = function (this: Bus) {
+      if (this['ifit'] === true) {
+        // eslint-disable-next-line prefer-rest-params
+        const args = Array.from(arguments);
+        fn.call(this, ...args);
+      }
+      this['ifit'] = true;
+      return this;
+    };
+  };
+};
+
 export class Bus {
   private result: number;
-  constructor (result) {
+  private ifit = true;
+  constructor (result: any) {
     this.result = num(result);
   }
+  @IF()
   add(...args: any[]): this {
     this.result = add(this.result, ...args);
     return this;
   }
+  @IF()
   sub(...args: any[]): this {
     this.result = sub(this.result, ...args);
     return this;
   }
+  @IF()
   div(...args: any[]): this {
     this.result = div(this.result, ...args);
     return this;
   }
+  @IF()
   mul(...args: any[]): this {
     this.result = mul(this.result, ...args);
     return this;
   }
+  @IF()
   max(...args: any[]): this {
     this.result = max(this.result, ...args);
     return this;
   }
+  @IF()
   min(...args: any[]): this {
     this.result = min(this.result, ...args);
     return this;
   }
+  @IF()
   ac(): this {
     this.result = sub(0, this.result);
     return this;
   }
+  @IF()
   abs(): this {
     this.result = Math.abs(this.result);
     return this;
   }
+  @IF()
   round(numDigits: number, upOrDown?: number): this {
     this.result = round(this.result, numDigits, upOrDown);
+    return this;
+  }
+  @IF()
+  merge(number: any) {
+    this.result = merge(this.result, number);
+    return this;
+  }
+  if(condition: boolean) {
+    this.ifit = condition;
     return this;
   }
   over(): number {

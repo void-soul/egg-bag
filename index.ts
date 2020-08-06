@@ -6,7 +6,7 @@ import BaseService from './app/base/BaseService';
 import BaseMongoService from './app/base/BaseMongoService';
 import {Empty, emptyPromise} from './app/util/empty';
 import {promise, sleep} from './app/util/fn';
-import {num, max, min, div, add, mul, sub, round, MoneyStyle, money, calc} from './app/util/math';
+import {num, max, min, div, add, mul, sub, round, merge, MoneyStyle, money, calc} from './app/util/math';
 import {dateTime, dateXSDTime, date, nowTime, nowDate, nowTimeXSD} from './app/util/now';
 import {copyBean, convertBean, convertBeans, emptyBean, createBeanFromArray, coverComplexBean, fixEmptyPrototy} from './app/util/object';
 import SetEx from './app/util/SetEx';
@@ -31,7 +31,7 @@ export = {
   emptyPromise,
   promise,
   sleep,
-  num, max, min, div, add, mul, sub, round, MoneyStyle, money, calc,
+  num, max, min, div, add, mul, sub, round, merge, MoneyStyle, money, calc,
   dateTime, dateXSDTime, date, nowTime, nowDate, nowTimeXSD,
   copyBean, convertBean, convertBeans, emptyBean, createBeanFromArray, coverComplexBean, fixEmptyPrototy,
   SetEx,

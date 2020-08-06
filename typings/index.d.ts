@@ -28,6 +28,10 @@ declare class Bus {
   abs(): this;
   /** 四舍五入 */
   round(numDigits: number, upOrDown?: number): this;
+  /** =value.xx,其中xx=number,如number=99，表示修正数字为value.99 */
+  merge(number: any): this;
+  /** 决定下一次运算是否要继续? */
+  if(condition: boolean):this;
   /** 计算结束，返回结果 */
   over(): number;
   /** 计算结果，返回金钱格式化 */
@@ -4244,6 +4248,8 @@ export function mul(...args: any[]): number;
 export function sub(...args: any[]): number;
 /** 四舍五入 */
 export function round(number: any, numDigits: number, upOrDown?: number): number;
+/** =value.xx,其中xx=number,如number=99，表示修正数字为value.99 */
+export function merge(number: any): number;
 /** 金钱格式化可用样式 */
 export enum MoneyStyle {currency, decimal, percent}
 /** 金钱格式化 */
