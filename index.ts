@@ -11,7 +11,7 @@ import {dateTime, dateXSDTime, date, nowTime, nowDate, nowTimeXSD} from './app/u
 import {copyBean, convertBean, convertBeans, emptyBean, createBeanFromArray, coverComplexBean, fixEmptyPrototy} from './app/util/object';
 import SetEx from './app/util/SetEx';
 import {DataSource, Mongo, Transient, BuildData, TransientMeda, LogicDelete} from './app/util/shell-extend';
-import {NUXT, Render, Get, Post, Put, Delete, Patch, Options, Head, IO, Before, After, BeforeAll, AfterAll, Prefix, ContentType, Lock, Excel} from './app/util/shell';
+import {Render, Get, Post, Put, Delete, Patch, Options, Head, IO, Before, After, BeforeAll, AfterAll, Prefix, ContentType, Lock, Excel} from './app/util/shell';
 import {uuid, getPicKey, emptyString, notEmptyString, safeString, randomNumber, randomString, buildWxStr, replaceChineseCode} from './app/util/string';
 import BaseSchedule from './app/base/BaseSchedule';
 import ILogin from './app/middleware/ILogin';
@@ -36,7 +36,7 @@ export = {
   copyBean, convertBean, convertBeans, emptyBean, createBeanFromArray, coverComplexBean, fixEmptyPrototy,
   SetEx,
   DataSource, Mongo, Transient, BuildData, TransientMeda, LogicDelete,
-  NUXT, Render, Get, Post, Put, Delete, Patch, Options, Head, IO, ContentType, Before, After, BeforeAll, AfterAll, Prefix, Lock, Excel,
+  Render, Get, Post, Put, Delete, Patch, Options, Head, IO, ContentType, Before, After, BeforeAll, AfterAll, Prefix, Lock, Excel,
   uuid, getPicKey, emptyString, notEmptyString, safeString, randomNumber, randomString, buildWxStr, replaceChineseCode,
   BaseSchedule,
   ILogin,

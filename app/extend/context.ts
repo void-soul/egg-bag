@@ -126,13 +126,6 @@ export default {
       }
     }
   },
-  nuxt(this: Context) {
-    return new Promise((resolve) => {
-      if (this.app._nuxt) {
-        return this.app._nuxt(this.req, this.res, resolve);
-      }
-    });
-  },
   getDevid(this: Context): string | null {
     let devid = lodash.get(this, 'socket.handshake.query.devid');
     if (!devid) {

@@ -1,6 +1,6 @@
 {
   "name": "egg-bag",
-  "version": "1.37.23",
+  "version": "1.37.24",
   "description": "egg-bag framework beta",
   "keywords": [
     "egg",
@@ -69,7 +69,6 @@
     "eslint": "7.6.0",
     "eslint-plugin-import": "2.22.0",
     "eslint-plugin-node": "11.1.0",
-    "eslint-plugin-nuxt": "1.0.0",
     "eslint-plugin-promise": "4.2.1",
     "eslint-plugin-standard": "4.0.1",
     "fast-json-stringify": "2.2.3",
@@ -83,17 +82,14 @@
     "mustache": "4.0.1",
     "mysql2": "2.1.0",
     "nanoid": "3.1.12",
-    "nuxt": "2.14.1",
     "reflect-metadata": "0.1.13",
     "request": "2.88.2",
     "request-promise": "4.2.6",
     "shelljs": "0.8.4",
-    "sqlstring": "2.3.2",
     "svg-captcha": "1.4.0",
     "tsconfig-paths": "3.9.0",
     "tslib": "2.0.1",
     "typescript": "3.9.7",
-    "vue-meta": "2.4.0",
     "xml2js": "0.4.23"
   },
   "devDependencies": {

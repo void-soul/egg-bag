@@ -48,15 +48,9 @@ const EggShell = (app, options = {}) => {
     for (const pName of propertyNames) {
       // 解析函数元数据
       let { reqMethod, path, view, before, after, contentType, lock, name } = methodHandler.getMetada(c[pName]);
-      let nuxt = false;
       let render = false;
       let excel = false;
-      if (reqMethod === RequestMethod.NUXT) {
-        if (app._nuxtReady === true) {
-          nuxt = true;
-        }
-        reqMethod = 'get';
-      } else if (reqMethod === RequestMethod.Render) {
+      if (reqMethod === RequestMethod.Render) {
         render = true;
         reqMethod = 'get';
       } else if (reqMethod === RequestMethod.Excel) {
@@ -85,14 +79,7 @@ const EggShell = (app, options = {}) => {
               await before()(ctx, next);
             }
             let result;
-            if (nuxt === true) {
-              result = await instance[pName](ctx);
-              Object.assign(ctx.req, {
-                asyncData: result,
-                user: ctx.me || false,
-                globalValues: app._globalValues || false
-              });
-            } else if (render === true) {
+            if (render === true) {
               result = await instance[pName](ctx);
               await ctx.render(view || prefix + path, {
                 ...result,
@@ -161,22 +148,12 @@ const EggShell = (app, options = {}) => {
             for (const after of afters) {
               await after()(ctx, next);
             }
-            if (nuxt === true) {
-              await ctx.nuxt();
-            }
           } catch (error) {
             app.coreLogger.error(error);
-            if (nuxt === false) {
-              ctx.response.body = {
-                status: error.status,
-                message: error.message
-              };
-            } else {
-              ctx.response.body = {
-                status: error.status,
-                message: error.message
-              };
-            }
+            ctx.response.body = {
+              status: error.status,
+              message: error.message
+            };
           } finally {
             if (ctx.app.config.env !== 'prod') {
               debug(`${ prefix + path } + ${ +new Date() - start }ms`);
@@ -215,7 +192,7 @@ const EggShell = (app, options = {}) => {
         });
       }
       if (app.config.env !== 'prod') {
-        routers.push(`${ lock ? '[lock]' : '' }[${ reqMethod }(${ nuxt ? 'nuxt' : 'rest' })]${ options.prefix === '/' ? '' : options.prefix }${ prefix + path }-->${ fullPath }.${ pName }`);
+        routers.push(`${ lock ? '[lock]' : '' }[${ reqMethod }]${ options.prefix === '/' ? '' : options.prefix }${ prefix + path }-->${ fullPath }.${ pName }`);
       }
     }
   }
@@ -356,7 +333,6 @@ module.exports = {
   EggIoInstall,
   StatusError,
 
-  NUXT: methodHandler.nuxt(),
   Render: methodHandler.render(),
   Excel: methodHandler.excel(),
   Get: methodHandler.get(),

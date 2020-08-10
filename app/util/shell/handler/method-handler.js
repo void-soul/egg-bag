@@ -36,9 +36,6 @@ class MethodHandler {
       name
     };
   }
-  nuxt () {
-    return this[createMappingDecorator](RequestMethod.NUXT);
-  }
   render () {
     return this[createTwoDecorator](RequestMethod.Render);
   }

@@ -31,7 +31,7 @@ declare class Bus {
   /** =value.xx,其中xx=number,如number=99，表示修正数字为value.99 */
   merge(number: any): this;
   /** 决定下一次运算是否要继续? */
-  if(condition: boolean):this;
+  if(condition: boolean): this;
   /** 计算结束，返回结果 */
   over(): number;
   /** 计算结果，返回金钱格式化 */
@@ -3578,17 +3578,7 @@ declare module 'egg' {
     io: EggIOServer & EggSocketNameSpace & EggSocketIO;
     mongo: MongoClient;
     _asyncSubClient: {[code: string]: (...args: any[]) => Promise<any>};
-    /**
-     * nuxt 是否已经准备完毕
-     */
-    _nuxtReady: boolean;
     _flowMap: {[flowCode: string]: any};
-    /**
-     * 手动调用nuxt渲染
-     * 只有配置了nuxt选项后才能使用
-     * 推荐使用NUXT注解而不是此方法
-     */
-    _nuxt?: (req: IncomingMessage, res: ServerResponse, cb: () => void) => Promise<void>;
     /** 加载sql模板，位于 app/sql、app/sql-script */
     _getSql<T>(ctx: Context, count: boolean, id: string, param?: {[key: string]: any}): string | MongoFilter<T>;
     stringifyUser: (user: BaseUser) => string;
@@ -3982,7 +3972,6 @@ declare module 'egg' {
       commentStart?: string;
       commentEnd?: string;
     };
-    nuxt?: any;
     security?: {
       domainWhiteList?: string[];
       protocolWhiteList?: string[];
@@ -4119,8 +4108,6 @@ declare module 'egg' {
     login(user: BaseUser, notify?: boolean);
     /** 登出 */
     logout();
-    /** 执行nuxt渲染 */
-    nuxt(): Promise<any>;
     /** 获取会话token */
     getDevid(): string | null;
     /** 添加缓存 */
@@ -4300,8 +4287,6 @@ export const TransientMeda: symbol;
 export function LogicDelete(stateFileName: string, deleteState?: string);
 /** controller方法上添加锁，只支持单个会话不能重复请求同一个接口 */
 export const Lock: () => Decorator;
-/** controller方法标记为NUXT渲染 */
-export const NUXT: (value?: string) => Decorator;
 /** controller方法标记为view渲染 */
 export const Render: (path: string, view?: string) => Decorator;
 /** controller方法标记为excel导出 */

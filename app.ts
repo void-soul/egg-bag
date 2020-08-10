@@ -1,7 +1,6 @@
 import {Application} from 'egg';
 import {loadSync, loadAsync} from './app/loader/sub-load';
 import {loadWXMini, loadWXOrgan, loadWXPay} from './app/loader/wx-load';
-import {loadNuxt, initNuxt} from './app/loader/nuxt-load';
 import {loadMessage} from './app/loader/ms-load';
 import {loadMongo, loadSql, connMongo} from './app/loader/sql-load';
 import {loadUser} from './app/loader/user-load';
@@ -13,18 +12,12 @@ import {loadFlow} from './app/loader/flow-loader';
 const debug = require('debug')('egg-bag');
 export default class {
   app: Application;
-  nuxtReady = false;
-  srcDir = '';
   constructor (app: Application) {
     this.app = app;
   }
   configWillLoad() {
     debug('start load config!');
     const start = +new Date();
-    // nuxt检测配置
-    const {nuxtReady, srcDir} = loadNuxt.call(this.app);
-    this.nuxtReady = nuxtReady;
-    this.srcDir = srcDir;
 
     // 消息订阅注入
     loadSync.call(this.app);
@@ -70,8 +63,6 @@ export default class {
     await redisPsub.call(this.app);
     // mongo连接
     await connMongo.call(this.app);
-    // nuxt初始化
-    this.app._nuxtReady = initNuxt.call(this.app, this.nuxtReady, this.srcDir);
   }
 
   didReady() {

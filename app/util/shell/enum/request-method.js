@@ -9,7 +9,6 @@ module.exports = {
   OPTIONS: 'options',
   HEAD: 'head',
   IO: 'io',
-  NUXT: 'nuxt',
   Render: 'render',
   Excel: 'excel'
 };
