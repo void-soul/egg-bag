@@ -50,7 +50,7 @@ export async function setCache(
       await this.app.redis.get('other').set(`[cache]${ config.key }`, JSON.stringify(config.result), 'EX', config.autoClearTime * 60);
       // 订阅：清空 clear list
       if (config.clearKey && config.clearKey.length > 0) {
-        await this.app.subSync(`other-[cache]${ config.key }`, async function (this: Context, key: string) {
+        this.app.subSync(`other-[cache]${ config.key }`, async function (this: Context, key: string) {
           await clearChild.call(this.app, key, true);
         }, config.key);
       }

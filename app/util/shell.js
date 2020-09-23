@@ -129,6 +129,9 @@ const EggShell = (app, options = {}) => {
                 result = await instance[pName](ctx);
               }
               if (contentType) {
+                if (name) {
+                  ctx.response.attachment(name);
+                }
                 ctx.response.type = contentType;
                 ctx.response.body = result;
               } else {
@@ -208,81 +211,83 @@ const EggInstall = (target, app, options = {}) => {
   const lock = target.lock;
   if (router[target.method]) {
     debug(`[egg-bag] found inner-router: ${ target.path }.`);
-    router[target.method](target.path, async (ctx, next) => {
-      const start = +new Date();
+    for (const method of target.method) {
+      router[method](target.path, async (ctx, next) => {
+        const start = +new Date();
 
-      if (lock === true && ctx.me && ctx.me.devid) {
-        const lockKey = await ctx.getCache(`${ prefix }-${ path }-${ ctx.me.devid }`, 'other');
-        if (lockKey) {
-          return (ctx.response.body = {
-            status: 'E201000',
-            message: `${ start }:重复提交,请等待上次请求处理完成`
-          });
+        if (lock === true && ctx.me && ctx.me.devid) {
+          const lockKey = await ctx.getCache(`${ prefix }-${ path }-${ ctx.me.devid }`, 'other');
+          if (lockKey) {
+            return (ctx.response.body = {
+              status: 'E201000',
+              message: `${ start }:重复提交,请等待上次请求处理完成`
+            });
+          }
+          await ctx.setCache(`${ prefix }-${ path }-${ (ctx.me && ctx.me.devid) || 'xxx' }`, start, 'other');
         }
-        await ctx.setCache(`${ prefix }-${ path }-${ (ctx.me && ctx.me.devid) || 'xxx' }`, start, 'other');
-      }
 
-      try {
-        const befores = [];
-        const afters = [];
-        if (options.before) befores.push(...options.before);
-        if (target.before) befores.push(...target.before);
-        if (target.after) afters.push(...target.after);
-        if (options.after) afters.push(...options.after);
-        for (const before of befores) {
-          await before()(ctx, next);
-        }
-        ctx.body = ctx.request ? ctx.request.body : null;
-        const that = {
-          app,
-          service: ctx.service,
-          ctx,
-          logger: ctx.logger
-        };
-        const result = await target.handel.call(that, ctx);
-        if (target.excel === true) {
-          let templateName = ctx.query.templateName;
-          if (!templateName) {
-            templateName = target.path.replace(/\//g, '');
+        try {
+          const befores = [];
+          const afters = [];
+          if (options.before) befores.push(...options.before);
+          if (target.before) befores.push(...target.before);
+          if (target.after) afters.push(...target.after);
+          if (options.after) afters.push(...options.after);
+          for (const before of befores) {
+            await before()(ctx, next);
           }
-          app.throwIf(!templateName, '没有指定模板路径！');
-          templateName = templateName.indexOf('.') === -1 ? `${ templateName }.xlsx` : templateName;
-          const exlBuf = await fs.promises.readFile(join(app.baseDir, 'app', 'excel', templateName));
-          const exlBuf2 = await ejsexcel.renderExcel(exlBuf, result, { cachePath: tempDir });
-          ctx.response.type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-          if (ctx.query.downLoadName) {
-            ctx.response.attachment(ctx.query.downLoadName);
-          }
-          ctx.response.body = exlBuf2;
-        } else if (target.type) {
-          ctx.response.type = target.type;
-          ctx.response.body = result;
-        } else {
-          if (result === null) {
-            ctx.response.body = {
-              result: null
-            };
-          } else if (typeof result === 'object') {
+          ctx.body = ctx.request ? ctx.request.body : null;
+          const that = {
+            app,
+            service: ctx.service,
+            ctx,
+            logger: ctx.logger
+          };
+          const result = await target.handel.call(that, ctx);
+          if (target.excel === true) {
+            let templateName = ctx.query.templateName;
+            if (!templateName) {
+              templateName = target.path.replace(/\//g, '');
+            }
+            app.throwIf(!templateName, '没有指定模板路径！');
+            templateName = templateName.indexOf('.') === -1 ? `${ templateName }.xlsx` : templateName;
+            const exlBuf = await fs.promises.readFile(join(app.baseDir, 'app', 'excel', templateName));
+            const exlBuf2 = await ejsexcel.renderExcel(exlBuf, result, { cachePath: tempDir });
+            ctx.response.type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+            if (ctx.query.downLoadName) {
+              ctx.response.attachment(ctx.query.downLoadName);
+            }
+            ctx.response.body = exlBuf2;
+          } else if (target.type) {
+            ctx.response.type = target.type;
             ctx.response.body = result;
           } else {
-            ctx.response.body = {
-              result
-            };
+            if (result === null) {
+              ctx.response.body = {
+                result: null
+              };
+            } else if (typeof result === 'object') {
+              ctx.response.body = result;
+            } else {
+              ctx.response.body = {
+                result
+              };
+            }
           }
+          for (const after of afters) {
+            await after()(ctx, next);
+          }
+        } catch (error) {
+          app.coreLogger.error(error);
+          ctx.response.body = {
+            status: error.status,
+            message: error.message
+          };
+        } finally {
+          debug(`${ target.path } + ${ +new Date() - start }ms`);
         }
-        for (const after of afters) {
-          await after()(ctx, next);
-        }
-      } catch (error) {
-        app.coreLogger.error(error);
-        ctx.response.body = {
-          status: error.status,
-          message: error.message
-        };
-      } finally {
-        debug(`${ target.path } + ${ +new Date() - start }ms`);
-      }
-    });
+      });
+    }
   }
   if (app.config.env !== 'prod') {
     routers.push(`[${ target.method }]${ target.path }-->native script`);

@@ -6,7 +6,7 @@ import lodash = require('lodash');
 const debug = require('debug')('egg-bag:auth');
 const query = {
   path: '/query.json',
-  method: 'get',
+  method: ['get', 'post'],
   before: [ILogin],
   async handel(this: Controller, {
     query: {sqlCode, currentPage, pageSize, sortName, sortType, limitSelf},
@@ -45,7 +45,7 @@ const query = {
 };
 const excel = {
   path: '/excel.xlsx',
-  method: 'get',
+  method: ['get', 'post'],
   excel: true,
   before: [ILogin],
   async handel(this: Controller, {
@@ -90,7 +90,7 @@ const excel = {
 const queryMongo = {
   path: '/query-mongo.json',
   before: [ILogin],
-  method: 'get',
+  method: ['get', 'post'],
   async handel(this: Controller, {
     query: {sqlCode, currentPage, pageSize, sortName, sortType, limitSelf},
     queries
@@ -125,7 +125,7 @@ const queryMongo = {
 };
 const excelMongo = {
   path: '/excel-mongo.xlsx',
-  method: 'get',
+  method: ['get', 'post'],
   excel: true,
   before: [ILogin],
   async handel(this: Controller, {
@@ -166,7 +166,7 @@ const excelMongo = {
 };
 const now = {
   path: '/now.json',
-  method: 'get',
+  method: ['get', 'post'],
   handel({query: {minute, hour, day, week, month, year, format}}) {
     return dayjs()
       .add(minute || 0, 'minute')
@@ -179,21 +179,21 @@ const now = {
 };
 const unix = {
   path: '/unix.json',
-  method: 'get',
+  method: ['get', 'post'],
   handel() {
     return dayjs().unix();
   }
 };
 const stamp = {
   path: '/stamp.json',
-  method: 'get',
+  method: ['get', 'post'],
   handel() {
     return dayjs().valueOf();
   }
 };
 const today = {
   path: '/today.json',
-  method: 'get',
+  method: ['get', 'post'],
   handel({query: {minute, hour, day, week, month, year, format}}) {
     return dayjs()
       .add(minute || 0, 'minute')
@@ -206,14 +206,14 @@ const today = {
 };
 const phoneCode = {
   path: '/code.json',
-  method: 'get',
+  method: ['get', 'post'],
   async handel(this: Controller, {query: {phone}}: any) {
     return await this.service.paasService.sendCode(phone);
   }
 };
 const picCode = {
   path: '/pic-code.json',
-  method: 'get',
+  method: ['get', 'post'],
   type: 'image/svg+xml',
   async handel(this: Controller, {query: {key}}) {
     return await this.service.paasService.picCode(key);
@@ -221,21 +221,21 @@ const picCode = {
 };
 const getConfigJson = {
   path: '/GlobalValues.json',
-  method: 'get',
+  method: ['get', 'post'],
   handel(this: Controller) {
     return this.app._globalValues;
   }
 };
 const getWxIds = {
   path: '/wx-mini-ms-id.json',
-  method: 'get',
+  method: ['get', 'post'],
   handel(this: Controller, {query: {code}}) {
     return this.app.getWxMini(code).getTemplIds();
   }
 };
 const getWxQr = {
   path: '/wx-mini-qr.png',
-  method: 'get',
+  method: ['get', 'post'],
   type: 'image/png',
   async handel(this: Controller, {query: {model, page, fullpath, scene, png, code}}) {
     return this.app.getWxMini(code).getUnlimited({model, page, fullpath, scene, png});
@@ -243,7 +243,7 @@ const getWxQr = {
 };
 const wxDecrypt = {
   path: '/wx-decrypt',
-  method: 'get',
+  method: ['get', 'post'],
   before: [ILogin],
   handel(this: Controller, {query: {encryptedData, iv, code}}) {
     return this.app.getWxMini(code).decrypt({
@@ -255,7 +255,7 @@ const wxDecrypt = {
 };
 const fetchFlow = {
   path: '/fetch-flow',
-  method: 'post',
+  method: ['get', 'post'],
   before: [ILogin],
   async handel(this: Controller, {body: {flowPath, fromNodeId, fromNodeCode, biz, skipError}}) {
     return await this.service.paasService.fetchFlow({flowPath, fromNodeId, fromNodeCode, biz, skipError});
@@ -264,7 +264,7 @@ const fetchFlow = {
 
 const doFlow = {
   path: '/do-flow',
-  method: 'post',
+  method: ['get', 'post'],
   lock: true,
   before: [ILogin],
   async handel(this: Controller, {body: {flowPath, fromNodeId, fromNodeCode, actionId, actionCode, biz}}) {
@@ -273,7 +273,7 @@ const doFlow = {
 };
 const getFlowLine = {
   path: '/get-flow-line',
-  method: 'get',
+  method: ['get', 'post'],
   before: [ILogin],
   handel(this: Controller, {query: {flowCode, fromNodeId, fromNodeCode, actionId, actionCode}}) {
     return this.service.paasService.getLine({

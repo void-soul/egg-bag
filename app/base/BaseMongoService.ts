@@ -511,7 +511,7 @@ export default abstract class BaseMongoService<T> extends Service {
       const filter = {
         _id: data[this.idName]
       };
-      const result = await this.getDb().collection(tableName(this.tableName)).updateOne(filter, this.filterEmptyAndTransient(data, false), {
+      const result = await this.getDb().collection(tableName(this.tableName)).updateOne(filter, {$set: this.filterEmptyAndTransient(data, false)}, {
         session
       });
       return result.modifiedCount;
@@ -536,7 +536,16 @@ export default abstract class BaseMongoService<T> extends Service {
     ) => serviceTableName,
     dealEmptyString = true
   ): Promise<number> {
-    return this.updateById(this.filterEmptyAndTransient(data, true, dealEmptyString), transction, tableName);
+    this.app.throwIf(!data[this.idName], `_id must be set!${ this.tableName }`);
+    return await this.transction(async session => {
+      const filter = {
+        _id: data[this.idName]
+      };
+      const result = await this.getDb().collection(tableName(this.tableName)).updateOne(filter, {$set: this.filterEmptyAndTransient(data, true, dealEmptyString)}, {
+        session
+      });
+      return result.modifiedCount;
+    }, transction);
   }
   /**
    * 根据主键修改非空字段(undefined、null、空字符串)
@@ -582,7 +591,7 @@ export default abstract class BaseMongoService<T> extends Service {
     return await this.transction(async session => {
       let result = 0;
       for (const data of datas) {
-        result += await this.updateById(this.filterEmptyAndTransient(data, false), session, tableName);
+        result += await this.updateById(data, session, tableName);
       }
       return result;
     }, transction);
@@ -613,7 +622,7 @@ export default abstract class BaseMongoService<T> extends Service {
     return await this.transction(async session => {
       let result = 0;
       for (const data of datas) {
-        result += await this.updateById(this.filterEmptyAndTransient(data, true, dealEmptyString), session, tableName);
+        result += await this.updateTemplateById(data, session, tableName, dealEmptyString);
       }
       return result;
     }, transction);

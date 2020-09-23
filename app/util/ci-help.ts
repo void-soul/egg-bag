@@ -52,12 +52,7 @@ export const ci = (serviceDistDir: string, resources?: string[], dirs?: string[]
   shell.rm('-rf', `./${ serviceDistDir }`);
   // tslint:disable-next-line: no-console
   console.log('[egg-bag] typescipt compile start');
-  if (config) {
-    shell.exec(`yarn tsc -p ${ config }`);
-  } else {
-    shell.exec('yarn tsc');
-  }
-
+  shell.exec(`yarn tsc ${ config }`);
   // tslint:disable-next-line: no-console
   console.log('[egg-bag] typescipt compile finished');
   // tslint:disable-next-line: no-console
