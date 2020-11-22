@@ -1,3 +1,4 @@
+import {lowerCase} from 'lodash';
 import {nanoid} from 'nanoid';
 
 export const uuid = (): string => {
@@ -22,6 +23,9 @@ export const emptyString = (source: any, dealEmptyString = true): boolean => {
     (dealEmptyString === true && (source === '' || `${ source }`.replace(/\s/g, '') === ''))
   );
 };
+export const eqString = (a: any, b: any): boolean => {
+  return lowerCase(`${ a }`) === lowerCase(`${ b }`);
+};
 
 export const notEmptyString = (source: any, dealEmptyString = true): boolean => {
   return emptyString(source, dealEmptyString) === false;
@@ -41,6 +45,16 @@ const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 const charLen = chars.length;
 export const randomString = (len: number): string => {
   return Array.from(new Array(len)).map(() => chars.charAt(Math.floor(Math.random() * charLen))).join('');
+};
+const chars2 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+const charLen2 = chars2.length;
+export const randomString2 = (len: number): string => {
+  return Array.from(new Array(len)).map(() => chars2.charAt(Math.floor(Math.random() * charLen2))).join('');
+};
+const chars3 = 'abcdefghijklmnopqrstuvwxyz0123456789';
+const charLen3 = chars3.length;
+export const randomString3 = (len: number): string => {
+  return Array.from(new Array(len)).map(() => chars3.charAt(Math.floor(Math.random() * charLen3))).join('');
 };
 export const buildWxStr = (data: {[key: string]: string}, maxLabelLength: number, ...titles: string[]) => {
   let str = titles.join('\r\n');

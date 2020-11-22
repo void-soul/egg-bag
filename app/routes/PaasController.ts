@@ -6,10 +6,10 @@ import lodash = require('lodash');
 const debug = require('debug')('egg-bag:auth');
 const query = {
   path: '/query.json',
-  method: ['get', 'post'],
+  method: 'get',
   before: [ILogin],
   async handel(this: Controller, {
-    query: {sqlCode, currentPage, pageSize, sortName, sortType, limitSelf},
+    query: {sqlCode, currentPage, pageSize, sortName, sortType, limitSelf, countSelf},
     queries
   }) {
     this.app.throwIf(!sqlCode, '没有指定sql语句编码!');
@@ -36,7 +36,41 @@ const query = {
       .pageNumber(currentPage)
       .pageSize(pageSize)
       .params(params)
-      .limitSelf(limitSelf);
+      .limitSelf(limitSelf)
+      .countSelf(countSelf);
+    if (sortName && sortType) {
+      page.orderBy(`${ sortName } ${ sortType }`);
+    }
+    return await page.select();
+  }
+};
+const query2 = {
+  path: '/query.json',
+  method: 'post',
+  before: [ILogin],
+  async handel(this: Controller, {
+    body: {sqlCode, currentPage, pageSize, sortName, sortType, limitSelf, countSelf},
+    body
+  }) {
+    this.app.throwIf(!sqlCode, '没有指定sql语句编码!');
+    const params: {
+      [key: string]: any;
+    } = {...body};
+    if (this.app.config.queryDefaultParam) {
+      for (const [name, key] of Object.entries(this.app.config.queryDefaultParam)) {
+        params[name] = lodash.get(
+          this.ctx.me,
+          key
+        );
+      }
+    }
+    const page = this.service.paasService
+      .pageQueryMe(sqlCode)
+      .pageNumber(currentPage)
+      .pageSize(pageSize)
+      .params(params)
+      .limitSelf(limitSelf)
+      .countSelf(countSelf);
     if (sortName && sortType) {
       page.orderBy(`${ sortName } ${ sortType }`);
     }
@@ -45,7 +79,7 @@ const query = {
 };
 const excel = {
   path: '/excel.xlsx',
-  method: ['get', 'post'],
+  method: 'get',
   excel: true,
   before: [ILogin],
   async handel(this: Controller, {
@@ -71,6 +105,43 @@ const excel = {
         params[item] = queries[item][0];
       }
     });
+    const page = this.service.paasService
+      .pageQueryMe(sqlCode)
+      .params(params);
+    if (sortName && sortType) {
+      page.orderBy(`${ sortName } ${ sortType }`);
+    }
+    await page.select();
+    return {
+      list: page.list,
+      config: this.app._globalValues.GlobalMap,
+      now: nowTime(),
+      me: this.ctx.me,
+      params
+    };
+  }
+};
+const excel2 = {
+  path: '/excel.xlsx',
+  method: 'post',
+  excel: true,
+  before: [ILogin],
+  async handel(this: Controller, {
+    body: {sqlCode, sortName, sortType},
+    body
+  }) {
+    this.app.throwIf(!sqlCode, '没有指定sql语句编码!');
+    const params: {
+      [key: string]: any;
+    } = {...body};
+    if (this.app.config.queryDefaultParam) {
+      for (const [name, key] of Object.entries(this.app.config.queryDefaultParam)) {
+        params[name] = lodash.get(
+          this.ctx.me,
+          key
+        );
+      }
+    }
     const page = this.service.paasService
       .pageQueryMe(sqlCode)
       .params(params);
@@ -90,9 +161,9 @@ const excel = {
 const queryMongo = {
   path: '/query-mongo.json',
   before: [ILogin],
-  method: ['get', 'post'],
+  method: 'get',
   async handel(this: Controller, {
-    query: {sqlCode, currentPage, pageSize, sortName, sortType, limitSelf},
+    query: {sqlCode, currentPage, pageSize, sortName, sortType, limitSelf, countSelf},
     queries
   }) {
     this.app.throwIf(!sqlCode, '没有指定sql语句编码!');
@@ -116,7 +187,38 @@ const queryMongo = {
       .pageNumber(currentPage)
       .pageSize(pageSize)
       .params(params)
-      .limitSelf(limitSelf);
+      .limitSelf(limitSelf)
+      .countSelf(countSelf);
+    if (sortName && sortType) {
+      page.orderByMongo(sortName, sortType === 'asc' ? 1 : -1);
+    }
+    return await page.select();
+  }
+};
+const queryMongo2 = {
+  path: '/query-mongo.json',
+  before: [ILogin],
+  method: 'post',
+  async handel(this: Controller, {
+    body: {sqlCode, currentPage, pageSize, sortName, sortType, limitSelf, countSelf},
+    body
+  }) {
+    this.app.throwIf(!sqlCode, '没有指定sql语句编码!');
+    const params: {
+      [key: string]: any;
+    } = {...body};
+    if (this.app.config.queryDefaultParam) {
+      for (const [name, key] of Object.entries(this.app.config.queryDefaultParam)) {
+        params[name] = this.ctx.me[key];
+      }
+    }
+    const page = this.service.paasMongoService
+      .pageQueryMe(sqlCode)
+      .pageNumber(currentPage)
+      .pageSize(pageSize)
+      .params(params)
+      .limitSelf(limitSelf)
+      .countSelf(countSelf);
     if (sortName && sortType) {
       page.orderByMongo(sortName, sortType === 'asc' ? 1 : -1);
     }
@@ -125,7 +227,7 @@ const queryMongo = {
 };
 const excelMongo = {
   path: '/excel-mongo.xlsx',
-  method: ['get', 'post'],
+  method: 'get',
   excel: true,
   before: [ILogin],
   async handel(this: Controller, {
@@ -164,9 +266,43 @@ const excelMongo = {
     };
   }
 };
+const excelMongo2 = {
+  path: '/excel-mongo.xlsx',
+  method: 'post',
+  excel: true,
+  before: [ILogin],
+  async handel(this: Controller, {
+    body: {sqlCode, sortName, sortType},
+    body
+  }) {
+    this.app.throwIf(!sqlCode, '没有指定sql语句编码!');
+    const params: {
+      [key: string]: any;
+    } = {...body};
+    if (this.app.config.queryDefaultParam) {
+      for (const [name, key] of Object.entries(this.app.config.queryDefaultParam)) {
+        params[name] = this.ctx.me[key];
+      }
+    }
+    const page = this.service.paasMongoService
+      .pageQueryMe(sqlCode)
+      .params(params);
+    if (sortName && sortType) {
+      page.orderByMongo(sortName, sortType === 'asc' ? 1 : -1);
+    }
+    await page.select();
+    return {
+      list: page.list,
+      config: this.app._globalValues.GlobalMap,
+      now: nowTime(),
+      me: this.ctx.me,
+      params
+    };
+  }
+};
 const now = {
   path: '/now.json',
-  method: ['get', 'post'],
+  method: 'get',
   handel({query: {minute, hour, day, week, month, year, format}}) {
     return dayjs()
       .add(minute || 0, 'minute')
@@ -179,21 +315,21 @@ const now = {
 };
 const unix = {
   path: '/unix.json',
-  method: ['get', 'post'],
+  method: 'get',
   handel() {
     return dayjs().unix();
   }
 };
 const stamp = {
   path: '/stamp.json',
-  method: ['get', 'post'],
+  method: 'get',
   handel() {
     return dayjs().valueOf();
   }
 };
 const today = {
   path: '/today.json',
-  method: ['get', 'post'],
+  method: 'get',
   handel({query: {minute, hour, day, week, month, year, format}}) {
     return dayjs()
       .add(minute || 0, 'minute')
@@ -206,14 +342,14 @@ const today = {
 };
 const phoneCode = {
   path: '/code.json',
-  method: ['get', 'post'],
+  method: 'get',
   async handel(this: Controller, {query: {phone}}: any) {
     return await this.service.paasService.sendCode(phone);
   }
 };
 const picCode = {
   path: '/pic-code.json',
-  method: ['get', 'post'],
+  method: 'get',
   type: 'image/svg+xml',
   async handel(this: Controller, {query: {key}}) {
     return await this.service.paasService.picCode(key);
@@ -221,21 +357,21 @@ const picCode = {
 };
 const getConfigJson = {
   path: '/GlobalValues.json',
-  method: ['get', 'post'],
+  method: 'get',
   handel(this: Controller) {
     return this.app._globalValues;
   }
 };
 const getWxIds = {
   path: '/wx-mini-ms-id.json',
-  method: ['get', 'post'],
+  method: 'get',
   handel(this: Controller, {query: {code}}) {
     return this.app.getWxMini(code).getTemplIds();
   }
 };
 const getWxQr = {
   path: '/wx-mini-qr.png',
-  method: ['get', 'post'],
+  method: 'get',
   type: 'image/png',
   async handel(this: Controller, {query: {model, page, fullpath, scene, png, code}}) {
     return this.app.getWxMini(code).getUnlimited({model, page, fullpath, scene, png});
@@ -243,7 +379,7 @@ const getWxQr = {
 };
 const wxDecrypt = {
   path: '/wx-decrypt',
-  method: ['get', 'post'],
+  method: 'get',
   before: [ILogin],
   handel(this: Controller, {query: {encryptedData, iv, code}}) {
     return this.app.getWxMini(code).decrypt({
@@ -255,7 +391,7 @@ const wxDecrypt = {
 };
 const fetchFlow = {
   path: '/fetch-flow',
-  method: ['get', 'post'],
+  method: 'post',
   before: [ILogin],
   async handel(this: Controller, {body: {flowPath, fromNodeId, fromNodeCode, biz, skipError}}) {
     return await this.service.paasService.fetchFlow({flowPath, fromNodeId, fromNodeCode, biz, skipError});
@@ -264,7 +400,7 @@ const fetchFlow = {
 
 const doFlow = {
   path: '/do-flow',
-  method: ['get', 'post'],
+  method: 'post',
   lock: true,
   before: [ILogin],
   async handel(this: Controller, {body: {flowPath, fromNodeId, fromNodeCode, actionId, actionCode, biz}}) {
@@ -273,7 +409,7 @@ const doFlow = {
 };
 const getFlowLine = {
   path: '/get-flow-line',
-  method: ['get', 'post'],
+  method: 'get',
   before: [ILogin],
   handel(this: Controller, {query: {flowCode, fromNodeId, fromNodeCode, actionId, actionCode}}) {
     return this.service.paasService.getLine({
@@ -301,7 +437,8 @@ export const routes = [
   now, phoneCode, picCode, getConfigJson, today, getWxIds, getWxQr, wxDecrypt, fetchFlow, doFlow, getFlowLine, unix, stamp
 ];
 export const querys = [
-  query, queryMongo, excel, excelMongo
+  query, queryMongo, excel, excelMongo,
+  query2, queryMongo2, excel2, excelMongo2
 ];
 export const sockets = [
   socketRoomOut, socketRoomIn

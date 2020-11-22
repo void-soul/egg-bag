@@ -1704,13 +1704,14 @@ export default abstract class BaseMongoService<T> extends Service {
         pageSize: number,
         pageNumber: number,
         limitSelf: boolean,
+        countSelf: boolean,
         query: PageQuery<L>,
         _orderBy?: string,
         orderMongo?: {[P in keyof L]: 1 | -1}
       ) => {
         if (limitSelf === false) {
           if (pageSize > 0) {
-            const pageItem = this.app._getSql<L>(this.ctx, false, sqlid, param) as MongoFilter<L>;
+            const pageItem = countSelf ? this.app._getSql<L>(this.ctx, true, sqlid, param) as MongoFilter<L> : this.app._getSql<L>(this.ctx, true, `${ sqlid }_count`, param) as MongoFilter<L>;
             const totalRow = await this.countBySql(
               pageItem,
               transction

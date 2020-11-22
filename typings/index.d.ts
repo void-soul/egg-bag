@@ -226,6 +226,7 @@ declare class PageQuery<T> {
   pageNumber(page: number): this;
   pageSize(size: number): this;
   limitSelf(limitSelf: boolean | string): this;
+  countSelf(countSelf: boolean | string): this;
   select(): Promise<this>;
 }
 export interface EnmuJson {
@@ -4313,6 +4314,8 @@ export const Before: (fn: () => (ctx: Context, next: () => Promise<any>) => Prom
 export const After: (fn: () => (ctx: Context, next: () => Promise<any>) => Promise<void>) => Decorator;
 /** controller方法相应的content-type*/
 export const ContentType: (value?: string) => Decorator;
+/** controller方法相应的content-name*/
+export const ContentName: (value?: string) => Decorator;
 /** controller上统一设置每个方法执行前的过滤器 */
 export const BeforeAll: (...fns: Array<() => (ctx: Context, next: () => Promise<any>) => Promise<void>>) => any;
 /** controller上统一设置每个方法执行后的过滤器 */
@@ -4342,6 +4345,14 @@ export function notEmptyString(source: any): boolean;
 export function safeString(source?: string): string;
 /** 生成指定位数的随机数 */
 export function randomNumber(len: number): string;
+/** 生成指定位数的随机字符串：字母数字:字母分大小写 */
+export function randomString(len: number): string;
+/** 生成指定位数的随机字符串：字母数字:字母只有大写 */
+export function randomString2(len: number): string;
+/** 生成指定位数的随机字符串：字母数字:字母只有小写 */
+export function randomString3(len: number): string;
+/** 两个字符串是否相等：忽略大小写 */
+export function eqString(a: any, b: any):boolean;
 /** 构建微信发送消息字符串 */
 export function buildWxStr(data: {[key: string]: string}, maxLabelLength: number, ...titles: string[]): string;
 /** 将枚举转换为json,例如GlobalValues */

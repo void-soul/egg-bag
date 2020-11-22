@@ -200,7 +200,6 @@ export default function (this: Context, order: WxRefHook) {
   }
 ```
 
-
 # 1.28.0
 
 增加脚本 sql 库
@@ -217,10 +216,10 @@ export function selectList(this:Context, param1, param2){
 
 使用方式和 mu 是一样的
 
-
 # 1.30.0
 
-增加导出interface: DbConnection,以后:
+增加导出 interface: DbConnection,以后:
+
 ```
 this.transction(async conn => {
   ...
@@ -234,7 +233,7 @@ this.transction(async conn => {
 
 `mdOrder.ts`
 
-``` javascript
+```javascript
 import {SqlScript, Context} from 'egg-bag';
 
 // 直接返回sql语句，用于查询 mysql
@@ -263,10 +262,9 @@ export const queryList: SqlScript = function<MdOrder> (this: Context) {
 };
 ```
 
-
 # 1.32.0
 
-支持ts的路径别名了
+支持 ts 的路径别名了
 
 `tsconfig.json`
 
@@ -283,62 +281,60 @@ export const queryList: SqlScript = function<MdOrder> (this: Context) {
 在项目中：
 
 ```javascript
-import initDataFlow from 'app/flow-help/init-data-flow';
+import initDataFlow from "app/flow-help/init-data-flow";
 ```
 
 # 1.33.0
 
-1. 方法缓存的key生成方法中，除了方法的原有参数外，还会追加当前 用户对象
-2. 方法缓存支持随当前用户session释放
+1. 方法缓存的 key 生成方法中，除了方法的原有参数外，还会追加当前 用户对象
+2. 方法缓存支持随当前用户 session 释放
 3. 增加`this.app.subSync`、`this.app.subASync`,可以动态订阅 异步、同步事件.
-4. 可通过配置`redis.clients`的`sub`以及`redis.conf: notify-keyspace-events "Ex"`,实现订阅过期key释放事件:`this.app.subSync(user|other-key)`
+4. 可通过配置`redis.clients`的`sub`以及`redis.conf: notify-keyspace-events "Ex"`,实现订阅过期 key 释放事件:`this.app.subSync(user|other-key)`
 5. `socket`断开时，不再重新登入` socket`监听缓存的`用户session`了,最明显的体验为：手动清空`redis`的`session`,客户端重新请求，发现会话过期，断开`socket`时，`redis`中不会再次出现刚才清掉的`session`了
-6. 当用户`session`过期时，会利用订阅机制 清空当时缓存 的 `userid`-`devid`的映射关系.前提是：登录前devid不是自己赋值，而是由bag赋值
-7. 修复原 同步消息 通过 context 无法发出的bug
-8. 增加`this.ctx.loginByDevid`方法，临时登录一个用户session，且不缓存
-9. 增加`this.ctx.emitASyncWithDevid`、`this.app.emitASyncWithDevid`,发布同步消息时,可以附带用户token,这样在消费消息时，可以获取`this.ctx.me`了
+6. 当用户`session`过期时，会利用订阅机制 清空当时缓存 的 `userid`-`devid`的映射关系.前提是：登录前 devid 不是自己赋值，而是由 bag 赋值
+7. 修复原 同步消息 通过 context 无法发出的 bug
+8. 增加`this.ctx.loginByDevid`方法，临时登录一个用户 session，且不缓存
+9. 增加`this.ctx.emitASyncWithDevid`、`this.app.emitASyncWithDevid`,发布同步消息时,可以附带用户 token,这样在消费消息时，可以获取`this.ctx.me`了
 10. 支付、退款增加一个参数，传入当前操作的`devid`，以便在处理回调时可以直接获取`this.ctx.me`
-
 
 # 1.33.4
 
 1. 修复`mongodb`的`update`错误
-2. 增加`base-service`的debug日志输出
-3. 修复打包`nuxt`配置时，因ts别名导致找不到用户自定义配置的问题
-4. 增加`app.emitASyncWithDevid`，可携带用户token进行发送异步消息，此时所有异步消息执行上下文会自动携带用户信息
-
+2. 增加`base-service`的 debug 日志输出
+3. 修复打包`nuxt`配置时，因 ts 别名导致找不到用户自定义配置的问题
+4. 增加`app.emitASyncWithDevid`，可携带用户 token 进行发送异步消息，此时所有异步消息执行上下文会自动携带用户信息
 
 # 1.33.5
-1. 方法缓存的key、clearKey方法都必须定义为箭头函数，不会再传入this（为了提高效率）
 
-
+1. 方法缓存的 key、clearKey 方法都必须定义为箭头函数，不会再传入 this（为了提高效率）
 
 # 1.35.0
-1. service增加clear方法
-2. 增加工作流支持：测试
 
+1. service 增加 clear 方法
+2. 增加工作流支持：测试
 
 # 1.36.0
 
 1. 增加流程分流节点
-2. 增加流程设计工具: `yarn bag flow [port]` 会启动一个简易http服务,默认端口4000.
-
+2. 增加流程设计工具: `yarn bag flow [port]` 会启动一个简易 http 服务,默认端口 4000.
 
 # 1.37.0
 
-1. 增加excel导出
-
+1. 增加 excel 导出
 
 # 1.37.5
 
-1. 增加数据库的incr、decr、incrBy、decrBy方法
-
+1. 增加数据库的 incr、decr、incrBy、decrBy 方法
 
 # 1.37.16
 
 1. 增加 insertOrUpdate 方法
 
-
 # 1.37.18
 
-1. 编译时支持指定其他tsconfig.json文件
+1. 编译时支持指定其他 tsconfig.json 文件
+
+# 1.38.0
+
+1. pageQuery 支持自定义条数 sql 语句
+2. 增加附件名称注解

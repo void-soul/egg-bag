@@ -7,6 +7,7 @@ const _orderBy = Symbol('orderBy');
 const _orderMongo = Symbol('_orderMongo');
 const _param = Symbol('param');
 const _limitSelf = Symbol('limitSelf');
+const _countSelf = Symbol('countSelf');
 /**
  *
  * 分页查询对象
@@ -18,6 +19,7 @@ export default class PageQuery<T> {
   totalPage: number;
   totalRow: number;
   private [_limitSelf] = false;
+  private [_countSelf] = false;
   private [_pageNumber] = 1;
   private [_pageSize] = 0;
   private [_orderBy]: string;
@@ -28,6 +30,7 @@ export default class PageQuery<T> {
     pageSize: number,
     pageNumber: number,
     limitSelf: boolean,
+    countSelf: boolean,
     query: PageQuery<T>,
     orderBy?: string,
     orderMongo?: {[P in keyof T]: 1 | -1},
@@ -38,6 +41,7 @@ export default class PageQuery<T> {
       pageSize: number,
       pageNumber: number,
       limitSelf: boolean,
+      countSelf: boolean,
       query: PageQuery<T>,
       orderBy?: string,
       orderMongo?: {[P in keyof T]: 1 | -1},
@@ -76,13 +80,17 @@ export default class PageQuery<T> {
     this[_limitSelf] = limitSelf === true || limitSelf === 'true';
     return this;
   }
-
+  countSelf(countSelf: boolean | string): this {
+    this[_countSelf] = countSelf === true || countSelf === 'true';
+    return this;
+  }
   async select(): Promise<this> {
     await this.search(
       this[_param],
       this[_pageSize],
       this[_pageNumber],
       this[_limitSelf],
+      this[_countSelf],
       this,
       this[_orderBy],
       this[_orderMongo]

@@ -25,7 +25,7 @@ export default abstract class BaseSchedule extends Subscription {
   singel = true;
   redis = true;
   key: string;
-  abstract async excute(): Promise<string>;
+  abstract excute(): Promise<string>;
   async subscribe() {
     if (!this.config.redis) {
       this.redis = false;

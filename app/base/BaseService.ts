@@ -4,7 +4,7 @@ import LambdaQuery from '../util/sql/LambdaQuery';
 import PageQuery from '../util/sql/PageQuery';
 import {Empty} from '../util/empty';
 import {notEmptyString} from '../util/string';
-import {SqlSession} from '../../typings';
+import {SqlSession, MongoFilter} from '../../typings';
 const debug = require('debug')('egg-bag:sql');
 const MethodDebug = function <T>() {
   return function (_target: any, propertyKey: string, descriptor: PropertyDescriptor) {
@@ -2378,65 +2378,58 @@ export default abstract class BaseService<T> extends Service {
         pageSize: number,
         pageNumber: number,
         limitSelf: boolean,
+        countSelf: boolean,
         query: PageQuery<L>,
         orderBy?: string
       ) => {
-        let sql = this.app._getSql(this.ctx, false, sqlid, {
-          ...param,
-          pageSize,
-          pageNumber,
-          limitSelf,
-          orderBy
-        });
-        if (limitSelf === false) {
-          sql = `SELECT _a.* FROM (${ sql }) _a `;
+        let sql: string | MongoFilter<unknown>;
+        if (limitSelf === true) {
+          Object.assign(param, {
+            limitStart: calc(pageNumber).sub(1).mul(pageSize).over(),
+            limitEnd: calc(pageSize).over(),
+            orderBy
+          });
+        }
+        // else {
+        //   Object.assign(param, {
+        //     pageSize,
+        //     pageNumber,
+        //     limitSelf,
+        //     countSelf,
+        //     orderBy
+        //   });
+        // }
+        sql = this.app._getSql(this.ctx, false, sqlid, param);
+        if (limitSelf !== true) {
+          if (countSelf !== true) {
+            sql = `SELECT _a.* FROM (${ sql }) _a `;
+          }
           if (orderBy) {
             sql = `${ sql } ORDER BY ${ orderBy }`;
           }
           if (pageSize > 0) {
-            sql = `${ sql } LIMIT ${ calc(pageNumber)
-              .sub(1)
-              .mul(pageSize)
-              .over() }, ${ pageSize }`;
+            sql = `${ sql } LIMIT ${ calc(pageNumber).sub(1).mul(pageSize).over() }, ${ pageSize }`;
           }
-          if (pageSize > 0) {
-            const sqlPage = this.app._getSql(this.ctx, true, sqlid, param);
-            const totalRow = await this.querySingelRowSingelColumnBySql<number>(
-              sqlPage as string,
-              param,
-              transction
-            );
-            query.totalRow = totalRow || 0;
-            query.totalPage = calc(query.totalRow)
-              .add(pageSize - 1)
-              .div(pageSize)
-              .round(0, 2)
-              .over();
+        }
+
+        if (pageSize > 0) {
+          let sqlPage: string | MongoFilter<unknown>;
+          if (countSelf === true) {
+            sqlPage = this.app._getSql(this.ctx, true, `${ sqlid }_count`, param);
+          } else {
+            sqlPage = this.app._getSql(this.ctx, true, sqlid, param);
           }
-        } else {
-          Object.assign(param, {
-            limitStart: calc(pageNumber)
-              .sub(1)
-              .mul(pageSize)
-              .over(),
-            limitEnd: calc(pageSize).over(),
-            orderBy
-          });
-          sql = this.app._getSql(this.ctx, false, sqlid, param);
-          if (pageSize > 0) {
-            const sqlPage = this.app._getSql(this.ctx, true, sqlid, param);
-            const totalRow = await this.querySingelRowSingelColumnBySql<number>(
-              sqlPage as string,
-              param,
-              transction
-            );
-            query.totalRow = totalRow || 0;
-            query.totalPage = calc(query.totalRow)
-              .add(pageSize - 1)
-              .div(pageSize)
-              .round(0, 2)
-              .over();
-          }
+          const totalRow = await this.querySingelRowSingelColumnBySql<number>(
+            sqlPage as string,
+            param,
+            transction
+          );
+          query.totalRow = totalRow || 0;
+          query.totalPage = calc(query.totalRow)
+            .add(pageSize - 1)
+            .div(pageSize)
+            .round(0, 2)
+            .over();
         }
         query.list = await this.queryMutiRowMutiColumnBySql<L>(sql as string, param, transction);
       }
