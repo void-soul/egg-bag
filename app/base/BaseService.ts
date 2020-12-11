@@ -175,11 +175,13 @@ export default abstract class BaseService<T> extends Service {
     dealEmptyString = true
   ): Promise<number> {
     return await this.transction(async (conn) => {
+      const columns = new Set<keyof T>();
+      const prependData = this.filterEmptyAndTransient<T>(data, true, dealEmptyString, columns);
       const result = await conn.insert<T>(
         tableName(this.tableName),
-        this.filterEmptyAndTransient<T>(data, true, dealEmptyString),
+        prependData,
         {
-          columns: this.keys
+          columns: Array.from(columns)
         }
       );
       return result.insertId;
@@ -565,12 +567,14 @@ export default abstract class BaseService<T> extends Service {
       const result = new Array<number>();
       const table = tableName(this.tableName);
       const length = Math.ceil(datas.length / this.max);
+      const columns = new Set<keyof T>();
       for (let i = 0; i < length; i++) {
+        const prependDatas = this.filterEmptyAndTransients<T>(datas.slice(i * this.max, (i + 1) * this.max), true, dealEmptyString, columns);
         const ret = await conn.insert<T>(
           table,
-          this.filterEmptyAndTransients<T>(datas.slice(i * this.max, (i + 1) * this.max), true, dealEmptyString),
+          prependDatas,
           {
-            columns: this.keys
+            columns: Array.from(columns)
           }
         );
         result.push(ret.insertId);
@@ -690,9 +694,10 @@ export default abstract class BaseService<T> extends Service {
     }
     return await this.transction(async (conn) => {
       const options = new Array<any>();
+      const columnInsert = new Set<keyof T>();
       datas.forEach((item) => {
         const where: {[P in keyof T]?: T[P]} = {};
-        const realData = this.filterEmptyAndTransient<T>(item, true, dealEmptyString);
+        const realData = this.filterEmptyAndTransient<T>(item, true, dealEmptyString, columnInsert);
         columns.forEach((column) => {
           if (notEmptyString(realData[column])) {
             where[column] = realData[column];
@@ -706,11 +711,12 @@ export default abstract class BaseService<T> extends Service {
       const result = new Array<number>();
       const table = tableName(this.tableName);
       const length = Math.ceil(options.length / this.max);
+      const keys = Array.from(columnInsert);
       for (let i = 0; i < length; i++) {
         const ret = await conn.insertIF<T>(
           table,
           options.slice(i * this.max, (i + 1) * this.max),
-          this.keys
+          keys
         );
 
         result.push(ret.insertId);
@@ -2605,15 +2611,21 @@ export default abstract class BaseService<T> extends Service {
    * @param {*} source
    * @returns {T}
    */
-  private filterEmptyAndTransient<L>(source: any, skipEmpty = true, dealEmptyString = true): {[P in keyof L]?: L[P]} {
+  private filterEmptyAndTransient<L>(source: any, skipEmpty = true, dealEmptyString = true, columns?: Set<keyof T>): {[P in keyof L]?: L[P]} {
     const result: {[P in keyof L]?: L[P]} = {};
     this.keys.forEach((key) => {
       if (skipEmpty === true) {
         if (notEmptyString(source[key], dealEmptyString)) {
           result[key as any] = source[key];
+          if (columns) {
+            columns.add(key);
+          }
         }
       } else {
         result[key as any] = source[key];
+        if (columns) {
+          columns.add(key);
+        }
       }
     });
     return result;
@@ -2626,10 +2638,10 @@ export default abstract class BaseService<T> extends Service {
    * @param {*} source
    * @returns {T}
    */
-  private filterEmptyAndTransients<L>(source: any[], skipEmpty = true, dealEmptyString = true): {[P in keyof L]?: L[P]}[] {
+  private filterEmptyAndTransients<L>(source: any[], skipEmpty = true, dealEmptyString = true, columns?: Set<keyof T>): {[P in keyof L]?: L[P]}[] {
     const result = new Array<{[P in keyof L]?: L[P]}>();
     source.forEach((item) => {
-      result.push(this.filterEmptyAndTransient<L>(item, skipEmpty, dealEmptyString));
+      result.push(this.filterEmptyAndTransient<L>(item, skipEmpty, dealEmptyString, columns));
     });
     return result;
   }
