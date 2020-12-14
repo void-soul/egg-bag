@@ -753,6 +753,30 @@ export default abstract class BaseMongoService<T> extends Service {
     }, transction);
   }
   /**
+   *
+   * 一次性删除多个主键
+   * @param {any[]} ids
+   * @param {*} [transction=true]
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName]
+   * @returns {Promise<number[]>}
+   */
+  @MethodDebug()
+  async deleteByIds(
+    ids: any[],
+    transction?: MongoSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName
+  ): Promise<number[]> {
+    const result = new Array<number>();
+    for (const id of ids) {
+      result.push(await this.deleteById(id, transction, tableName));
+    }
+    return result;
+  }
+  /**
    * 根据主键查询，若查询不到结果，抛出异常
    * @param {*} id
    * @param {*} [transction] 独立事务

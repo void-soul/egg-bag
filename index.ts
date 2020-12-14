@@ -10,7 +10,7 @@ import {num, max, min, div, add, mul, sub, round, merge, MoneyStyle, money, calc
 import {dateTime, dateXSDTime, date, nowTime, nowDate, nowTimeXSD} from './app/util/now';
 import {copyBean, convertBean, convertBeans, emptyBean, createBeanFromArray, coverComplexBean, fixEmptyPrototy} from './app/util/object';
 import SetEx from './app/util/SetEx';
-import {DataSource, Mongo, Transient, BuildData, TransientMeda, LogicDelete} from './app/util/shell-extend';
+import {DataSource, Mongo, Transient, BuildData, TransientMeda, LogicDelete, CTR} from './app/util/shell-extend';
 import {Render, Get, Post, Put, Delete, Patch, Options, Head, IO, Before, After, BeforeAll, AfterAll, Prefix, ContentType, ContentName, Lock, Excel} from './app/util/shell';
 import {uuid, getPicKey, emptyString, notEmptyString, safeString, randomNumber, randomString, randomString2, randomString3, eqString, buildWxStr, replaceChineseCode} from './app/util/string';
 import BaseSchedule from './app/base/BaseSchedule';
@@ -18,7 +18,7 @@ import ILogin from './app/middleware/ILogin';
 import SocketConfig from './app/enums/SocketConfig';
 import {ci} from './app/util/ci-help';
 import {enumToJson} from './app/util/enumUtil';
-import {ContextMethodCache} from './app/util/method-enhance';
+import {ContextMethodCache, CTM} from './app/util/method-enhance';
 import {FlowContext, Flow, FlowNode, FlowNodeStart, FlowNodeSystem, FlowNodeEnd, FlowNodeAuto, FlowNodeChild, FlowNodeShunt} from './app/util/flow';
 export = {
   ...egg,
@@ -35,7 +35,7 @@ export = {
   dateTime, dateXSDTime, date, nowTime, nowDate, nowTimeXSD,
   copyBean, convertBean, convertBeans, emptyBean, createBeanFromArray, coverComplexBean, fixEmptyPrototy,
   SetEx,
-  DataSource, Mongo, Transient, BuildData, TransientMeda, LogicDelete,
+  DataSource, Mongo, Transient, BuildData, TransientMeda, LogicDelete, CTR,
   Render, Get, Post, Put, Delete, Patch, Options, Head, IO, ContentType, ContentName, Before, After, BeforeAll, AfterAll, Prefix, Lock, Excel,
   uuid, getPicKey, emptyString, notEmptyString, safeString, randomNumber, randomString, randomString2, randomString3, eqString, buildWxStr, replaceChineseCode,
   BaseSchedule,
@@ -47,7 +47,7 @@ export = {
     SOCKET_USER: SocketConfig.SOCKET_USER.value(),
     SOCKET_DEV: SocketConfig.SOCKET_DEV.value()
   },
-  ContextMethodCache,
+  ContextMethodCache, CTM,
   FlowContext, Flow, FlowNode, FlowNodeStart, FlowNodeSystem, FlowNodeEnd, FlowNodeAuto, FlowNodeChild, FlowNodeShunt
 };
 

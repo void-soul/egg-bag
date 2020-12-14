@@ -954,8 +954,8 @@ interface EggSocketNameSpace extends SocketNameSpace {
 interface EggIOServer extends SocketServer {
   of(nsp: string): EggSocketNameSpace;
 }
-interface CustomMiddleware {}
-interface CustomController {}
+interface CustomMiddleware { }
+interface CustomController { }
 interface EggSocketIO {
   middleware: CustomMiddleware;
   controller: CustomController;
@@ -1497,6 +1497,17 @@ export abstract class BaseMongoService<T> extends Service {
    * @returns
    */
   deleteById(id: any, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
+ *
+ * 一次性删除多个主键
+ * @param {any[]} ids
+ * @param {*} [transction=true]
+ * @param {(serviceTableName: string) => string} [tableName=(
+ *       serviceTableName: string
+ *     ) => serviceTableName]
+ * @returns {Promise<number[]>}
+ */
+  deleteByIds(ids: any[], transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number[]>;
   /**
    * 根据主键查询，若查询不到结果，抛出异常
    * @param {*} id
@@ -4286,6 +4297,12 @@ export function BuildData(target: any, emptySkip?: boolean): any;
 export const TransientMeda: symbol;
 /** service的逻辑删除设置 */
 export function LogicDelete(stateFileName: string, deleteState?: string);
+/** 定义一个controller */
+export function CTR({path, before, after}: {
+  path?: string | undefined;
+  before?: (() => (ctx: Context, next: () => Promise<any>) => Promise<void>)[] | undefined;
+  after?: (() => (ctx: Context, next: () => Promise<any>) => Promise<void>)[] | undefined;
+});
 /** controller方法上添加锁，只支持单个会话不能重复请求同一个接口 */
 export const Lock: () => Decorator;
 /** controller方法标记为view渲染 */
@@ -4333,6 +4350,14 @@ export const ContextMethodCache: (config: {
   /** 随着当前用户sesion的清空而一起清空 */
   clearWithSession?: boolean;
 }) => Decorator;
+/** service、controller的方法缓存设置 */
+export const CTM: (config: {
+  path?: string;
+  before?: Array<() => (ctx: Context, next: () => Promise<any>) => Promise<void>>;
+  after?: Array<() => (ctx: Context, next: () => Promise<any>) => Promise<void>>;
+  methods: Array<'Render' | 'Get' | 'Post' | 'Put' | 'Delete' | 'Patch' | 'Options' | 'Head' | 'IO'>;
+  renderView?: string;
+}) => Decorator;
 /** 生成uuid */
 export function uuid(): string;
 /** 从http://127.0.0.1?key=3333得到key的值  */
@@ -4352,7 +4377,7 @@ export function randomString2(len: number): string;
 /** 生成指定位数的随机字符串：字母数字:字母只有小写 */
 export function randomString3(len: number): string;
 /** 两个字符串是否相等：忽略大小写 */
-export function eqString(a: any, b: any):boolean;
+export function eqString(a: any, b: any): boolean;
 /** 构建微信发送消息字符串 */
 export function buildWxStr(data: {[key: string]: string}, maxLabelLength: number, ...titles: string[]): string;
 /** 将枚举转换为json,例如GlobalValues */

@@ -1,7 +1,8 @@
 import 'reflect-metadata';
+import {Context} from 'vm';
 const transientMeda = Symbol('Transient');
 
-export class DataConfigDefined {}
+export class DataConfigDefined { }
 function dataSource() {
   return (clazz: any, tableName: string, ...idNames: string[]) => {
     return <T extends {new(...args: any[]): any}>(constructor: T) => {
@@ -65,6 +66,21 @@ function buildData(target: any, emptySkip = false) {
   return data;
 }
 
+
+/**
+ * Controller
+ * @param param0
+ */
+export function CTR({path, before, after}: {path?: string, before?: Array<() => (ctx: Context, next: () => Promise<any>) => Promise<void>>, after?: Array<() => (ctx: Context, next: () => Promise<any>) => Promise<void>>}) {
+  return <T extends {new(...args: any[]): any}>(constructor: T) => {
+    return class extends constructor {
+      __mvcPath = path;
+      __mvcBefore = before;
+      __mvcAfter = after;
+    };
+  };
+}
+
 /* tslint:disable-next-line */
 export const DataSource = dataSource();
 /* tslint:disable-next-line */
@@ -77,3 +93,4 @@ export const BuildData = buildData;
 export const TransientMeda = transientMeda;
 /* tslint:disable-next-line */
 export const LogicDelete = logicDelete();
+

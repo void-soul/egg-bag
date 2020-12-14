@@ -28,11 +28,11 @@ export default {
           if (users) {
             for (const oneUser of users) {
               if (oneUser.devid !== user.devid && (!this.app.config.socket!.dickUser || this.app.config.socket!.dickUser(oneUser, user))) {
-                this.dickOut(oneUser, this.request.ip).then(() => {}).catch(() => {});
+                this.dickOut(oneUser, this.request.ip).then(() => { }).catch(() => { });
               }
             }
           }
-        }).catch(() => {});
+        }).catch(() => { });
       }
     }
     // cookie方式设置devid，header不需要服务器设置
@@ -42,11 +42,11 @@ export default {
     user.client_online = true;
     switch (this.app._cacheIO) {
       case 'cookie':
-        this.setCache(user.devid, this.app.stringifyUser(user)).then(() => {}).catch(() => {});
+        this.setCache(user.devid, this.app.stringifyUser(user)).then(() => { }).catch(() => { });
         break;
       case 'redis':
-        this.setCache(user.devid, this.app.stringifyUser(user), 'user', this.app.config.session && this.app.config.session.sessionMinutes).then(() => {}).catch(() => {});
-        this.app.redis.get('user').sadd(`user-devid-${ user.userid }`, user.devid).then(() => {}).catch(() => {});
+        this.setCache(user.devid, this.app.stringifyUser(user), 'user', this.app.config.session && this.app.config.session.sessionMinutes).then(() => { }).catch(() => { });
+        this.app.redis.get('user').sadd(`user-devid-${ user.userid }`, user.devid).then(() => { }).catch(() => { });
         if (newUser) {
           this.app.subSync(`user-${ user.devid }`, async () => {
             await this.app.redis.get('user').srem(`user-devid-${ user.userid }`, user.devid!);
@@ -55,7 +55,7 @@ export default {
         }
         break;
       case 'memory':
-        this.setCache(user.devid, this.app.stringifyUser(user)).then(() => {}).catch(() => {});
+        this.setCache(user.devid, this.app.stringifyUser(user)).then(() => { }).catch(() => { });
         break;
     }
     if (notify === true) {
@@ -100,7 +100,7 @@ export default {
         // eslint-disable-next-line no-case-declarations
         const result = new Array<BaseUser>();
         for (const devid of devids) {
-          result.push(this.getUser(devid));
+          result.push(await this.getUser(devid));
         }
         return result;
     }

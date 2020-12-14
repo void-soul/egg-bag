@@ -119,3 +119,13 @@ export function ContextMethodCache(config: {
     }
   };
 }
+
+export function CTM(config: {
+  path?: string;
+  before?: Array<() => (ctx: Context, next: () => Promise<any>) => Promise<void>>;
+  after?: Array<() => (ctx: Context, next: () => Promise<any>) => Promise<void>>;
+  methods: Array<'Render' | 'Get' | 'Post' | 'Put' | 'Delete' | 'Patch' | 'Options' | 'Head' | 'IO'>;
+  renderView?: string;
+}) {
+  console.log(config);
+}
