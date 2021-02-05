@@ -48,12 +48,12 @@ const flow = async (port: number) => {
         data = `{ fields: [], specils: [], areas: {}, lines: {}, nodes: {} }`;
       }
       const result = Mustache.render(html, {data, code});
-      reply
+      void reply
         .code(200)
         .header('Content-Type', 'text/html; charset=UTF-8')
         .send(result);
     } else {
-      reply.code(404).send('no code!');
+      void reply.code(404).send('no code!');
     }
   });
 
@@ -71,9 +71,9 @@ export default class extends ${ type }<?, ?>{
 }`);
       }
       launch(nodeFile, 'code');
-      reply.code(200).send(1);
+      void reply.code(200).send(1);
     } else {
-      reply.code(404).send(`${ code }/${ node }.ts`);
+      void reply.code(404).send(`${ code }/${ node }.ts`);
     }
   });
 
@@ -89,9 +89,9 @@ export default class extends ${ type }<?, ?>{
         mdDir(join(baseDir, 'flow', code));
       }
       writeFileSync(dataPath, content, {encoding: 'utf-8'});
-      reply.code(200).send(1);
+      void reply.code(200).send(1);
     } else {
-      reply.code(404).send(code);
+      void reply.code(404).send(code);
     }
   });
 

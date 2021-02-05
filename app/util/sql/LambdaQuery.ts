@@ -1,4 +1,5 @@
 import {Empty} from '../empty';
+import {add} from '../math';
 export default class LambdaQuery<T> {
   private andQuerys: LambdaQuery<T>[] = [];
   private orQuerys: LambdaQuery<T>[] = [];
@@ -38,6 +39,12 @@ export default class LambdaQuery<T> {
     value: T[keyof T]
   ): this {
     return this.common(key, value, '=');
+  }
+  andEqT(t: {[P in keyof T]?: T[P]}): this {
+    for (const [key, value] of Object.entries(t)) {
+      this.common(key as any, value, '=');
+    }
+    return this;
   }
   andNotEq(
     key: keyof T,
@@ -143,7 +150,12 @@ export default class LambdaQuery<T> {
     this.param[pkey] = value;
     return this;
   }
-
+  andPowWith(key: keyof T, ...values: Array<number | string>) {
+    return this.andPow(key, add(...values.map(value => Math.pow(2, +value))));
+  }
+  andNotPowWith(key: keyof T, ...values: Array<number | string>) {
+    return this.andNotPow(key, add(...values.map(value => Math.pow(2, +value))));
+  }
   groupBy(key: keyof T): this {
     this.group.push(key);
     return this;
@@ -168,6 +180,11 @@ export default class LambdaQuery<T> {
     this.pageSize = pageSize;
     return this;
   }
+  page(pageNumber: number, pageSize: number): this {
+    this.startRow = ((pageNumber || 1) - 1) * pageSize;
+    this.pageSize = pageSize;
+    return this;
+  }
   where(): string {
     return this.condition.join(' ');
   }
@@ -179,8 +196,7 @@ export default class LambdaQuery<T> {
     return this;
   }
   async select(...columns: (keyof T)[]): Promise<T[]> {
-    let sql = `SELECT ${
-      columns && columns.length > 0 ? columns.join(',') : '*'
+    let sql = `SELECT ${ columns && columns.length > 0 ? columns.join(',') : '*'
       } FROM ${ this.table } `;
     sql += `WHERE 1 = 1 ${ this.where() } `;
     if (this.orQuerys.length > 0) {
@@ -277,6 +293,66 @@ export default class LambdaQuery<T> {
     const one = await this.one(key);
     if (one) {
       return one[key] as K;
+    }
+  }
+  async sum(key: keyof T): Promise<number> {
+    let sql = `SELECT SUM(${ key }) ct FROM ${ this.table } `;
+    sql += `WHERE 1 = 1 ${ this.where() } `;
+    if (this.orQuerys.length > 0) {
+      for (const query of this.orQuerys) {
+        sql += ` OR (${ query.where() }) `;
+      }
+    }
+    if (this.andQuerys.length > 0) {
+      for (const query of this.andQuerys) {
+        sql += ` AND (${ query.where() }) `;
+      }
+    }
+    const data = await this.search(sql, this.param);
+    if (data.length > 0) {
+      return (data[0] as unknown as {ct: number}).ct;
+    } else {
+      return 0;
+    }
+  }
+  async avg(key: keyof T): Promise<number> {
+    let sql = `SELECT AVG(${ key }) ct FROM ${ this.table } `;
+    sql += `WHERE 1 = 1 ${ this.where() } `;
+    if (this.orQuerys.length > 0) {
+      for (const query of this.orQuerys) {
+        sql += ` OR (${ query.where() }) `;
+      }
+    }
+    if (this.andQuerys.length > 0) {
+      for (const query of this.andQuerys) {
+        sql += ` AND (${ query.where() }) `;
+      }
+    }
+    const data = await this.search(sql, this.param);
+    if (data.length > 0) {
+      return (data[0] as unknown as {ct: number}).ct;
+    } else {
+      return 0;
+    }
+  }
+  async groupConcat(key: keyof T, param?: {distinct?: boolean, separator?: string}): Promise<string> {
+    let sql = `SELECT GROUP_CONCAT(${ param && param.distinct ? 'DISTINCT' : '' } ${ key } ${ this.order.length > 0 ? `ORDER BY ${ this.order.join(',') } ` : '' } SEPARATOR '${ param && param.separator || ',' }') ct FROM ${ this.table } `;
+    sql += `WHERE 1 = 1 ${ this.where() } `;
+    if (this.orQuerys.length > 0) {
+      for (const query of this.orQuerys) {
+        sql += ` OR (${ query.where() }) `;
+      }
+    }
+    if (this.andQuerys.length > 0) {
+      for (const query of this.andQuerys) {
+        sql += ` AND (${ query.where() }) `;
+      }
+    }
+    const data = await this.search(sql, this.param);
+    if (data.length > 0) {
+      return (data[0] as unknown as {ct: string}).ct;
+    } else {
+      return '';
     }
   }
   private nil(key: keyof T, not = ''): this {

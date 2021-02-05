@@ -36,15 +36,35 @@ declare class Bus {
   over(): number;
   /** 计算结果，返回金钱格式化 */
   money(style?: MoneyStyle, currency?: string, prefix?: number, def?: number): string;
+  /** <= */
+  le(data: any): boolean;
+  /** < */
+  lt(data: any): boolean;
+  /** >= */
+  ge(data: any): boolean;
+  /** > */
+  gt(data: any): boolean;
+  /** === */
+  eq(data: any): boolean;
+  /** !== */
+  ne(data: any): boolean;
+  /** !<= */
+  nle(data: any): boolean;
+  /** !< */
+  nlt(data: any): boolean;
+  /** !>= */
+  nge(data: any): boolean;
+  /** !> */
+  ngt(data: any): boolean;
 }
 /** 仿java lambda 查询 */
 declare class LambdaQuery<T> {
-  constructor (table: string, search: (sql: string, param: Empty) => Promise<T[]>, findCount: (sql: string, param: Empty) => Promise<number>, excute: (sql: string, param: Empty) => Promise<number>);
-  /** and 另一个query对象的条件 */
   and(lambda: LambdaQuery<T>): this;
-  /** or 另一个query对象的条件 */
   or(lambda: LambdaQuery<T>): this;
   andEq(key: keyof T, value: T[keyof T]): this;
+  andEqT(t: {
+    [P in keyof T]?: T[P];
+  }): this;
   andNotEq(key: keyof T, value: T[keyof T]): this;
   andGreat(key: keyof T, value: T[keyof T]): this;
   andGreatEq(key: keyof T, value: T[keyof T]): this;
@@ -58,52 +78,56 @@ declare class LambdaQuery<T> {
   andNotRightLike(key: keyof T, value: T[keyof T]): this;
   andIsNull(key: keyof T): this;
   andIsNotNull(key: keyof T): this;
-  andIn(key: keyof T, value: Array<string | boolean | number>): this;
-  andNotIn(key: keyof T, value: Array<string | boolean | number>): this;
+  andIn(key: keyof T, value: T[keyof T][]): this;
+  andNotIn(key: keyof T, value: T[keyof T][]): this;
   andBetween(key: keyof T, value1: T[keyof T], value2: T[keyof T]): this;
   andNotBetween(key: keyof T, value1: T[keyof T], value2: T[keyof T]): this;
   andPow(key: keyof T, value: number): this;
   andNotPow(key: keyof T, value: number): this;
+  andPowWith(key: keyof T, ...values: Array<number | string>): this;
+  andNotPowWith(key: keyof T, ...values: Array<number | string>): this;
   groupBy(key: keyof T): this;
-  /** 指定要更新哪列 */
-  updateColumn(key: keyof T, value: T[keyof T]): this;
-  asc(...keys: Array<keyof T>): this;
-  desc(...keys: Array<keyof T>): this;
+  asc(...keys: (keyof T)[]): this;
+  desc(...keys: (keyof T)[]): this;
   limit(startRow: number, pageSize: number): this;
-  /** 获取此query的条件字符串 */
+  page(pageNumber: number, pageSize: number): this;
   where(): string;
-  /** 查询所有列或者某些列，结果是多条记录 */
-  select(...columns: Array<keyof T>): Promise<T[]>;
-  /** 查询所有列或者某些列，结果只有一条记录 */
-  one(...columns: Array<keyof T>): Promise<T | undefined>;
-  /** 查询当前条件下记录数 */
+  updateColumn(key: keyof T, value: T[keyof T]): this;
+  select(...columns: (keyof T)[]): Promise<T[]>;
+  one(...columns: (keyof T)[]): Promise<T | undefined>;
   count(): Promise<number>;
-  /** 更新指定条件为data，或者updateColumn指定的data */
   update(data?: T): Promise<number>;
-  /** 按当前条件进行删除 */
   delete(): Promise<number>;
-  /** 查询单列，并返回该列数组 */
   array<K extends T[keyof T]>(key: keyof T): Promise<K[]>;
-  /** 查询单列，并返回该列单一值 */
   singel<K extends T[keyof T]>(key: keyof T): Promise<K | undefined>;
+  sum(key: keyof T): Promise<number>;
+  avg(key: keyof T): Promise<number>;
+  groupConcat(key: keyof T, param?: {
+    distinct?: boolean;
+    separator?: string;
+  }): Promise<string>;
 }
 type JSType = 'double' | 'string' | 'object' | 'array' | 'binData' | 'undefined' | 'objectId' | 'bool' | 'date' | 'null' | 'regex' | 'javascript' | 'javascriptWithScope' | 'int' | 'timestamp' | 'long' | 'decimal' | 'minKey' | 'maxKey';
 declare class LambdaQueryMongo<T> {
   /** https://docs.mongodb.com/manual/reference/operator/query/eq/ */
   $eq(key: keyof T, value: T[keyof T]): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/eq/ */
+  $eqT(t: {
+    [P in keyof T]?: T[P];
+  }): this;
+  /** not  https://docs.mongodb.com/manual/reference/operator/query/eq/ */
   $$eq(key: keyof T, value: T[keyof T]): this;
-  /** https://docs.mongodb.com/manual/reference/operator/query/ne/ */
+  /**  https://docs.mongodb.com/manual/reference/operator/query/ne/ */
   $ne(key: keyof T, value: T[keyof T]): this;
-  /** https://docs.mongodb.com/manual/reference/operator/query/ne/ */
+  /** not https://docs.mongodb.com/manual/reference/operator/query/ne/ */
   $$ne(key: keyof T, value: T[keyof T]): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/gt/ */
   $gt(key: keyof T, value: T[keyof T]): this;
-  /** https://docs.mongodb.com/manual/reference/operator/query/gt/ */
+  /** not https://docs.mongodb.com/manual/reference/operator/query/gt/ */
   $$gt(key: keyof T, value: T[keyof T]): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/gte/ */
   $gte(key: keyof T, value: T[keyof T]): this;
-  /** https://docs.mongodb.com/manual/reference/operator/query/gte/ */
+  /** not https://docs.mongodb.com/manual/reference/operator/query/gte/ */
   $$gte(key: keyof T, value: T[keyof T]): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/in/ */
   $in(key: keyof T, value: Array<T[keyof T] | RegExp>): this;
@@ -111,15 +135,15 @@ declare class LambdaQueryMongo<T> {
   $$in(key: keyof T, value: Array<T[keyof T] | RegExp>): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/nin/ */
   $nin(key: keyof T, value: Array<T[keyof T] | RegExp>): this;
-  /** https://docs.mongodb.com/manual/reference/operator/query/nin/ */
+  /** not https://docs.mongodb.com/manual/reference/operator/query/nin/ */
   $$nin(key: keyof T, value: Array<T[keyof T] | RegExp>): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/lt/ */
   $lt(key: keyof T, value: T[keyof T]): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/lt/ */
   $$lt(key: keyof T, value: T[keyof T]): this;
-  /** https://docs.mongodb.com/manual/reference/operator/query/lte/ */
+  /**  https://docs.mongodb.com/manual/reference/operator/query/lte/ */
   $lte(key: keyof T, value: T[keyof T]): this;
-  /** https://docs.mongodb.com/manual/reference/operator/query/lte/ */
+  /** not https://docs.mongodb.com/manual/reference/operator/query/lte/ */
   $$lte(key: keyof T, value: T[keyof T]): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/and/ */
   $and(lambda: LambdaQueryMongo<T>): this;
@@ -131,27 +155,27 @@ declare class LambdaQueryMongo<T> {
   $elemMatch(lambda: LambdaQueryMongo<T>): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/exists/ */
   $exists(key: keyof T): this;
-  /** https://docs.mongodb.com/manual/reference/operator/query/exists/ */
+  /** not https://docs.mongodb.com/manual/reference/operator/query/exists/ */
   $$exists(key: keyof T): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/type/ */
   $type(key: keyof T, value: 'double' | 'string' | 'object' | 'array' | 'binData' | 'undefined' | 'objectId' | 'bool' | 'date' | 'null' | 'regex' | 'javascript' | 'javascriptWithScope' | 'int' | 'timestamp' | 'long' | 'decimal' | 'minKey' | 'maxKey'): this;
-  /** https://docs.mongodb.com/manual/reference/operator/query/type/ */
+  /** not https://docs.mongodb.com/manual/reference/operator/query/type/ */
   $$type(key: keyof T, value: 'double' | 'string' | 'object' | 'array' | 'binData' | 'undefined' | 'objectId' | 'bool' | 'date' | 'null' | 'regex' | 'javascript' | 'javascriptWithScope' | 'int' | 'timestamp' | 'long' | 'decimal' | 'minKey' | 'maxKey'): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/expr/ */
   $expr(value: {
     [name: string]: any;
   }): this;
-  /** https://docs.mongodb.com/manual/reference/operator/query/expr/ */
+  /** not https://docs.mongodb.com/manual/reference/operator/query/expr/ */
   $$expr(value: {
     [name: string]: any;
   }): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/mod/ */
   $mod(key: keyof T, value: number[]): this;
-  /** https://docs.mongodb.com/manual/reference/operator/query/mod/ */
+  /** not https://docs.mongodb.com/manual/reference/operator/query/mod/ */
   $$mod(key: keyof T, value: number[]): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/regex/ */
   $regex(key: keyof T, value: RegExp, options?: Set<'i' | 'm' | 'g' | 'x'>): this;
-  /** https://docs.mongodb.com/manual/reference/operator/query/regex/ */
+  /** not https://docs.mongodb.com/manual/reference/operator/query/regex/ */
   $$regex(key: keyof T, value: RegExp, options?: Set<'i' | 'm' | 'g' | 'x'>): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/text/ */
   $text(options: {
@@ -168,11 +192,12 @@ declare class LambdaQueryMongo<T> {
   $$all(key: keyof T, value: Array<T[keyof T]>): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/size/ */
   $size(key: keyof T, value: number): this;
-  /** https://docs.mongodb.com/manual/reference/operator/query/size/*/
+  /** not https://docs.mongodb.com/manual/reference/operator/query/size/*/
   $$size(key: keyof T, value: number): this;
   asc(...keys: Array<keyof T>): this;
   desc(...keys: Array<keyof T>): this;
   limit(startRow: number, pageSize: number): this;
+  page(pageNumber: number, pageSize: number): this;
   /**
    * 中断查询方法
    * @param {...string[]} columns
@@ -195,6 +220,8 @@ declare class LambdaQueryMongo<T> {
    * @memberof LambdaQueryMongo
    */
   count(): Promise<number>;
+  sum(key: keyof T): Promise<number>;
+  avg(key: keyof T): Promise<number>;
   /**
    * 中断更新方法
    * @param {T} data
@@ -209,9 +236,7 @@ declare class LambdaQueryMongo<T> {
    * @memberof LambdaQueryMongo
    */
   delete(): Promise<number>;
-  /** 查询单列，并返回该列数组 */
   array<K extends T[keyof T]>(key: keyof T): Promise<K[]>;
-  /** 查询单列，并返回该列单一值 */
   singel<K extends T[keyof T]>(key: keyof T): Promise<K | undefined>;
 }
 declare class PageQuery<T> {
@@ -766,6 +791,12 @@ export interface WxCreateOrderResult {
   prepay_id: string;
   code_url?: string;
   mweb_url?: string;
+  dataCacheId?: string;
+  devCacheId?: string;
+}/** 微信退款返回结果 */
+export interface WxRefResult {
+  dataCacheId?: string;
+  devCacheId?: string;
 }
 export interface WxOrderQuery {
   transaction_id?: string;
@@ -937,7 +968,7 @@ export interface WxPay {
    * @returns {Promise<void>}
    * @memberof WxPay
    */
-  refund(option: WxCreateRefundOrder, dataCache?: {[key: string]: any}, devid?: string): Promise<void>;
+  refund(option: WxCreateRefundOrder, dataCache?: {[key: string]: any}, devid?: string): Promise<WxRefResult>;
   /**
    *
    * https://pay.weixin.qq.com/wiki/doc/api/jsapi.php?chapter=9_5
@@ -946,6 +977,21 @@ export interface WxPay {
    * @memberof WxPay
    */
   refundquery(option: WxRefundOrderQuery): Promise<WxRefundOrder>;
+  /**
+   * 修改支付、退款时缓存的业务对象
+   * @param dataCache
+   * @param dataCacheId
+   */
+  resetDataCache(dataCache: {
+    [key: string]: any;
+  }, dataCacheId: string): Promise<void>;
+
+  /**
+   * 修改支付、退款时缓存的会话id
+   * @param devid
+   * @param devCacheId
+   */
+  resetDevIdCache(devid: string, devCacheId: string): Promise<void>;
 }
 interface EggSocketNameSpace extends SocketNameSpace {
   // Forward the event to the Controller
@@ -2083,15 +2129,15 @@ export abstract class BaseMongoService<T> extends Service {
 }
 export abstract class BaseService<T> extends Service {
   /**
-     * 插入所有列
-     * 返回自增主键或者0
-     * @param {T} data
-     * @param {*} [transction=true] 独立事务
-     * @param {(serviceTableName: string) => string} [tableName=(
-     *       serviceTableName: string
-     *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
-     * @returns
-     */
+    * 插入所有列
+    * 返回自增主键或者0
+    * @param {T} data
+    * @param {*} [transction=true] 独立事务
+    * @param {(serviceTableName: string) => string} [tableName=(
+    *       serviceTableName: string
+    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+    * @returns
+    */
   insert(data: {
     [P in keyof T]?: T[P];
   }, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
@@ -2563,7 +2609,7 @@ export abstract class BaseService<T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  incr(id: any, columnName: keyof T, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
+  incr(id: any, columnName: keyof T, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<T>;
   /**
    * 根据id主键，为某个值-1
    * @param {T[]} datas
@@ -2573,7 +2619,7 @@ export abstract class BaseService<T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  decr(id: any, columnName: keyof T, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
+  decr(id: any, columnName: keyof T, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<T>;
   /**
    * 根据id主键，为某个值-value
    * @param {T[]} datas
@@ -2583,7 +2629,19 @@ export abstract class BaseService<T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  decrBy(id: any, columnName: keyof T, value: number, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
+  decrBy(id: any, columnName: keyof T, value: number, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<T>;
+  /**
+    * 根据id主键，为某个值-value
+    * @param {T[]} datas
+    * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
+    * @param {(serviceTableName: string) => string} [tableName=(
+    *       serviceTableName: string
+    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+    * @returns
+    */
+  decrsBy(id: any, data: {
+    [P in keyof T]?: number;
+  }, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<T>;
   /**
     * 根据id主键，为某个值+value
     * @param {T[]} datas
@@ -2593,7 +2651,19 @@ export abstract class BaseService<T> extends Service {
     *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
     * @returns
     */
-  incrBy(id: any, columnName: keyof T, value: number, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
+  incrBy(id: any, columnName: keyof T, value: number, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<T>;
+  /**
+    * 根据id主键，为多个值+value
+    * @param {T[]} datas
+    * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
+    * @param {(serviceTableName: string) => string} [tableName=(
+    *       serviceTableName: string
+    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+    * @returns
+    */
+  incrsBy(id: any, data: {
+    [P in keyof T]?: number;
+  }, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<T>;
   /**
    * 根据复合id主键，为某个值+1
    * @param {T[]} datas
@@ -2603,9 +2673,9 @@ export abstract class BaseService<T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  incrMulite(data: {
+  incrMulite(ids: {
     [P in keyof T]?: T[P];
-  }, columnName: keyof T, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, columnName: keyof T, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<T>;
   /**
    * 根据复合id主键，为某个值-1
    * @param {T[]} datas
@@ -2615,9 +2685,9 @@ export abstract class BaseService<T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  decrMuti(data: {
+  decrMuti(ids: {
     [P in keyof T]?: T[P];
-  }, columnName: keyof T, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, columnName: keyof T, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<T>;
   /**
    * 根据复合id主键，为某个值-value
    * @param {T[]} datas
@@ -2627,9 +2697,9 @@ export abstract class BaseService<T> extends Service {
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
    * @returns
    */
-  decrMutiBy(data: {
+  decrMutiBy(ids: {
     [P in keyof T]?: T[P];
-  }, columnName: keyof T, value: number, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, columnName: keyof T, value: number, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<T>;
   /**
     * 根据复合id主键，为某个值+value
     * @param {T[]} datas
@@ -2639,9 +2709,23 @@ export abstract class BaseService<T> extends Service {
     *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
     * @returns
     */
-  incrMutiBy(data: {
+  incrMutiBy(ids: {
     [P in keyof T]?: T[P];
-  }, columnName: keyof T, value: number, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
+  }, columnName: keyof T, value: number, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<T>;
+  /**
+     * 根据复合id主键，为某个值+value
+     * @param {T[]} datas
+     * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
+     * @param {(serviceTableName: string) => string} [tableName=(
+     *       serviceTableName: string
+     *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+     * @returns
+     */
+  incrsMutiBy(ids: {
+    [P in keyof T]?: T[P];
+  }, data: {
+    [P in keyof T]?: number;
+  }, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<T>;
   /**
    *
    * 全部删除,如果service开启注解：logicDelete,那么将逻辑删除
@@ -2990,6 +3074,18 @@ export abstract class BaseService<T> extends Service {
   queryBySqlId<L>(sqlid: string, param?: {
     [propName: string]: any;
   }, transction?: SqlSession): Promise<L[]>;
+  /**
+ *
+ * 查询SQL语句的数字
+ * sql必须支持count
+ * @param {string} sqlid sql语句编码
+ * @param {{ [propName: string]: any }} [param]
+ * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+ * @returns number
+ */
+  queryCountBySqlId(sqlid: string, param?: {
+    [propName: string]: any;
+  } | undefined, transction?: SqlSession | undefined): Promise<number>;
   /**
    *
    * 执行数据库查询 ,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组,与sql语句的顺序对应
@@ -3478,6 +3574,14 @@ export abstract class FlowContext<D, M> {
   }
   /** 当前生效字段列表 */
   readonly field: FlowField;
+  /** 当前流程编码 */
+  readonly flowCode: string;
+  /** 本次操作起始节点编码 */
+  readonly fromNodeCode?: string;
+  /** 本次目标节点编码 */
+  readonly toNodeCode?: string;
+  /** 本次操作编码 */
+  readonly lineCode?: string;
 }
 /**
  * 流程定义
@@ -3789,6 +3893,8 @@ declare module 'egg' {
     }>;
   }
   interface EggAppConfig {
+    /** 禁止打开router列表/打印响应日志，prod默认关。dev默认开，其他环境手动配置 */
+    routerDebug?: boolean;
     /**
      *
      * 系统对外访问路径

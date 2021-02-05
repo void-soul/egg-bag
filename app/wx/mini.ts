@@ -98,9 +98,9 @@ export class WxMini extends BaseWx {
   }
   decrypt<T>({sessionKey, encryptedData, iv}: {iv: string; sessionKey: string; encryptedData: string}): T | undefined {
     this.app.throwIf(!sessionKey, '会话过期，请重新登陆!');
-    const sessionKeyBuf = new Buffer(sessionKey, 'base64');
-    const encryptedDataBuf = new Buffer(encryptedData, 'base64');
-    const ivBuf = new Buffer(iv, 'base64');
+    const sessionKeyBuf = Buffer.from(sessionKey, 'base64');
+    const encryptedDataBuf = Buffer.from(encryptedData, 'base64');
+    const ivBuf = Buffer.from(iv, 'base64');
     try {
       // 解密
       const decipher = crypto.createDecipheriv('aes-128-cbc', sessionKeyBuf, ivBuf);

@@ -28,6 +28,14 @@ export abstract class FlowContext<D, M> {
   readonly filterLineShow: {
     [lineCodeOrId: string]: boolean;
   }
+  /** 当前流程编码 */
+  readonly flowCode: string;
+  /** 本次操作起始节点编码 */
+  readonly fromNodeCode?: string;
+  /** 本次目标节点编码 */
+  readonly toNodeCode?: string;
+  /** 本次操作编码 */
+  readonly lineCode?: string;
 }
 /**
  * 流程定义
@@ -247,12 +255,14 @@ export class FlowExcute<D, M> {
         lineCode: 'unkonwn',
         lineLabel: 'unkonwn'
       });
+      lodash.assign(core.context, {lineCode: 'unkonwn'});
       if (!core.fromNode) {
         lodash.assign(core, {
           fromNodeCode: 'unkonwn',
           fromNodeId: 'unkonwn',
           fromNodeLabel: 'unkonwn'
         });
+        lodash.assign(core.context, {fromNodeCode: 'unkonwn'});
       }
     } else {
       this.throwIf(!core.fromNodeLines || core.fromNodeLines.length === 0, '起始节点没有任何出线');
@@ -350,7 +360,8 @@ export class FlowExcute<D, M> {
           logs: [],
           error: [],
           filterLineShow: {},
-          field: {}
+          field: {},
+          flowCode: srcFlowCode
         },
         flow: this.app._flowMap[appFlowCode],
         specialValue: ''
@@ -373,6 +384,7 @@ export class FlowExcute<D, M> {
           error: lodash.cloneDeep(this.cores[srcFlowCode].context.error),
           filterLineShow: this.cores[srcFlowCode].context.filterLineShow,
           field: lodash.cloneDeep(this.cores[srcFlowCode].context.field),
+          flowCode
         },
         flow: this.app._flowMap[appFlowCode],
         specialValue: ''
@@ -393,12 +405,12 @@ export class FlowExcute<D, M> {
         fromNodeLines: result.lines,
         fromNode: result.node
       });
+      lodash.assign(this.cores[this.activeCode].context, {
+        fromNodeCode: result.nodeConfig.code
+      });
     } else {
-      lodash.assign(this.cores[this.activeCode], {
-        fromNodeId: undefined,
-        fromNodeConfig: undefined,
-        fromNodeLines: undefined,
-        fromNode: undefined
+      lodash.assign(this.cores[this.activeCode].context, {
+        fromNodeCode: undefined
       });
     }
     return this;
@@ -412,12 +424,18 @@ export class FlowExcute<D, M> {
         toNodeLines: result.lines,
         toNode: result.node
       });
+      lodash.assign(this.cores[this.activeCode].context, {
+        toNodeCode: result.nodeConfig.code
+      });
     } else {
       lodash.assign(this.cores[this.activeCode], {
         toNodeId: undefined,
         toNodeConfig: undefined,
         toNodeLines: undefined,
         toNode: undefined
+      });
+      lodash.assign(this.cores[this.activeCode].context, {
+        toNodeCode: undefined
       });
     }
     return this;
@@ -430,12 +448,18 @@ export class FlowExcute<D, M> {
       toNodeLines: core.fromNodeLines,
       toNode: core.fromNode
     });
+    lodash.assign(this.cores[this.activeCode].context, {
+      toNodeCode: core.fromNodeConfig?.code
+    });
     if (copy === false) {
       lodash.assign(core, {
         fromNodeId: undefined,
         fromNodeConfig: undefined,
         fromNodeLines: undefined,
         fromNode: undefined
+      });
+      lodash.assign(this.cores[this.activeCode].context, {
+        fromNodeCode: undefined
       });
     }
     return this;
@@ -448,12 +472,18 @@ export class FlowExcute<D, M> {
       fromNodeLines: core.toNodeLines,
       fromNode: core.toNode
     });
+    lodash.assign(this.cores[this.activeCode].context, {
+      fromNodeCode: core.toNodeConfig?.code
+    });
     if (copy === false) {
       lodash.assign(core, {
         toNodeId: undefined,
         toNodeConfig: undefined,
         toNodeLines: undefined,
         toNode: undefined
+      });
+      lodash.assign(this.cores[this.activeCode].context, {
+        toNodeCode: undefined
       });
     }
     return this;
@@ -478,6 +508,7 @@ export class FlowExcute<D, M> {
       lineId: action.id,
       lineConfig: action.line
     });
+    lodash.assign(this.cores[this.activeCode].context, {lineCode: action.line.code});
     return this;
   }
   private async specilAndField(): Promise<this> {

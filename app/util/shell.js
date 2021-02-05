@@ -23,7 +23,7 @@ const EggShell = (app, options = {}) => {
   if (options.prefix) router.prefix(options.prefix);
   options.before = options.before || [];
   options.after = options.after || [];
-
+  const routerDebug = (app.config.env === 'prod' && app.config.routerDebug === true) || (app.config.env !== 'prod' && app.config.routerDebug !== false);
   for (const c of ctMap.values()) {
     if (!c.fullPath) {
       continue;
@@ -113,10 +113,22 @@ const EggShell = (app, options = {}) => {
                 result = 1;
                 instance[pName](ctx)
                   .then(_data => {
-                    ctx.app.emitTo('USER-', ctx.me.userid, event, {
-                      message: `${ title || message }处理完毕,${ message.replace('{{.}}', _data) }`,
-                      uri
-                    });
+                    if (_data === undefined || _data === null) {
+                      ctx.app.emitTo('USER-', ctx.me.userid, event, {
+                        message: `${ title || message }处理完毕`,
+                        uri
+                      });
+                    } else if (typeof _data === 'object') {
+                      ctx.app.emitTo('USER-', ctx.me.userid, event, {
+                        message: `${ title || message }处理完毕,${ message.replace(/\{\{([a-z0-9A-Z]+)\}\}/g, (a, b) => (_data[b] || '')) }`,
+                        uri
+                      });
+                    } else {
+                      ctx.app.emitTo('USER-', ctx.me.userid, event, {
+                        message: `${ title || message }处理完毕,${ message.replace('{{.}}', _data) }`,
+                        uri
+                      });
+                    }
                   })
                   .catch(error => {
                     app.coreLogger.error(error);
@@ -161,7 +173,7 @@ const EggShell = (app, options = {}) => {
               message: error.message
             };
           } finally {
-            if (ctx.app.config.env !== 'prod') {
+            if (routerDebug) {
               debug(`${ prefix + path } + ${ +new Date() - start }ms`);
             }
             if (lock === true && ctx.me && ctx.me.devid) {
@@ -197,13 +209,14 @@ const EggShell = (app, options = {}) => {
           }
         });
       }
-      if (app.config.env !== 'prod') {
+      if (routerDebug) {
         routers.push(`${ lock ? '[lock]' : '' }[${ reqMethod }]${ options.prefix === '/' ? '' : options.prefix }${ prefix + path }-->${ fullPath }.${ pName }`);
       }
     }
   }
 
-  if (app.config.env !== 'prod') {
+
+  if (routerDebug) {
     router.get('/~', function (ctx) {
       ctx.response.body = JSON.stringify(routers, null, 4);
     });

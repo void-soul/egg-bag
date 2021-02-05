@@ -1184,8 +1184,12 @@ export default abstract class BaseService<T> extends Service {
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
-  ): Promise<number> {
-    return await this.incrBy(id, columnName, 1, transction, tableName);
+  ): Promise<T> {
+    return await this.incrsMutiBy({
+      [this.idNames[0]]: id
+    } as any, {
+      [columnName]: 1
+    } as any, transction, tableName);
   }
   /**
    * 根据id主键，为某个值-1
@@ -1204,8 +1208,12 @@ export default abstract class BaseService<T> extends Service {
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
-  ): Promise<number> {
-    return await this.incrBy(id, columnName, -1, transction, tableName);
+  ): Promise<T> {
+    return await this.incrsMutiBy({
+      [this.idNames[0]]: id
+    } as any, {
+      [columnName]: -1
+    } as any, transction, tableName);
   }
   /**
    * 根据id主键，为某个值-value
@@ -1225,8 +1233,34 @@ export default abstract class BaseService<T> extends Service {
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
-  ): Promise<number> {
-    return await this.incrBy(id, columnName, 0 - value, transction, tableName);
+  ): Promise<T> {
+    return await this.incrsMutiBy({
+      [this.idNames[0]]: id
+    } as any, {
+      [columnName]: 0 - value
+    } as any, transction, tableName);
+  }
+  /**
+    * 根据id主键，为某个值-value
+    * @param {T[]} datas
+    * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
+    * @param {(serviceTableName: string) => string} [tableName=(
+    *       serviceTableName: string
+    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+    * @returns
+    */
+  @MethodDebug()
+  async decrsBy(
+    id: any,
+    data: {[P in keyof T]?: number},
+    transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName
+  ): Promise<T> {
+    return await this.incrsMutiBy({
+      [this.idNames[0]]: id
+    } as any, data, transction, tableName);
   }
   /**
     * 根据id主键，为某个值+value
@@ -1246,19 +1280,37 @@ export default abstract class BaseService<T> extends Service {
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
-  ): Promise<number> {
-    this.app.throwIfNot(
-      this.idNames.length === 1,
-      'this table is muti id(or not set id), please use deleteByIdMuti'
-    );
-    this.app.throwIf(!id, 'id must be set for deleteById');
-    return await this.transction(async (conn: any) => {
-      const result = await conn.query(`UPDATE ${ tableName(this.tableName) } SET ${ columnName } = IFNULL(${ columnName },0) + ${ value } WHERE ${ this.idNames[0] } = :id`, {
-        id
-      });
-      return result.affectedRows;
-    }, transction);
+  ): Promise<T> {
+    return await this.incrsMutiBy({
+      [this.idNames[0]]: id
+    } as any, {
+      [columnName]: value
+    } as any, transction, tableName);
   }
+
+  /**
+    * 根据id主键，为多个值+value
+    * @param {T[]} datas
+    * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
+    * @param {(serviceTableName: string) => string} [tableName=(
+    *       serviceTableName: string
+    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+    * @returns
+    */
+  @MethodDebug()
+  async incrsBy(
+    id: any,
+    data: {[P in keyof T]?: number},
+    transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName
+  ): Promise<T> {
+    return await this.incrsMutiBy({
+      [this.idNames[0]]: id
+    } as any, data, transction, tableName);
+  }
+
   /**
    * 根据复合id主键，为某个值+1
    * @param {T[]} datas
@@ -1270,14 +1322,16 @@ export default abstract class BaseService<T> extends Service {
    */
   @MethodDebug()
   async incrMulite(
-    data: {[P in keyof T]?: T[P]},
+    ids: {[P in keyof T]?: T[P]},
     columnName: keyof T,
     transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
-  ): Promise<number> {
-    return await this.incrMutiBy(data, columnName, 1, transction, tableName);
+  ): Promise<T> {
+    return await this.incrsMutiBy(ids, {
+      [columnName]: 1
+    } as any, transction, tableName);
   }
   /**
    * 根据复合id主键，为某个值-1
@@ -1290,14 +1344,16 @@ export default abstract class BaseService<T> extends Service {
    */
   @MethodDebug()
   async decrMuti(
-    data: {[P in keyof T]?: T[P]},
+    ids: {[P in keyof T]?: T[P]},
     columnName: keyof T,
     transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
-  ): Promise<number> {
-    return await this.incrMutiBy(data, columnName, -1, transction, tableName);
+  ): Promise<T> {
+    return await this.incrsMutiBy(ids, {
+      [columnName]: -1
+    } as any, transction, tableName);
   }
   /**
    * 根据复合id主键，为某个值-value
@@ -1310,15 +1366,17 @@ export default abstract class BaseService<T> extends Service {
    */
   @MethodDebug()
   async decrMutiBy(
-    data: {[P in keyof T]?: T[P]},
+    ids: {[P in keyof T]?: T[P]},
     columnName: keyof T,
     value: number,
     transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
-  ): Promise<number> {
-    return await this.incrMutiBy(data, columnName, 0 - value, transction, tableName);
+  ): Promise<T> {
+    return await this.incrsMutiBy(ids, {
+      [columnName]: 0 - value
+    } as any, transction, tableName);
   }
   /**
     * 根据复合id主键，为某个值+value
@@ -1331,24 +1389,57 @@ export default abstract class BaseService<T> extends Service {
     */
   @MethodDebug()
   async incrMutiBy(
-    data: {[P in keyof T]?: T[P]},
+    ids: {[P in keyof T]?: T[P]},
     columnName: keyof T,
     value: number,
     transction?: SqlSession,
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName
-  ): Promise<number> {
+  ): Promise<T> {
+    return await this.incrsMutiBy(ids, {
+      [columnName]: value
+    } as any, transction, tableName);
+  }
+  /**
+     * 根据复合id主键，为某个值+value
+     * @param {T[]} datas
+     * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
+     * @param {(serviceTableName: string) => string} [tableName=(
+     *       serviceTableName: string
+     *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+     * @returns
+     */
+  @MethodDebug()
+  async incrsMutiBy(
+    ids: {[P in keyof T]?: T[P]},
+    data: {[P in keyof T]?: number},
+    transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName
+  ): Promise<T> {
     return await this.transction(async (conn: any) => {
       const where = new Array<string>();
+      const set = new Array<string>();
       const param: {[P in keyof T]?: T[P]} = {};
+      const keys = new Array<string>();
       for (const idName of this.idNames) {
-        this.app.throwIf(!data[idName], `id must be set!${ this.tableName }`);
+        this.app.throwIf(!ids[idName], `id must be set!${ this.tableName }`);
         where.push(`${ idName } = :${ idName }`);
-        param[idName] = data[idName];
+        keys.push(idName as any);
+        param[idName] = ids[idName];
       }
-      const result = await conn.query(`UPDATE ${ tableName(this.tableName) } SET ${ columnName } = IFNULL(${ columnName },0) + ${ value } WHERE ${ where.join('') }`, param);
-      return result.affectedRows;
+      for (const [key, value] of Object.entries(data)) {
+        set.push(`${ key } = IFNULL(${ key }, 0) + :${ key }`);
+        keys.push(key);
+        param[key] = value;
+      }
+      const result = await conn.query(`
+        UPDATE ${ tableName(this.tableName) } SET ${ set.join(',') } WHERE ${ where.join('') };
+        SELECT ${ keys.join(',') } FROM ${ tableName(this.tableName) } WHERE ${ where.join('') };
+      `, param);
+      return result[1][0];
     }, transction);
   }
   /**
@@ -2152,6 +2243,29 @@ export default abstract class BaseService<T> extends Service {
     transction?: SqlSession
   ): Promise<L[]> {
     return await this.queryMutiRowMutiColumnBySqlId<L>(sqlid, param, transction);
+  }
+  /**
+   *
+   * 查询SQL语句的数字
+   * sql必须支持count
+   * @param {string} sqlid sql语句编码
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns number
+   */
+  @MethodDebug()
+  async queryCountBySqlId(
+    sqlid: string,
+    param?: {[propName: string]: any},
+    transction?: SqlSession
+  ): Promise<number> {
+    const sql = this.app._getSql(this.ctx, false, sqlid, param);
+    const count = await this.querySingelRowSingelColumnBySql<number>(
+      sql as string,
+      param,
+      transction
+    );
+    return count || 0;
   }
   /**
    *

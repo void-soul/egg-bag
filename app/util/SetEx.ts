@@ -23,18 +23,23 @@ export default class <T> extends Set {
     values?: ReadonlyArray<T> | null,
     onNotExist?: (newData: T) => void
   ) {
+    super();
     if (typeof key === 'object') {
-      super(key.values);
       this.whenOnExist = key.onExist;
       this.uniqueKey = key.key;
       this.replaceItemWhenExits = key.replaceWhenExits === true;
       this.whenOnNotExist = key.onNotExist;
+      if (key.values) {
+        this.addAll(...key.values);
+      }
     } else {
-      super(values);
       this.whenOnExist = onExist;
       this.uniqueKey = key;
       this.replaceItemWhenExits = replaceWhenExits;
       this.whenOnNotExist = onNotExist;
+      if (values) {
+        this.addAll(...values);
+      }
     }
   }
 

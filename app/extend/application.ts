@@ -77,7 +77,7 @@ export default {
     });
   },
   md5(this: Application, value: string, key?: string): string {
-    return md5Util(value + (key || this.config.keys || ''));
+    return md5Util(`${ value }${ key ?? this.config.keys ?? '' }`);
   },
   async getCache(this: Application, key: string, redisName?: 'user' | 'other' | 'static'): Promise<string | null> {
     let meString: string | null = null;

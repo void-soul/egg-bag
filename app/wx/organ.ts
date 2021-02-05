@@ -15,7 +15,7 @@ export class WxOrgan extends BaseWx {
     this.miniMessCache = {};
     this.messCache = {};
     // if (this.config.msHook) {
-    //   this.aesKey = new Buffer(this.config.encodingAESKey + '=', 'base64');
+    //   this.aesKey = Buffer.from(this.config.encodingAESKey + '=', 'base64');
     //   this.iv = this.aesKey.slice(0, 16);
     // }
     if (this.config.miniMessages) {

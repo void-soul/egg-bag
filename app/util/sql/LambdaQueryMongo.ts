@@ -1,3 +1,4 @@
+import {div, add} from '../math';
 
 export default class LambdaQueryMongo<T> {
   private _query: {[P in keyof T]?: any} = {};
@@ -27,20 +28,27 @@ export default class LambdaQueryMongo<T> {
     return this.common(value, '$eq', key);
   }
   /** https://docs.mongodb.com/manual/reference/operator/query/eq/ */
+  $eqT(t: {[P in keyof T]?: T[P]}): this {
+    for (const [key, value] of Object.entries(t)) {
+      this.common(value, '$eq', key as any);
+    }
+    return this;
+  }
+  /** not  https://docs.mongodb.com/manual/reference/operator/query/eq/ */
   $$eq(
     key: keyof T,
     value: T[keyof T]
   ): this {
     return this.common({$eq: value}, '$not', key);
   }
-  /** https://docs.mongodb.com/manual/reference/operator/query/ne/ */
+  /**  https://docs.mongodb.com/manual/reference/operator/query/ne/ */
   $ne(
     key: keyof T,
     value: T[keyof T]
   ): this {
     return this.common(value, '$ne', key);
   }
-  /** https://docs.mongodb.com/manual/reference/operator/query/ne/ */
+  /** not https://docs.mongodb.com/manual/reference/operator/query/ne/ */
   $$ne(
     key: keyof T,
     value: T[keyof T]
@@ -54,7 +62,7 @@ export default class LambdaQueryMongo<T> {
   ): this {
     return this.common(value, '$gt', key);
   }
-  /** https://docs.mongodb.com/manual/reference/operator/query/gt/ */
+  /** not https://docs.mongodb.com/manual/reference/operator/query/gt/ */
   $$gt(
     key: keyof T,
     value: T[keyof T]
@@ -68,7 +76,7 @@ export default class LambdaQueryMongo<T> {
   ): this {
     return this.common(value, '$gte', key);
   }
-  /** https://docs.mongodb.com/manual/reference/operator/query/gte/ */
+  /** not https://docs.mongodb.com/manual/reference/operator/query/gte/ */
   $$gte(
     key: keyof T,
     value: T[keyof T]
@@ -96,7 +104,7 @@ export default class LambdaQueryMongo<T> {
   ): this {
     return this.common(value, '$nin', key);
   }
-  /** https://docs.mongodb.com/manual/reference/operator/query/nin/ */
+  /** not https://docs.mongodb.com/manual/reference/operator/query/nin/ */
   $$nin(
     key: keyof T,
     value: Array<T[keyof T] | RegExp>
@@ -117,14 +125,14 @@ export default class LambdaQueryMongo<T> {
   ): this {
     return this.common({$lt: value}, '$not', key);
   }
-  /** https://docs.mongodb.com/manual/reference/operator/query/lte/ */
+  /**  https://docs.mongodb.com/manual/reference/operator/query/lte/ */
   $lte(
     key: keyof T,
     value: T[keyof T]
   ): this {
     return this.common(value, '$lte', key);
   }
-  /** https://docs.mongodb.com/manual/reference/operator/query/lte/ */
+  /** not https://docs.mongodb.com/manual/reference/operator/query/lte/ */
   $$lte(
     key: keyof T,
     value: T[keyof T]
@@ -153,7 +161,7 @@ export default class LambdaQueryMongo<T> {
   ): this {
     return this.common(true, '$exists', key);
   }
-  /** https://docs.mongodb.com/manual/reference/operator/query/exists/ */
+  /** not https://docs.mongodb.com/manual/reference/operator/query/exists/ */
   $$exists(key: keyof T): this {
     return this.common({$exists: true}, '$not', key);
   }
@@ -164,7 +172,7 @@ export default class LambdaQueryMongo<T> {
   ): this {
     return this.common(value, '$type', key);
   }
-  /** https://docs.mongodb.com/manual/reference/operator/query/type/ */
+  /** not https://docs.mongodb.com/manual/reference/operator/query/type/ */
   $$type(
     key: keyof T,
     value: 'double' | 'string' | 'object' | 'array' | 'binData' | 'undefined' | 'objectId' | 'bool' | 'date' | 'null' | 'regex' | 'javascript' | 'javascriptWithScope' | 'int' | 'timestamp' | 'long' | 'decimal' | 'minKey' | 'maxKey'
@@ -177,7 +185,7 @@ export default class LambdaQueryMongo<T> {
   ): this {
     return this.common(value, '$expr');
   }
-  /** https://docs.mongodb.com/manual/reference/operator/query/expr/ */
+  /** not https://docs.mongodb.com/manual/reference/operator/query/expr/ */
   $$expr(
     value: {[name: string]: any}
   ): this {
@@ -190,7 +198,7 @@ export default class LambdaQueryMongo<T> {
   ): this {
     return this.common(value, '$mod', key);
   }
-  /** https://docs.mongodb.com/manual/reference/operator/query/mod/ */
+  /** not https://docs.mongodb.com/manual/reference/operator/query/mod/ */
   $$mod(
     key: keyof T,
     value: number[]
@@ -208,7 +216,7 @@ export default class LambdaQueryMongo<T> {
     }
     return this.common(value, '$regex', key);
   }
-  /** https://docs.mongodb.com/manual/reference/operator/query/regex/ */
+  /** not https://docs.mongodb.com/manual/reference/operator/query/regex/ */
   $$regex(
     key: keyof T,
     value: RegExp,
@@ -255,7 +263,7 @@ export default class LambdaQueryMongo<T> {
   ): this {
     return this.common(value, '$size', key);
   }
-  /** https://docs.mongodb.com/manual/reference/operator/query/size/*/
+  /** not https://docs.mongodb.com/manual/reference/operator/query/size/*/
   $$size(
     key: keyof T,
     value: number
@@ -278,6 +286,11 @@ export default class LambdaQueryMongo<T> {
 
   limit(startRow: number, pageSize: number): this {
     this._startRow = startRow;
+    this._pageSize = pageSize;
+    return this;
+  }
+  page(pageNumber: number, pageSize: number): this {
+    this._startRow = ((pageNumber || 1) - 1) * pageSize;
     this._pageSize = pageSize;
     return this;
   }
@@ -309,6 +322,15 @@ export default class LambdaQueryMongo<T> {
    */
   async count(): Promise<number> {
     return await this._findCount(this);
+  }
+  async sum(key: keyof T): Promise<number> {
+    const data = await this.select(key);
+    return add(...data.map(item => item[key] as any as number));
+  }
+  async avg(key: keyof T): Promise<number> {
+    const data = await this.select(key);
+    const sum = add(...data.map(item => item[key] as any as number));
+    return data.length > 0 ? div(sum, data.length) : 0;
   }
   /**
    * 中断更新方法

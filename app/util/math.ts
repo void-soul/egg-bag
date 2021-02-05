@@ -209,6 +209,46 @@ export class Bus {
   ): string {
     return money(this.result, style, currency, prefix, def);
   }
+  lt(data: any): boolean {
+    const [d, r] = filterNumber2([data, this.result]);
+    return r.lessThan(d);
+  }
+  le(data: any): boolean {
+    const [d, r] = filterNumber2([data, this.result]);
+    return r.lessThanOrEqualTo(d);
+  }
+  gt(data: any): boolean {
+    const [d, r] = filterNumber2([data, this.result]);
+    return r.greaterThan(d);
+  }
+  ge(data: any): boolean {
+    const [d, r] = filterNumber2([data, this.result]);
+    return r.greaterThanOrEqualTo(d);
+  }
+  nlt(data: any): boolean {
+    const [d, r] = filterNumber2([data, this.result]);
+    return !r.lessThan(d);
+  }
+  nle(data: any): boolean {
+    const [d, r] = filterNumber2([data, this.result]);
+    return !r.lessThanOrEqualTo(d);
+  }
+  ngt(data: any): boolean {
+    const [d, r] = filterNumber2([data, this.result]);
+    return !r.greaterThan(d);
+  }
+  nge(data: any): boolean {
+    const [d, r] = filterNumber2([data, this.result]);
+    return !r.greaterThanOrEqualTo(d);
+  }
+  eq(data: any): boolean {
+    const [d, r] = filterNumber2([data, this.result]);
+    return r.equals(d);
+  }
+  ne(data: any): boolean {
+    const [d, r] = filterNumber2([data, this.result]);
+    return !r.eq(d);
+  }
 }
 
 export const calc = (result: any) => {

@@ -4,7 +4,7 @@ import * as path from 'path';
 import {Application, Controller} from 'egg';
 import {mul, div} from '../util/math';
 import {notEmptyString, randomString} from '../util/string';
-import {WxPayOption, WxCreatedorder, WxOrder, WxCreateOrderResult, WxOrderQuery, WxCreateRefundOrder, WxRefundOrderQuery, WxRefundOrder, WxPayHook, WxRefHook} from '../../typings';
+import {WxPayOption, WxCreatedorder, WxOrder, WxCreateOrderResult, WxOrderQuery, WxCreateRefundOrder, WxRefundOrderQuery, WxRefundOrder, WxPayHook, WxRefHook, WxRefResult} from '../../typings';
 import rp = require('request-promise');
 import Xml2Js = require('xml2js');
 import {omit} from 'lodash';
@@ -104,7 +104,9 @@ export class WxPay {
       app,
       prepay_id: response.prepay_id,
       code_url: response.code_url,
-      mweb_url: response.mweb_url
+      mweb_url: response.mweb_url,
+      dataCacheId: `${ wxOrderOption.out_trade_no }-wx-pay-${ this.appCode }`,
+      devCacheId: `${ wxOrderOption.out_trade_no }-wx-pay-${ this.appCode }-devid`
     };
   }
   async orderquery(option: WxOrderQuery): Promise<WxOrder> {
@@ -127,7 +129,7 @@ export class WxPay {
       this.app.coreLogger.error(error);
     }
   }
-  async refund(option: WxCreateRefundOrder, dataCache?: {[key: string]: any}, devid?: string) {
+  async refund(option: WxCreateRefundOrder, dataCache?: {[key: string]: any}, devid?: string): Promise<WxRefResult> {
     const params = this.buildParam({
       ...option,
       notify_url: `${ this.app.config.baseUri }ref-hook/wx/${ this.appCode }.html`,
@@ -138,7 +140,17 @@ export class WxPay {
     if (devid) {
       await this.app.setCache(`${ option.out_refund_no }-wx-ref-${ this.appCode }-devid`, devid, 'static');
     }
-    return await this.request('refund', params, true);
+    await this.request('refund', params, true);
+    return {
+      dataCacheId: `${ option.out_refund_no }-wx-ref-${ this.appCode }`,
+      devCacheId: `${ option.out_refund_no }-wx-ref-${ this.appCode }-devid`
+    };
+  }
+  async resetDataCache(dataCache: {[key: string]: any}, dataCacheId: string) {
+    await this.app.setCache(dataCacheId, JSON.stringify(dataCache), 'static', 120);
+  }
+  async resetDevIdCache(devid: string, devCacheId: string) {
+    await this.app.setCache(devCacheId, devid, 'static', 120);
   }
   async refundquery(option: WxRefundOrderQuery): Promise<WxRefundOrder> {
     const params = this.buildParam({...option});
