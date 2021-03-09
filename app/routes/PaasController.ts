@@ -393,8 +393,8 @@ const fetchFlow = {
   path: '/fetch-flow',
   method: 'post',
   before: [ILogin],
-  async handel(this: Controller, {body: {flowPath, fromNodeId, fromNodeCode, biz, skipError}}) {
-    return await this.service.paasService.fetchFlow({flowPath, fromNodeId, fromNodeCode, biz, skipError});
+  async handel(this: Controller, {body: {flowPath, fromNodeId, fromNodeCode, biz, skipError, key}}) {
+    return await this.service.paasService.fetchFlow({flowPath, fromNodeId, fromNodeCode, biz, skipError, key});
   }
 };
 

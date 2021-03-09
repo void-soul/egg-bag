@@ -120,7 +120,7 @@ const EggShell = (app, options = {}) => {
                       });
                     } else if (typeof _data === 'object') {
                       ctx.app.emitTo('USER-', ctx.me.userid, event, {
-                        message: `${ title || message }处理完毕,${ message.replace(/\{\{([a-z0-9A-Z]+)\}\}/g, (a, b) => (_data[b] || '')) }`,
+                        message: `${ title || message }处理完毕,${ message.replace(/\{\{([a-z0-9A-Z]+)\}\}/g, (a, b) => (_data[b] === undefined || _data[b] === null ? '' : _data[b])) }`,
                         uri
                       });
                     } else {

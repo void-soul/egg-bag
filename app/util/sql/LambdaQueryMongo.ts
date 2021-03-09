@@ -5,14 +5,15 @@ export default class LambdaQueryMongo<T> {
   private _order: {[P in keyof T]?: number} = {};
   private _startRow?: number;
   private _pageSize?: number;
+  private _keys: string[] = [];
   private _find: (lambda: LambdaQueryMongo<T>, columns: Array<keyof T>) => Promise<T[]>;
   private _findCount: (lambda: LambdaQueryMongo<T>) => Promise<number>;
-  private _update: (lambda: LambdaQueryMongo<T>, data: {[P in keyof T]?: T[P]}) => Promise<number>;
+  private _update: (lambda: LambdaQueryMongo<T>, data: {[P in keyof T]?: T[P]}, keys: string[]) => Promise<number>;
   private _remove: (lambda: LambdaQueryMongo<T>) => Promise<number>;
   constructor (
     find: (lambda: LambdaQueryMongo<T>, columns: Array<keyof T>) => Promise<T[]>,
     findCount: (lambda: LambdaQueryMongo<T>) => Promise<number>,
-    update: (lambda: LambdaQueryMongo<T>, data: {[P in keyof T]?: T[P]}) => Promise<number>,
+    update: (lambda: LambdaQueryMongo<T>, data: {[P in keyof T]?: T[P]}, keys: string[]) => Promise<number>,
     remove: (lambda: LambdaQueryMongo<T>) => Promise<number>
   ) {
     this._find = find;
@@ -294,6 +295,10 @@ export default class LambdaQueryMongo<T> {
     this._pageSize = pageSize;
     return this;
   }
+  key(...keys: string[]): this {
+    this._keys?.splice(0, 0, ...keys);
+    return this;
+  }
   /**
    * 中断查询方法
    * @param {...string[]} columns
@@ -339,7 +344,7 @@ export default class LambdaQueryMongo<T> {
    * @memberof LambdaQueryMongo
    */
   async update(data: T): Promise<number> {
-    return await this._update(this, data);
+    return await this._update(this, data, this._keys);
   }
   /**
    *

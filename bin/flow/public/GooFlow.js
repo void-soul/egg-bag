@@ -1544,6 +1544,7 @@ GooFlow.prototype = {
         this.$lineData[id].error = json.error;
         this.$lineData[id].swi = json.swi;
         this.$lineData[id].code = json.code;
+        this.$lineData[id].key = json.key;
         if (json.mark) this.$lineData[id].marked = json.mark;
         else this.$lineData[id].marked = false;
 

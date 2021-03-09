@@ -4,6 +4,7 @@ import {MongoClient, MongoClientOptions, FilterQuery, ClientSession, SessionOpti
 import {Redis} from 'ioredis';
 import {Schema} from 'fast-json-stringify';
 export * from 'egg';
+export {Application, IService, Context} from 'egg';
 import {IncomingMessage, ServerResponse} from 'http';
 // tslint:disable-next-line:no-implicit-dependencies
 import {Socket, Server as SocketServer, Namespace as SocketNameSpace} from 'socket.io';
@@ -198,6 +199,8 @@ declare class LambdaQueryMongo<T> {
   desc(...keys: Array<keyof T>): this;
   limit(startRow: number, pageSize: number): this;
   page(pageNumber: number, pageSize: number): this;
+  /** 添加key */
+  key(...keys: string[]): this;
   /**
    * 中断查询方法
    * @param {...string[]} columns
@@ -3310,6 +3313,49 @@ export abstract class BaseService<T> extends Service {
    */
   protected transction(fn: (conn: SqlSession) => Promise<any>, transction?: SqlSession): Promise<any>;
 }
+/**
+  ### 类属性说明
+  1. `singel = true` 必须等上一个执行完成再执行下一个[默认=true]
+  2. `redis = true` 执行锁不在线程内存中，而是在redis中[默认=true]
+  3. `key` 执行锁名称，若不指定，则使用文件名
+  *注: 若自己指定了key,请在app.ts中的启动事件中清空 `schedule-${key}`*
+
+  ### cron 表达式
+
+  #### 从左往右分为6个字符串，用空格相连，表示不同的单位
+
+  #### 单位说明
+
+  |顺序|含义|取值范围|
+  |----|-----------|--------|
+  |1|second|0 - 59|
+  |2|minute|0 - 59|
+  |3|hour|0 - 23|
+  |4|day of month|1 - 31|
+  |5|month|1 - 12|
+  |6|day of week|0 - 6|
+
+  #### 格式
+
+  |格式|含义|
+  |------------------|------------------------------------------------------------|
+  |数字     |见上表|
+  |*| 表示取值范围内的所有数字|
+  |/ |表示每隔固定时间触发依次，比如0/5表示从0开始每5个单位时间|
+  |-| 表示两个数字之间的范围，比如3-7表示3到7之间，包含3和7|
+  |,| 表示离散的枚举数字，比如2,3,5,7表示指定的这几个时间|
+  |?| 只能用在日期DayOfMonth和星期DayOfWeek两个域，表示不指定，避免日期和星期的互相影响，比如指定每月的20日，不管是星期几，正确写法是：0 0 0 20 * ?，其中星期只能用?，如果使用*将触发错误。|
+  |L| 只能用于日期DayOfMonth和星期DayOfWeek，用于日期时表示月份的最后一天，用于星期时不加数字表示周六，加数字表示最后一个周几，比如0 0 0 ? * 5L表示每月的最后一个星期四|
+  |W| 只能用于日期DayOfMonth，表示周一到周五有效工作日，将在离指定日期的最近的有效工作日触发事件。例如在日期使用5W，如果5日是星期六，则将在最近的工作日星期五(4日)触发。如果5日是星期天，则在6日(星期一)触发；如果5日在星期一到星期五中的一天，则就在5日触发。另外一点，W的最近工作日寻找不会跨月份。|
+  |LW| 两个字符连用时表示某个月最后一个工作日|
+  |#| 只能用于星期DayOfWeek，表示每个月第几个星期几，比如4#2表示第二个星期三|
+
+
+ * @export
+ * @abstract
+ * @class BaseSchedule
+ * @extends {Subscription}
+ */
 export abstract class BaseSchedule extends Subscription {
   /** 此定时任务唯一标识 */
   key: string;
@@ -3343,6 +3389,7 @@ declare class PaasService extends BaseService<Empty> {
     biz: D;
     conn?: SqlSession;
     skipError?: number;
+    key?: string;
   }): Promise<{
     biz: D;
     flowCode: string;
@@ -3469,6 +3516,8 @@ export interface FlowLine {
   def: boolean;
   /** 隐藏 */
   hide: boolean;
+  /** 密钥对 当请求fetch-flow时，只有密钥对一样的操作才会返回，且无视显示、隐藏 */
+  key: string;
   /** 错误处理流转：仅普通任务节点支持. */
   error: boolean;
   /** 自动节点分流 */
@@ -3854,6 +3903,7 @@ declare module 'egg' {
       biz: D;
       conn?: SqlSession;
       skipError?: number;
+      key?: string;
     }, devid?: string): Promise<{
       biz: D;
       flowCode: string;
@@ -4286,6 +4336,7 @@ declare module 'egg' {
       biz: D;
       conn?: SqlSession;
       skipError?: number;
+      key?: string;
     }, devid?: string): Promise<{
       biz: D;
       flowCode: string;

@@ -210,6 +210,7 @@ export default {
     biz: D;
     conn?: SqlSession;
     skipError?: number;
+    key?: string;
   }, devid?: string): Promise<{
     biz: D;
     flowCode: string;

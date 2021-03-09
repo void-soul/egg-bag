@@ -1,5 +1,4 @@
-import {FlowField, FlowData, FlowLine, SqlSession, Application, IService, FlowNodeConfig, FlowNodeBase, SimplyFlowLine} from '../../typings';
-import {Context} from 'egg';
+import {FlowField, FlowData, FlowLine, Context, SqlSession, Application, IService, FlowNodeConfig, FlowNodeBase, SimplyFlowLine} from '../../typings';
 import lodash = require('lodash');
 
 /**
@@ -191,12 +190,13 @@ export class FlowExcute<D, M> {
     this.cores = {};
     this.flowCodes = [];
   }
-  public async fetch({flowPath, fromNodeId, fromNodeCode, biz, skipError}: {
+  public async fetch({flowPath, fromNodeId, fromNodeCode, biz, skipError, key}: {
     flowPath: string;
     fromNodeId?: string;
     fromNodeCode?: string;
     biz: D;
     skipError?: number;
+    key?: string;
   }) {
     this.append(flowPath)
       .defFlow()
@@ -213,7 +213,7 @@ export class FlowExcute<D, M> {
       await core.flow.fetch.call(core.context);
       await core.fromNode.fetch.call(core.context);
       await this.specilAndField();
-      return await this.getResult(false);
+      return await this.getResult(false, key);
     }
     if (skipError !== 1) {
       this.throwNow('起始节点只能是task、start、system');
@@ -696,13 +696,16 @@ export class FlowExcute<D, M> {
     await core.flow.save.call(core.context);
     core.context.error.length = core.context.logs.length = 0;
   }
-  private async getResult(isDo: boolean) {
+  private async getResult(isDo: boolean, key?: string) {
     const core = this.cores[this.activeCode];
     let tmplines: {id: string; line: FlowLine;}[] = [];
     let lines: SimplyFlowLine[] = [];
     if (core.toNodeLines) {
       tmplines = core.toNodeLines.filter(item => {
-        const show = core.context.filterLineShow[item.id] || core.context.filterLineShow[item.line.code] || (item.line.hide === false && item.line.error === false);
+        const show = core.context.filterLineShow[item.id]
+          || core.context.filterLineShow[item.line.code]
+          || (item.line.hide === false && item.line.error === false)
+          || (key && item.line.key === key);
         if (show === true) {
           if (item.line.blackList && item.line.blackList.length > 0 && item.line.blackList.includes(core.specialValue)) {
             return false;

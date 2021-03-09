@@ -1201,8 +1201,8 @@ export default abstract class BaseMongoService<T> extends Service {
           });
         }, transction);
       },
-      async (lambda: LambdaQueryMongo<L>, data: {[P in keyof L]?: L[P]}) => {
-        const realData = this.filterEmptyAndTransient(data);
+      async (lambda: LambdaQueryMongo<L>, data: {[P in keyof L]?: L[P]}, keys: string[]) => {
+        const realData = this.filterEmptyAndTransient(data, true, true, keys);
         return await this.transction(async session => {
           const result = await this.getDb().collection(tableName(this.tableName)).updateMany(lambda.query, {$set: realData}, {
             session
@@ -1836,9 +1836,9 @@ export default abstract class BaseMongoService<T> extends Service {
    * @param {*} source
    * @returns {T}
    */
-  private filterEmptyAndTransient(source: any, skipEmpty = true, dealEmptyString = true): {[P in keyof T]?: T[P]} {
+  private filterEmptyAndTransient(source: any, skipEmpty = true, dealEmptyString = true, keys?: string[]): {[P in keyof T]?: T[P]} {
     const result: {[P in keyof T]?: T[P]} = {};
-    this.keys.forEach((key) => {
+    const deal = (key: keyof T) => {
       if (skipEmpty === true) {
         if (notEmptyString(source[key], dealEmptyString)) {
           result[key] = source[key];
@@ -1846,7 +1846,12 @@ export default abstract class BaseMongoService<T> extends Service {
       } else {
         result[key] = source[key];
       }
-    });
+    };
+    if (keys) {
+      [...this.keys, ...keys as any].forEach(deal);
+    } else {
+      this.keys.forEach(deal);
+    }
     return result;
   }
 
