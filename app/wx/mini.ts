@@ -106,7 +106,7 @@ export class WxMini extends BaseWx {
       const decipher = crypto.createDecipheriv('aes-128-cbc', sessionKeyBuf, ivBuf);
       // 设置自动 padding 为 true，删除填充补位
       decipher.setAutoPadding(true);
-      const decoded = decipher.update(encryptedDataBuf, 'binary', 'utf8') + decipher.final('utf8');
+      const decoded = decipher.update(encryptedDataBuf, undefined, 'utf8') + decipher.final('utf8');
       const decodedData = JSON.parse(decoded);
       this.app.throwIf(decodedData.watermark.appid !== this.config.appId, '加密验证失败');
       return decodedData as T;
