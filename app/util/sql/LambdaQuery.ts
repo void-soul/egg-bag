@@ -1,5 +1,21 @@
 import {Empty} from '../empty';
 import {add} from '../math';
+
+const IF = function <T>() {
+  return function (_target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
+    const fn = descriptor.value;
+    descriptor.value = function (this: LambdaQuery<T>) {
+      if (this.ifv === true) {
+        // eslint-disable-next-line prefer-rest-params
+        const args = Array.from(arguments);
+        fn.call(this, ...args);
+      } else {
+        this.ifv = true;
+      }
+      return this;
+    };
+  };
+};
 export default class LambdaQuery<T> {
   private andQuerys: LambdaQuery<T>[] = [];
   private orQuerys: LambdaQuery<T>[] = [];
@@ -15,6 +31,7 @@ export default class LambdaQuery<T> {
   private findCount: (sql: string, param: Empty) => Promise<number>;
   private table: string;
   private updateData?: T;
+  protected ifv = true;
   constructor (
     table: string,
     search: (sql: string, param: Empty) => Promise<T[]>,
@@ -26,104 +43,124 @@ export default class LambdaQuery<T> {
     this.excute = excute;
     this.table = table;
   }
+  @IF()
   and(lambda: LambdaQuery<T>): this {
     this.andQuerys.push(lambda);
     return this;
   }
+  @IF()
   or(lambda: LambdaQuery<T>): this {
     this.orQuerys.push(lambda);
     return this;
   }
+  @IF()
   andEq(
     key: keyof T,
     value: T[keyof T]
   ): this {
     return this.common(key, value, '=');
   }
+  @IF()
   andEqT(t: {[P in keyof T]?: T[P]}): this {
     for (const [key, value] of Object.entries(t)) {
       this.common(key as any, value, '=');
     }
     return this;
   }
+  @IF()
   andNotEq(
     key: keyof T,
     value: T[keyof T]
   ): this {
     return this.common(key, value, '<>');
   }
+  @IF()
   andGreat(
     key: keyof T,
     value: T[keyof T]
   ): this {
     return this.common(key, value, '>');
   }
+  @IF()
   andGreatEq(
     key: keyof T,
     value: T[keyof T]
   ): this {
     return this.common(key, value, '>=');
   }
+  @IF()
   andLess(
     key: keyof T,
     value: T[keyof T]
   ): this {
     return this.common(key, value, '<');
   }
+  @IF()
   andLessEq(
     key: keyof T,
     value: T[keyof T]
   ): this {
     return this.common(key, value, '<=');
   }
+  @IF()
   andLike(
     key: keyof T,
     value: T[keyof T]
   ): this {
     return this.like(key, value);
   }
+  @IF()
   andNotLike(
     key: keyof T,
     value: T[keyof T]
   ): this {
     return this.like(key, value, 'NOT');
   }
+  @IF()
   andLeftLike(
     key: keyof T,
     value: T[keyof T]
   ): this {
     return this.like(key, value, '', '%', '');
   }
+  @IF()
   andNotLeftLike(
     key: keyof T,
     value: T[keyof T]
   ): this {
     return this.like(key, value, 'NOT', '%', '');
   }
+  @IF()
   andRightLike(
     key: keyof T,
     value: T[keyof T]
   ): this {
     return this.like(key, value, '', '', '%');
   }
+  @IF()
   andNotRightLike(
     key: keyof T,
     value: T[keyof T]
   ): this {
     return this.like(key, value, 'NOT', '', '%');
   }
+  @IF()
   andIsNull(key: keyof T): this {
     return this.nil(key);
   }
+  @IF()
   andIsNotNull(key: keyof T): this {
     return this.nil(key, 'NOT');
   }
+  @IF()
   andIn(key: keyof T, value: T[keyof T][]): this {
     return this.commonIn(key, value);
   }
+  @IF()
   andNotIn(key: keyof T, value: T[keyof T][]): this {
     return this.commonIn(key, value, 'NOT');
   }
+  @IF()
   andBetween(
     key: keyof T,
     value1: T[keyof T],
@@ -131,6 +168,7 @@ export default class LambdaQuery<T> {
   ): this {
     return this.between(key, value1, value2);
   }
+  @IF()
   andNotBetween(
     key: keyof T,
     value1: T[keyof T],
@@ -138,48 +176,58 @@ export default class LambdaQuery<T> {
   ): this {
     return this.between(key, value1, value2, 'NOT');
   }
-  andPow(key: keyof T, value: number) {
+  @IF()
+  andPow(key: keyof T, value: number): this {
     const pkey = `${ key }_${ this.index++ }`;
     this.condition.push(`AND POW(2, ${ key }) & ${ value }`);
     this.param[pkey] = value;
     return this;
   }
-  andNotPow(key: keyof T, value: number) {
+  @IF()
+  andNotPow(key: keyof T, value: number): this {
     const pkey = `${ key }_${ this.index++ }`;
     this.condition.push(`AND NOT POW(2, ${ key }) & ${ value }`);
     this.param[pkey] = value;
     return this;
   }
-  andPowWith(key: keyof T, ...values: Array<number | string>) {
+  @IF()
+  andPowWith(key: keyof T, ...values: Array<number | string>): this {
     return this.andPow(key, add(...values.map(value => Math.pow(2, +value))));
   }
-  andNotPowWith(key: keyof T, ...values: Array<number | string>) {
+  @IF()
+  andNotPowWith(key: keyof T, ...values: Array<number | string>): this {
     return this.andNotPow(key, add(...values.map(value => Math.pow(2, +value))));
   }
+  @IF()
   groupBy(key: keyof T): this {
     this.group.push(key);
     return this;
   }
-
+  @IF()
   asc(...keys: (keyof T)[]): this {
     for (const key of keys) {
       this.order.push(`${ key } ASC`);
     }
     return this;
   }
-
+  @IF()
   desc(...keys: (keyof T)[]): this {
     for (const key of keys) {
       this.order.push(`${ key } DESC`);
     }
     return this;
   }
-
+  if(condition: boolean) {
+    this.ifv = condition;
+    return this;
+  }
+  @IF()
   limit(startRow: number, pageSize: number): this {
     this.startRow = startRow;
     this.pageSize = pageSize;
     return this;
   }
+  @IF()
   page(pageNumber: number, pageSize: number): this {
     this.startRow = ((pageNumber || 1) - 1) * pageSize;
     this.pageSize = pageSize;
@@ -188,6 +236,7 @@ export default class LambdaQuery<T> {
   where(): string {
     return this.condition.join(' ');
   }
+  @IF()
   updateColumn(key: keyof T, value: T[keyof T]) {
     if (!this.updateData) {
       this.updateData = {} as T;
@@ -402,9 +451,11 @@ export default class LambdaQuery<T> {
     value: any,
     not = ''
   ) {
-    const pkey = `${ key }_${ this.index++ }`;
-    this.condition.push(`AND ${ key } ${ not } IN (:${ pkey }) `);
-    this.param[pkey] = value;
+    if (value && value.length > 0) {
+      const pkey = `${ key }_${ this.index++ }`;
+      this.condition.push(`AND ${ key } ${ not } IN (:${ pkey }) `);
+      this.param[pkey] = value;
+    }
     return this;
   }
 }

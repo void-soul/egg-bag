@@ -60,6 +60,8 @@ declare class Bus {
 }
 /** 仿java lambda 查询 */
 declare class LambdaQuery<T> {
+  /** 为下次链条执行提供条件判断：仅限非异步方法 */
+  if(condition: boolean): this;
   and(lambda: LambdaQuery<T>): this;
   or(lambda: LambdaQuery<T>): this;
   andEq(key: keyof T, value: T[keyof T]): this;
@@ -110,6 +112,8 @@ declare class LambdaQuery<T> {
 }
 type JSType = 'double' | 'string' | 'object' | 'array' | 'binData' | 'undefined' | 'objectId' | 'bool' | 'date' | 'null' | 'regex' | 'javascript' | 'javascriptWithScope' | 'int' | 'timestamp' | 'long' | 'decimal' | 'minKey' | 'maxKey';
 declare class LambdaQueryMongo<T> {
+  /** 为下次链条执行提供条件判断：仅限非异步方法 */
+  if(condition: boolean): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/eq/ */
   $eq(key: keyof T, value: T[keyof T]): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/eq/ */
