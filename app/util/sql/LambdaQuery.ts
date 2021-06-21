@@ -1,6 +1,9 @@
+import {Application, BaseContextClass} from 'egg';
 import {Empty} from '../empty';
 import {add} from '../math';
-
+import {setCache} from '../method-enhance';
+import md5Util = require('md5');
+const debug = require('debug')('egg-bag:cache');
 const IF = function <T>() {
   return function (_target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
     const fn = descriptor.value;
@@ -31,17 +34,48 @@ export default class LambdaQuery<T> {
   private findCount: (sql: string, param: Empty) => Promise<number>;
   private table: string;
   private updateData?: T;
+  private _cache?: {
+    /** 返回缓存清除key,参数=方法的参数+当前用户对象，可以用来批量清空缓存 */
+    clearKey?: string[];
+    /** 自动清空缓存的时间，单位分钟 */
+    autoClearTime?: number;
+    /** 随着当前用户sesion的清空而一起清空 */
+    clearWithSession?: boolean;
+  } = undefined;
+  private context: BaseContextClass;
+  private app: Application;
   protected ifv = true;
   constructor (
     table: string,
     search: (sql: string, param: Empty) => Promise<T[]>,
     findCount: (sql: string, param: Empty) => Promise<number>,
-    excute: (sql: string, param: Empty) => Promise<number>
+    excute: (sql: string, param: Empty) => Promise<number>,
+    context: BaseContextClass,
+    app: Application
   ) {
     this.findCount = findCount;
     this.search = search;
     this.excute = excute;
     this.table = table;
+    this.context = context;
+    this.app = app;
+  }
+  @IF()
+  cache(param: {
+    /** 返回缓存清除key,参数=方法的参数+当前用户对象，可以用来批量清空缓存 */
+    clearKey?: string[];
+    /** 自动清空缓存的时间，单位分钟 */
+    autoClearTime?: number;
+    /** 随着当前用户sesion的清空而一起清空 */
+    clearWithSession?: boolean;
+  }): this {
+    this._cache = param;
+    return this;
+  }
+  @IF()
+  notCache(): this {
+    this._cache = undefined;
+    return this;
   }
   @IF()
   and(lambda: LambdaQuery<T>): this {
@@ -61,6 +95,10 @@ export default class LambdaQuery<T> {
     return this.common(key, value, '=');
   }
   @IF()
+  andShiftEq(key1: keyof T, key2: keyof T, value: T[keyof T]): this {
+    return this.commonShift(key1, key2, value, '=');
+  }
+  @IF()
   andEqT(t: {[P in keyof T]?: T[P]}): this {
     for (const [key, value] of Object.entries(t)) {
       this.common(key as any, value, '=');
@@ -73,6 +111,10 @@ export default class LambdaQuery<T> {
     value: T[keyof T]
   ): this {
     return this.common(key, value, '<>');
+  }
+  @IF()
+  andShiftNotEq(key1: keyof T, key2: keyof T, value: T[keyof T]): this {
+    return this.commonShift(key1, key2, value, '<>');
   }
   @IF()
   andGreat(
@@ -156,6 +198,7 @@ export default class LambdaQuery<T> {
   andIn(key: keyof T, value: T[keyof T][]): this {
     return this.commonIn(key, value);
   }
+
   @IF()
   andNotIn(key: keyof T, value: T[keyof T][]): this {
     return this.commonIn(key, value, 'NOT');
@@ -267,7 +310,26 @@ export default class LambdaQuery<T> {
     if (this.pageSize > 0) {
       sql += `LIMIT ${ this.startRow }, ${ this.pageSize }`;
     }
-    return await this.search(sql, this.param);
+
+
+    if (this._cache) {
+      const key = md5Util(sql);
+      const cache = await this.app.redis.get('other').get(`[cache]${ key }`);
+      if (cache) {
+        debug(`cache for query ${ key } hit!`);
+        return JSON.parse(cache);
+      }
+
+      const result = await this.search(sql, this.param);
+      await setCache.call(this.context, {
+        key: md5Util(sql),
+        result,
+        ...this._cache
+      });
+      return result;
+    } else {
+      return await this.search(sql, this.param);
+    }
   }
   async one(...columns: (keyof T)[]): Promise<T | undefined> {
     this.limit(0, 1);
@@ -290,7 +352,25 @@ export default class LambdaQuery<T> {
     if (this.group.length > 0) {
       sql += `GROUP by ${ this.group.join(',') } `;
     }
-    return await this.findCount(sql, this.param);
+
+    if (this._cache) {
+      const key = md5Util(sql);
+      const cache = await this.app.redis.get('other').get(`[cache]${ key }`);
+      if (cache) {
+        debug(`cache for query ${ key } hit!`);
+        return JSON.parse(cache);
+      }
+
+      const result = await this.findCount(sql, this.param);
+      await setCache.call(this.context, {
+        key: md5Util(sql),
+        result,
+        ...this._cache
+      });
+      return result;
+    } else {
+      return await this.findCount(sql, this.param);
+    }
   }
   async update(data?: T): Promise<number> {
     if (!data) {
@@ -357,11 +437,35 @@ export default class LambdaQuery<T> {
         sql += ` AND (${ query.where() }) `;
       }
     }
-    const data = await this.search(sql, this.param);
-    if (data.length > 0) {
-      return (data[0] as unknown as {ct: number}).ct;
+
+    if (this._cache) {
+      const key = md5Util(sql);
+      const cache = await this.app.redis.get('other').get(`[cache]${ key }`);
+      if (cache) {
+        debug(`cache for query ${ key } hit!`);
+        return JSON.parse(cache);
+      }
+
+      const result_ = await this.search(sql, this.param);
+      let result = 0;
+      if (result_.length > 0) {
+        result = (result_[0] as unknown as {ct: number}).ct;
+      } else {
+        return 0;
+      }
+      await setCache.call(this.context, {
+        key: md5Util(sql),
+        result,
+        ...this._cache
+      });
+      return result;
     } else {
-      return 0;
+      const data = await this.search(sql, this.param);
+      if (data.length > 0) {
+        return (data[0] as unknown as {ct: number}).ct;
+      } else {
+        return 0;
+      }
     }
   }
   async avg(key: keyof T): Promise<number> {
@@ -377,11 +481,34 @@ export default class LambdaQuery<T> {
         sql += ` AND (${ query.where() }) `;
       }
     }
-    const data = await this.search(sql, this.param);
-    if (data.length > 0) {
-      return (data[0] as unknown as {ct: number}).ct;
+    if (this._cache) {
+      const key = md5Util(sql);
+      const cache = await this.app.redis.get('other').get(`[cache]${ key }`);
+      if (cache) {
+        debug(`cache for query ${ key } hit!`);
+        return JSON.parse(cache);
+      }
+
+      const result_ = await this.search(sql, this.param);
+      let result = 0;
+      if (result_.length > 0) {
+        result = (result_[0] as unknown as {ct: number}).ct;
+      } else {
+        return 0;
+      }
+      await setCache.call(this.context, {
+        key: md5Util(sql),
+        result,
+        ...this._cache
+      });
+      return result;
     } else {
-      return 0;
+      const data = await this.search(sql, this.param);
+      if (data.length > 0) {
+        return (data[0] as unknown as {ct: number}).ct;
+      } else {
+        return 0;
+      }
     }
   }
   async groupConcat(key: keyof T, param?: {distinct?: boolean, separator?: string}): Promise<string> {
@@ -397,11 +524,34 @@ export default class LambdaQuery<T> {
         sql += ` AND (${ query.where() }) `;
       }
     }
-    const data = await this.search(sql, this.param);
-    if (data.length > 0) {
-      return (data[0] as unknown as {ct: string}).ct;
+    if (this._cache) {
+      const key = md5Util(sql);
+      const cache = await this.app.redis.get('other').get(`[cache]${ key }`);
+      if (cache) {
+        debug(`cache for query ${ key } hit!`);
+        return JSON.parse(cache);
+      }
+
+      const result_ = await this.search(sql, this.param);
+      let result = '';
+      if (result_.length > 0) {
+        result = (result_[0] as unknown as {ct: string}).ct;
+      } else {
+        return '';
+      }
+      await setCache.call(this.context, {
+        key: md5Util(sql),
+        result,
+        ...this._cache
+      });
+      return result;
     } else {
-      return '';
+      const data = await this.search(sql, this.param);
+      if (data.length > 0) {
+        return (data[0] as unknown as {ct: string}).ct;
+      } else {
+        return '';
+      }
     }
   }
   private nil(key: keyof T, not = ''): this {
@@ -456,6 +606,18 @@ export default class LambdaQuery<T> {
       this.condition.push(`AND ${ key } ${ not } IN (:${ pkey }) `);
       this.param[pkey] = value;
     }
+    return this;
+  }
+  private commonShift(
+    key1: keyof T,
+    key2: keyof T,
+    value: any,
+    op: string,
+    not = ''
+  ) {
+    const pkey = `${ key1 }_${ key2 }_${ this.index++ }`;
+    this.condition.push(`AND (${ key1 } << 8) + ${ key2 } ${ not } ${ op } :${ pkey } `);
+    this.param[pkey] = value;
     return this;
   }
 }

@@ -203,16 +203,16 @@ export default {
     await clearCache.call(this, clearKey);
   },
   /** 流程获取 */
-  async fetchFlow<D, M>(this: Application, param: {
+  async fetchFlow<Q, S, C, M>(this: Application, param: {
     flowPath: string;
     fromNodeId?: string;
     fromNodeCode?: string;
-    biz: D;
+    req: Q;
     conn?: SqlSession;
-    skipError?: number;
+    skipData?: number;
     key?: string;
   }, devid?: string): Promise<{
-    biz: D;
+    res: S;
     flowCode: string;
     flowPath: string;
     fromNodeId: string | undefined;
@@ -226,10 +226,10 @@ export default {
     fields: FlowField;
   }> {
     const ctx = this.createAnonymousContext();
-    return await ctx.fetchFlow<D, M>(param, devid);
+    return await ctx.fetchFlow<Q, S, C, M>(param, devid);
   },
   /** 流程处理 */
-  async doFlow<D, M>(this: Application, param: {
+  async doFlow<Q, S, C, M>(this: Application, param: {
     flowPath: string;
     fromNodeId?: string;
     fromNodeCode?: string;
@@ -237,10 +237,10 @@ export default {
     toNodeCode?: string;
     actionId?: string;
     actionCode?: string;
-    biz: D;
+    req: Q;
     conn?: SqlSession;
   }, devid?: string): Promise<{
-    biz: D;
+    res: S;
     flowCode: string;
     flowPath: string;
     fromNodeId: string | undefined;
@@ -254,6 +254,6 @@ export default {
     fields: FlowField;
   }> {
     const ctx = this.createAnonymousContext();
-    return await ctx.doFlow<D, M>(param, devid);
+    return await ctx.doFlow<Q, S, C, M>(param, devid);
   }
 };

@@ -63,30 +63,30 @@ export default class extends BaseService<Empty> {
   public async removePicCode(key: string) {
     await this.ctx.delCache(`${ key }-pic`, 'other');
   }
-  public async fetchFlow<D, M>({
-    flowPath, fromNodeId, fromNodeCode, biz, conn, skipError, key
+  public async fetchFlow<Q, S, C, M>({
+    flowPath, fromNodeId, fromNodeCode, req, conn, skipData, key
   }: {
     flowPath: string;
     fromNodeId?: string;
     fromNodeCode?: string;
-    biz: D;
+    req: Q;
     conn?: SqlSession;
-    skipError?: number;
+    skipData?: number;
     key?: string;
   }) {
     if (conn) {
-      return (new FlowExcute<D, M>(this.ctx, this.ctx.service, this.app, conn)).fetch({
-        flowPath, fromNodeId, fromNodeCode, biz, skipError, key
+      return (new FlowExcute<Q, S, C, M>(this.ctx, this.ctx.service, this.app, conn)).fetch({
+        flowPath, fromNodeId, fromNodeCode, req, skipData, key
       });
     } else {
       return await this.transction(async conn2 => {
-        return (new FlowExcute<D, M>(this.ctx, this.ctx.service, this.app, conn2)).fetch({
-          flowPath, fromNodeId, fromNodeCode, biz, skipError, key
+        return (new FlowExcute<Q, S, C, M>(this.ctx, this.ctx.service, this.app, conn2)).fetch({
+          flowPath, fromNodeId, fromNodeCode, req, skipData, key
         });
       });
     }
   }
-  public async doFlow<D, M>({
+  public async doFlow<Q, S, C, M>({
     flowPath,
     fromNodeId,
     fromNodeCode,
@@ -94,7 +94,7 @@ export default class extends BaseService<Empty> {
     actionCode,
     toNodeId,
     toNodeCode,
-    biz,
+    req,
     conn
   }: {
     flowPath: string;
@@ -104,11 +104,11 @@ export default class extends BaseService<Empty> {
     actionCode?: string;
     toNodeId?: string;
     toNodeCode?: string;
-    biz: D;
+    req: Q;
     conn?: SqlSession;
   }) {
     if (conn) {
-      return (new FlowExcute<D, M>(this.ctx, this.ctx.service, this.app, conn)).do({
+      return (new FlowExcute<Q, S, C, M>(this.ctx, this.ctx.service, this.app, conn)).do({
         flowPath,
         fromNodeId,
         fromNodeCode,
@@ -116,11 +116,11 @@ export default class extends BaseService<Empty> {
         actionCode,
         toNodeId,
         toNodeCode,
-        biz
+        req
       });
     } else {
       return await this.transction(async conn2 => {
-        return (new FlowExcute<D, M>(this.ctx, this.ctx.service, this.app, conn2)).do({
+        return (new FlowExcute<Q, S, C, M>(this.ctx, this.ctx.service, this.app, conn2)).do({
           flowPath,
           fromNodeId,
           fromNodeCode,
@@ -128,7 +128,7 @@ export default class extends BaseService<Empty> {
           actionCode,
           toNodeId,
           toNodeCode,
-          biz
+          req
         });
       });
     }

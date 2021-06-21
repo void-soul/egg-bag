@@ -128,3 +128,39 @@ export const fixEmptyPrototy = async (
     }
   }
 };
+
+
+export const mixArray = <T>(array: T[], key: keyof T, defKey?: string): {[key: string]: number} => {
+  const obj = array.map(item => item[key]);
+  const result: {[k: string]: number} = {};
+  for (const i of obj) {
+    let ki = '';
+    if (i !== undefined && i !== null) {
+      ki = `${ i }`;
+    } else if (defKey) {
+      ki = defKey;
+    }
+    if (!result[ki]) {
+      result[ki] = 0;
+    }
+    result[ki]++;
+  }
+  return result;
+};
+
+export const mixList = <T>(array: T[], key: keyof T, defKey?: string): {[key: string]: T[]} => {
+  const result: {[k: string]: T[]} = {};
+  for (const i of array) {
+    let ki = '';
+    if (i[key] !== undefined && i[key] !== null) {
+      ki = `${ i[key] }`;
+    } else if (defKey) {
+      ki = defKey;
+    }
+    if (!result[ki]) {
+      result[ki] = [];
+    }
+    result[ki].push(i);
+  }
+  return result;
+};

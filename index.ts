@@ -6,13 +6,13 @@ import BaseService from './app/base/BaseService';
 import BaseMongoService from './app/base/BaseMongoService';
 import {Empty, emptyPromise} from './app/util/empty';
 import {promise, sleep} from './app/util/fn';
-import {num, max, min, div, add, mul, sub, round, merge, MoneyStyle, money, calc} from './app/util/math';
+import {num, max, min, div, add, mul, sub, round, merge, money, calc} from './app/util/math';
 import {dateTime, dateXSDTime, date, nowTime, nowDate, nowTimeXSD} from './app/util/now';
-import {copyBean, convertBean, convertBeans, emptyBean, createBeanFromArray, coverComplexBean, fixEmptyPrototy} from './app/util/object';
+import {copyBean, convertBean, convertBeans, emptyBean, createBeanFromArray, coverComplexBean, fixEmptyPrototy, mixArray, mixList} from './app/util/object';
 import SetEx from './app/util/SetEx';
 import {DataSource, Mongo, Transient, BuildData, TransientMeda, LogicDelete, CTR} from './app/util/shell-extend';
 import {Render, Get, Post, Put, Delete, Patch, Options, Head, IO, Before, After, BeforeAll, AfterAll, Prefix, ContentType, ContentName, Lock, Excel} from './app/util/shell';
-import {uuid, getPicKey, emptyString, notEmptyString, safeString, randomNumber, randomString, randomString2, randomString3, eqString, buildWxStr, replaceChineseCode} from './app/util/string';
+import {uuid, getPicKey, emptyString, notEmptyString, safeString, trimObject, randomNumber, randomString, randomString2, randomString3, eqString, buildWxStr, replaceChineseCode} from './app/util/string';
 import BaseSchedule from './app/base/BaseSchedule';
 import ILogin from './app/middleware/ILogin';
 import SocketConfig from './app/enums/SocketConfig';
@@ -31,13 +31,13 @@ export = {
   emptyPromise,
   promise,
   sleep,
-  num, max, min, div, add, mul, sub, round, merge, MoneyStyle, money, calc,
+  num, max, min, div, add, mul, sub, round, merge, money, calc,
   dateTime, dateXSDTime, date, nowTime, nowDate, nowTimeXSD,
-  copyBean, convertBean, convertBeans, emptyBean, createBeanFromArray, coverComplexBean, fixEmptyPrototy,
+  copyBean, convertBean, convertBeans, emptyBean, createBeanFromArray, coverComplexBean, fixEmptyPrototy, mixArray, mixList,
   SetEx,
   DataSource, Mongo, Transient, BuildData, TransientMeda, LogicDelete, CTR,
   Render, Get, Post, Put, Delete, Patch, Options, Head, IO, ContentType, ContentName, Before, After, BeforeAll, AfterAll, Prefix, Lock, Excel,
-  uuid, getPicKey, emptyString, notEmptyString, safeString, randomNumber, randomString, randomString2, randomString3, eqString, buildWxStr, replaceChineseCode,
+  uuid, getPicKey, emptyString, notEmptyString, safeString, trimObject, randomNumber, randomString, randomString2, randomString3, eqString, buildWxStr, replaceChineseCode,
   BaseSchedule,
   ILogin,
   ci,

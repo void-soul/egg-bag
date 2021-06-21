@@ -36,7 +36,7 @@ declare class Bus {
   /** 计算结束，返回结果 */
   over(): number;
   /** 计算结果，返回金钱格式化 */
-  money(style?: MoneyStyle, currency?: string, prefix?: number, def?: number): string;
+  money(option?: MoneyOption): string;
   /** <= */
   le(data: any): boolean;
   /** < */
@@ -57,6 +57,27 @@ declare class Bus {
   nge(data: any): boolean;
   /** !> */
   ngt(data: any): boolean;
+
+  /** 决定下一次运算是否要继续? <= */
+  ifLe(data: any): this;
+  /** 决定下一次运算是否要继续? < */
+  ifLt(data: any): this;
+  /** 决定下一次运算是否要继续? >= */
+  ifGe(data: any): this;
+  /** 决定下一次运算是否要继续? > */
+  ifGt(data: any): this;
+  /** 决定下一次运算是否要继续? === */
+  ifEq(data: any): this;
+  /** 决定下一次运算是否要继续? !== */
+  ifNe(data: any): this;
+  /** 决定下一次运算是否要继续? !<= */
+  ifNle(data: any): this;
+  /** 决定下一次运算是否要继续? !< */
+  ifNlt(data: any): this;
+  /** 决定下一次运算是否要继续? !>= */
+  ifNge(data: any): this;
+  /** 决定下一次运算是否要继续? !> */
+  ifNgt(data: any): this;
 }
 /** 仿java lambda 查询 */
 declare class LambdaQuery<T> {
@@ -65,10 +86,12 @@ declare class LambdaQuery<T> {
   and(lambda: LambdaQuery<T>): this;
   or(lambda: LambdaQuery<T>): this;
   andEq(key: keyof T, value: T[keyof T]): this;
+  andShiftEq(key1: keyof T, key2: keyof T, value: T[keyof T]): this;
   andEqT(t: {
     [P in keyof T]?: T[P];
   }): this;
   andNotEq(key: keyof T, value: T[keyof T]): this;
+  andShiftNotEq(key1: keyof T, key2: keyof T, value: T[keyof T]): this;
   andGreat(key: keyof T, value: T[keyof T]): this;
   andGreatEq(key: keyof T, value: T[keyof T]): this;
   andLess(key: keyof T, value: T[keyof T]): this;
@@ -96,6 +119,14 @@ declare class LambdaQuery<T> {
   page(pageNumber: number, pageSize: number): this;
   where(): string;
   updateColumn(key: keyof T, value: T[keyof T]): this;
+  cache(param: {
+    /** 返回缓存清除key,参数=方法的参数+当前用户对象，可以用来批量清空缓存 */
+    clearKey?: string[];
+    /** 自动清空缓存的时间，单位分钟 */
+    autoClearTime?: number;
+    /** 随着当前用户sesion的清空而一起清空 */
+    clearWithSession?: boolean;
+  }): this;
   select(...columns: (keyof T)[]): Promise<T[]>;
   one(...columns: (keyof T)[]): Promise<T | undefined>;
   count(): Promise<number>;
@@ -109,6 +140,7 @@ declare class LambdaQuery<T> {
     distinct?: boolean;
     separator?: string;
   }): Promise<string>;
+
 }
 type JSType = 'double' | 'string' | 'object' | 'array' | 'binData' | 'undefined' | 'objectId' | 'bool' | 'date' | 'null' | 'regex' | 'javascript' | 'javascriptWithScope' | 'int' | 'timestamp' | 'long' | 'decimal' | 'minKey' | 'maxKey';
 declare class LambdaQueryMongo<T> {
@@ -1183,7 +1215,7 @@ export interface BaseUser {
 }
 export class Enum {
   constructor (value: string, desc: string);
-  eq(value: string): boolean;
+  eq(value: string | number | undefined | null): boolean;
   value(): string;
   desc(): string;
 }
@@ -2136,15 +2168,15 @@ export abstract class BaseMongoService<T> extends Service {
 }
 export abstract class BaseService<T> extends Service {
   /**
-    * 插入所有列
-    * 返回自增主键或者0
-    * @param {T} data
-    * @param {*} [transction=true] 独立事务
-    * @param {(serviceTableName: string) => string} [tableName=(
-    *       serviceTableName: string
-    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
-    * @returns
-    */
+      * 插入所有列
+      * 返回自增主键或者0
+      * @param {T} data
+      * @param {*} [transction=true] 独立事务
+      * @param {(serviceTableName: string) => string} [tableName=(
+      *       serviceTableName: string
+      *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+      * @returns
+      */
   insert(data: {
     [P in keyof T]?: T[P];
   }, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
@@ -2256,15 +2288,15 @@ export abstract class BaseService<T> extends Service {
     [P in keyof T]?: T[P];
   }, columns: (keyof T)[], transction?: SqlSession, tableName?: (serviceTableName: string) => string, dealEmptyString?: boolean): Promise<number>;
   /**
- * 如果指定列名不存在数据库中，则插入非空列(排除undefined、null)
- * 返回自增主键或者0
- * @param {T} data
- * @param {*} [transction=true] 独立事务
- * @param {(serviceTableName: string) => string} [tableName=(
- *       serviceTableName: string
- *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
- * @returns
- */
+  * 如果指定列名不存在数据库中，则插入非空列(排除undefined、null)
+  * 返回自增主键或者0
+  * @param {T} data
+  * @param {*} [transction=true] 独立事务
+  * @param {(serviceTableName: string) => string} [tableName=(
+  *       serviceTableName: string
+  *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+  * @returns
+  */
   insertTemplateLooseIfNotExists(data: {
     [P in keyof T]?: T[P];
   }, columns: (keyof T)[], transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
@@ -3082,17 +3114,17 @@ export abstract class BaseService<T> extends Service {
     [propName: string]: any;
   }, transction?: SqlSession): Promise<L[]>;
   /**
- *
- * 查询SQL语句的数字
- * sql必须支持count
- * @param {string} sqlid sql语句编码
- * @param {{ [propName: string]: any }} [param]
- * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
- * @returns number
- */
+   *
+   * 查询SQL语句的数字
+   * sql必须支持count
+   * @param {string} sqlid sql语句编码
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns number
+   */
   queryCountBySqlId(sqlid: string, param?: {
     [propName: string]: any;
-  } | undefined, transction?: SqlSession | undefined): Promise<number>;
+  }, transction?: SqlSession): Promise<number>;
   /**
    *
    * 执行数据库查询 ,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组,与sql语句的顺序对应
@@ -3115,6 +3147,116 @@ export abstract class BaseService<T> extends Service {
   queryMulitBySqlId<L>(sqlid: string, param?: {
     [propName: string]: any;
   }, transction?: SqlSession): Promise<L[][]>;
+  /**
+   *
+   * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+   * @param {string} sqlid sql语句编码
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 指定类型数组
+   */
+  queryMulitBySqlId2<A, B>(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transction?: SqlSession): Promise<[A[], B[]]>;
+  /**
+   *
+   * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+   * @param {string} sqlid sql语句编码
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 指定类型数组
+   */
+  queryMulitBySqlId3<A, B, C>(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transction?: SqlSession): Promise<[A[], B[], C[]]>;
+  /**
+   *
+   * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+   * @param {string} sqlid sql语句编码
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 指定类型数组
+   */
+  queryMulitBySqlId4<A, B, C, D>(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transction?: SqlSession): Promise<[A[], B[], C[], D[]]>;
+  /**
+   *
+   * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+   * @param {string} sqlid sql语句编码
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 指定类型数组
+   */
+  queryMulitBySqlId5<A, B, C, D, E>(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transction?: SqlSession): Promise<[A[], B[], C[], D[], E[]]>;
+  /**
+   *
+   * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+   * @param {string} sqlid sql语句编码
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 指定类型数组
+   */
+  queryMulitBySqlId6<A, B, C, D, E, F>(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transction?: SqlSession): Promise<[A[], B[], C[], D[], E[], F[]]>;
+  /**
+   *
+   * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+   * @param {string} sqlid sql语句编码
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 指定类型数组
+   */
+  queryMulitBySqlId7<A, B, C, D, E, F, G>(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transction?: SqlSession): Promise<[A[], B[], C[], D[], E[], F[], G[]]>;
+  /**
+ *
+ * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+ * @param {string} sqlid sql语句编码
+ * @param {{ [propName: string]: any }} [param]
+ * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+ * @returns 指定类型数组
+ */
+  queryMulitBySqlId8<A, B, C, D, E, F, G, H>(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transction?: SqlSession): Promise<[A[], B[], C[], D[], E[], F[], G[], H[]]>;
+  /**
+*
+* 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+* @param {string} sqlid sql语句编码
+* @param {{ [propName: string]: any }} [param]
+* @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+* @returns 指定类型数组
+*/
+  queryMulitBySqlId9<A, B, C, D, E, F, G, H, J>(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transction?: SqlSession): Promise<[A[], B[], C[], D[], E[], F[], G[], H[], J[]]>;
+  /**
+*
+* 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+* @param {string} sqlid sql语句编码
+* @param {{ [propName: string]: any }} [param]
+* @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+* @returns 指定类型数组
+*/
+  queryMulitBySqlId10<A, B, C, D, E, F, G, H, J, K>(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transction?: SqlSession): Promise<[A[], B[], C[], D[], E[], F[], G[], H[], J[], K[]]>;
+  /**
+*
+* 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+* @param {string} sqlid sql语句编码
+* @param {{ [propName: string]: any }} [param]
+* @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+* @returns 指定类型数组
+*/
+  queryMulitBySqlId11<A, B, C, D, E, F, G, H, J, K, L>(sqlid: string, param?: {
+    [propName: string]: any;
+  }, transction?: SqlSession): Promise<[A[], B[], C[], D[], E[], F[], G[], H[], J[], K[], L[]]>;
   /**
    *
    * 执行数据库查询 多列多行
@@ -3385,17 +3527,17 @@ declare class PaasService extends BaseService<Empty> {
   validPicCode(key: string, code: string): Promise<boolean>;
   /** 删除图形验证码缓存 */
   removePicCode(key: string): Promise<number>;
-  /** 流程获取 */
-  fetchFlow<D, M>(param: {
+  /** 流程获取,skipData=仅返回工作流结构,不返回数据,默认返回 */
+  fetchFlow<Q, S, C, M>(param: {
     flowPath: string;
     fromNodeId?: string;
     fromNodeCode?: string;
-    biz: D;
+    req: Q;
     conn?: SqlSession;
-    skipError?: number;
+    skipData?: number;
     key?: string;
   }): Promise<{
-    biz: D;
+    res: S;
     flowCode: string;
     flowPath: string;
     fromNodeId: string | undefined;
@@ -3412,7 +3554,7 @@ declare class PaasService extends BaseService<Empty> {
     fields: FlowField;
   }>;
   /** 流程处理 */
-  doFlow<D, M>(param: {
+  doFlow<Q, S, C, M>(param: {
     flowPath: string;
     fromNodeId?: string;
     fromNodeCode?: string;
@@ -3420,10 +3562,10 @@ declare class PaasService extends BaseService<Empty> {
     toNodeCode?: string;
     actionId?: string;
     actionCode?: string;
-    biz: D;
+    req: Q;
     conn?: SqlSession;
   }): Promise<{
-    biz: D;
+    res: S;
     flowCode: string;
     flowPath: string;
     fromNodeId: string | undefined;
@@ -3601,18 +3743,26 @@ export interface FlowNodeBase {
 
 }
 
+
 /**
  * 流程上下文
- * D: 流转data 类型定义
+ * Q: 请求参数
+ * S: 响应参数
+ * C: 流转data 类型定义
  * M: 消息类型
  */
-export abstract class FlowContext<D, M> {
+export abstract class FlowContext<Q, S, C, M> {
+  /** egg 上下文 */
   readonly ctx: Context;
   readonly service: IService;
   readonly app: Application;
   readonly conn: SqlSession;
-  /** 提交流程时，业务相关参数 */
-  readonly biz: D;
+  /** 流程上下文 */
+  readonly context: C;
+  /** 提交参数 */
+  readonly req: Q;
+  /** 响应参数 */
+  readonly res: S;
   /** 消息通知 */
   readonly noticeList: M[];
   /** 任务执行人id */
@@ -3621,12 +3771,12 @@ export abstract class FlowContext<D, M> {
   readonly logs: string[];
   /** 可能存在的异常信息,每个节点处理完异常后，可以将异常对象从上下文移除，以通知其他节点异常已经解决 */
   readonly error: string[];
+  /** 当前生效字段列表 */
+  readonly field: FlowField;
   /** 最终呈现时，过滤哪些操作可以展示。如果这里返回true，那么hide类型的line也会展示 */
   readonly filterLineShow: {
     [lineCodeOrId: string]: boolean;
   }
-  /** 当前生效字段列表 */
-  readonly field: FlowField;
   /** 当前流程编码 */
   readonly flowCode: string;
   /** 本次操作起始节点编码 */
@@ -3638,27 +3788,35 @@ export abstract class FlowContext<D, M> {
 }
 /**
  * 流程定义
- * D: 流转data 类型定义
+ * Q: 请求参数
+ * S: 响应参数
+ * C: 流转data 类型定义
  * M: 消息类型
  */
-export abstract class Flow<D, M> extends FlowContext<D, M>{
+export abstract class Flow<Q, S, C, M> extends FlowContext<Q, S, C, M>{
   /** 流程配置 */
-  readonly flowData?: FlowData;
+  readonly flowData: FlowData = {nodes: {}, lines: {}};
   /** 实现类缓存 */
-  readonly nodes?: {[key: string]: FlowContext<D, M>};
+  readonly nodes: {[key: string]: FlowContext<Q, S, C, M>} = {};
   /** 当流程结束、暂停时，保存数据 */
   abstract save(): Promise<void>;
   /**  流程开始前、暂停后重新执行前、子流程开始前、子流程上报到父流程后执行父流程前，会执行init方法。 */
   abstract init(): Promise<void>;
   /** 前端调用fetch-flow获取流程数据时调用 */
   abstract fetch(): Promise<void>;
-  /** 当本次流程[处理]完毕时,可以根据上下文返回数据给前端. */
-  abstract finish(): Promise<D>;
   /** 当节点被fetch时，前端需要根据节点返回的特殊字段值得到字段信息 */
   abstract special(): Promise<string>;
+  /** 构建context上下文 */
+  abstract build(): Promise<void>;
 }
-/** 任务结点(若找不到执行人员,将抛出异常) */
-export abstract class FlowNode<D, M> extends FlowContext<D, M> implements FlowNodeBase {
+/**
+ * 任务结点
+ * Q: 请求参数
+ * S: 响应参数
+ * C: 流转data 类型定义
+ * M: 消息类型
+ */
+export abstract class FlowNode<Q, S, C, M> extends FlowContext<Q, S, C, M> implements FlowNodeBase {
   /** 前端调用fetch-flow获取流程数据时调用 */
   abstract fetch(): Promise<void>;
   /** 当节点被fetch时，前端需要根据节点返回的特殊字段值得到字段信息 */
@@ -3672,8 +3830,14 @@ export abstract class FlowNode<D, M> extends FlowContext<D, M> implements FlowNo
   /** 在这里可以对流程上下文的noticeList进行操作。只有流程暂停、结束前最后一个目标节点的notice方法会被调用 */
   abstract notice(): Promise<void>;
 }
-/** 开始结点 所有开始节点都不能被指向 */
-export abstract class FlowNodeStart<D, M> extends FlowContext<D, M> implements FlowNodeBase {
+/**
+ * 开始结点 所有开始节点都不能被指向
+ * Q: 请求参数
+ * S: 响应参数
+ * C: 流转data 类型定义
+ * M: 消息类型
+ */
+export abstract class FlowNodeStart<Q, S, C, M> extends FlowContext<Q, S, C, M> implements FlowNodeBase {
   /** 前端调用fetch-flow获取流程数据时调用 */
   abstract fetch(): Promise<void>;
   /** 当节点被fetch时，前端需要根据节点返回的特殊字段值得到字段信息 */
@@ -3683,26 +3847,49 @@ export abstract class FlowNodeStart<D, M> extends FlowContext<D, M> implements F
 }
 /**
  * 结束节点：不能指向其他节点
+ * Q: 请求参数
+ * S: 响应参数
+ * C: 流转data 类型定义
+ * M: 消息类型
  */
-export abstract class FlowNodeEnd<D, M> extends FlowContext<D, M> implements FlowNodeBase {
+export abstract class FlowNodeEnd<Q, S, C, M> extends FlowContext<Q, S, C, M> implements FlowNodeBase {
   /** 节点作为目标时执行 */
   abstract excute(): Promise<void>;
   /** 在这里可以对流程上下文的noticeList进行操作。只有流程暂停、结束前最后一个目标节点的notice方法会被调用 */
   abstract notice(): Promise<void>;
 }
-/**  自动结点 无需人为,不能暂停,返回数字|undefined决定流程走向. */
-export abstract class FlowNodeAuto<D, M> extends FlowContext<D, M> implements FlowNodeBase {
+/**
+ * 自动结点 无需人为,不能暂停,返回数字|undefined决定流程走向.
+ * Q: 请求参数
+ * S: 响应参数
+ * C: 流转data 类型定义
+ * M: 消息类型
+ */
+export abstract class FlowNodeAuto<Q, S, C, M> extends FlowContext<Q, S, C, M> implements FlowNodeBase {
   /** 节点作为目标时执行,返回string可影响流程走向,抛出异常会被error-action捕获并处理.若没有error-action,则抛出异常 */
   abstract excute(): Promise<string | void>;
 }
-/**  分流结点(无需人为,不能暂停,返回key-value.key=走向,value=走向的上下文) */
-export abstract class FlowNodeShunt<D, M> extends FlowContext<D, M> implements FlowNodeBase {
+/**
+ * 分流结点(无需人为,不能暂停,返回key-value.key=走向,value=走向的上下文)
+ * Q: 请求参数
+ * S: 响应参数
+ * C: 流转data 类型定义
+ * M: 消息类型
+ */
+export abstract class FlowNodeShunt<Q, S, C, M> extends FlowContext<Q, S, C, M> implements FlowNodeBase {
   /** 节点作为目标时执行,返回key-value.key=走向,value=走向的上下文,返回void表示不分流，按默认line进行.抛出异常会被error-action捕获并处理.若没有error-action,则抛出异常 */
-  abstract excute(): Promise<{[k: string]: D} | void>;
+  abstract excute(): Promise<{[k: string]: {req: Q; res: S; context: C}} | void>;
 }
 
-/** 系统节点(无需人为,可暂停并作为执行入口)*/
-export abstract class FlowNodeSystem<D, M> extends FlowContext<D, M> implements FlowNodeBase {
+
+/**
+ * 系统节点(无需人为,可暂停并作为执行入口)
+ * Q: 请求参数
+ * S: 响应参数
+ * C: 流转data 类型定义
+ * M: 消息类型
+ */
+export abstract class FlowNodeSystem<Q, S, C, M> extends FlowContext<Q, S, C, M> implements FlowNodeBase {
   /** 流程暂停后重新执行时，如果以此节点为起始节点，则会执行init方法。 */
   abstract init(): Promise<void>;
   /** 节点作为目标时执行,抛出异常会被error-action捕获并处理.若没有error-action,则抛出异常 */
@@ -3715,16 +3902,27 @@ export abstract class FlowNodeSystem<D, M> extends FlowContext<D, M> implements 
   abstract special(): Promise<string | void>;
 }
 
-/** 子流程入口(存在于父流程中,需要指定一个子流程编号,一个父流程目前仅支持一个同名子流程编号) */
-export abstract class FlowNodeChild<D, M, C> extends FlowContext<D, M> implements FlowNodeBase {
+/**  */
+/**
+ * 子流程入口(存在于父流程中,需要指定一个子流程编号,一个父流程目前仅支持一个同名子流程编号)
+ * Q: 请求参数
+ * S: 响应参数
+ * C: 流转data 类型定义
+ * M: 消息类型
+ *
+ * Q2：子流程请求参数
+ * S2：子流程响应
+ * C2：子流程流转data
+ */
+export abstract class FlowNodeChild<Q, S, C, M, Q2, S2, C2> extends FlowContext<Q, S, C, M> implements FlowNodeBase {
   /** 进入子流程前执行，进入子流程后执行子流程的开始节点的默认操作 */
   abstract excute(): Promise<void>;
   /** 当发起子流程时，可以在这里根据自己的上下文构建子流程的上下文 */
-  abstract childContext(): Promise<C>;
+  abstract childContext(): Promise<{req: Q2; res: S2; context: C2}>;
   /** 子流程上报时执行 */
   abstract report(): Promise<void>;
   /** 可以在这里根据子流程上下文构建父流程的上下文 */
-  abstract parentContext(childContext: C): Promise<D>;
+  abstract parentContext(req: Q2, res: S2, context: C2): Promise<{req: Q; res: S; context: C}>;
 }
 
 declare module 'egg' {
@@ -3899,17 +4097,17 @@ declare module 'egg' {
      * @memberof Application
      */
     clearContextMethodCache(clearKey: string): Promise<void>;
-    /** 流程获取 */
-    fetchFlow<D, M>(param: {
+    /** 流程获取 skipData=仅返回工作流结构,不返回数据,默认返回 */
+    fetchFlow<Q, S, C, M>(param: {
       flowPath: string;
       fromNodeId?: string;
       fromNodeCode?: string;
-      biz: D;
+      req: Q;
       conn?: SqlSession;
-      skipError?: number;
+      skipData?: number;
       key?: string;
     }, devid?: string): Promise<{
-      biz: D;
+      res: S;
       flowCode: string;
       flowPath: string;
       fromNodeId: string | undefined;
@@ -3926,7 +4124,7 @@ declare module 'egg' {
       fields: FlowField;
     }>;
     /** 流程处理 */
-    doFlow<D, M>(param: {
+    doFlow<Q, S, C, M>(param: {
       flowPath: string;
       fromNodeId?: string;
       fromNodeCode?: string;
@@ -3934,10 +4132,10 @@ declare module 'egg' {
       toNodeCode?: string;
       actionId?: string;
       actionCode?: string;
-      biz: D;
+      req: Q;
       conn?: SqlSession;
     }, devid?: string): Promise<{
-      biz: D;
+      res: S;
       flowCode: string;
       flowPath: string;
       fromNodeId: string | undefined;
@@ -4332,17 +4530,17 @@ declare module 'egg' {
      * @memberof Application
      */
     emitASyncWithDevid(name: string, devid: string, ...args: any[]): Promise<any>;
-    /** 流程获取 */
-    fetchFlow<D, M>(param: {
+    /** 流程获取 skipData=仅返回工作流结构,不返回数据,默认返回 */
+    fetchFlow<Q, S, C, M>(param: {
       flowPath: string;
       fromNodeId?: string;
       fromNodeCode?: string;
-      biz: D;
+      req: Q;
       conn?: SqlSession;
-      skipError?: number;
+      skipData?: number;
       key?: string;
     }, devid?: string): Promise<{
-      biz: D;
+      res: S;
       flowCode: string;
       flowPath: string;
       fromNodeId: string | undefined;
@@ -4359,7 +4557,7 @@ declare module 'egg' {
       fields: FlowField;
     }>;
     /** 流程处理 */
-    doFlow<D, M>(param: {
+    doFlow<Q, S, C, M>(param: {
       flowPath: string;
       fromNodeId?: string;
       fromNodeCode?: string;
@@ -4367,10 +4565,10 @@ declare module 'egg' {
       toNodeCode?: string;
       actionId?: string;
       actionCode?: string;
-      biz: D;
+      req: Q;
       conn?: SqlSession;
     }, devid?: string): Promise<{
-      biz: D;
+      res: S;
       flowCode: string;
       flowPath: string;
       fromNodeId: string | undefined;
@@ -4411,9 +4609,17 @@ export function round(number: any, numDigits: number, upOrDown?: number): number
 /** =value.xx,其中xx=number,如number=99，表示修正数字为value.99 */
 export function merge(number: any): number;
 /** 金钱格式化可用样式 */
-export enum MoneyStyle {currency, decimal, percent}
+export class MoneyOption {
+  style?: 'currency' | 'decimal' | 'percent' = 'currency';
+  currency?: string = 'CNY';
+  prefix?: number = 2;
+  def?: number = 0;
+  currencyDisplay?: 'symbol' | 'name' | 'code' = 'symbol';
+  useGrouping?: boolean = true;
+  local?: string = 'zh';
+}
 /** 金钱格式化 */
-export function money(value: any, style?: MoneyStyle, currency?: string, prefix?: number, def?: number): string;
+export function money(value: any, option?: MoneyOption): string;
 /** 计算链生成 */
 export function calc(result: any): Bus;
 /** 计算两个地理信息点之间距离 */
@@ -4446,7 +4652,10 @@ export function createBeanFromArray<T>(source: any[], key: string, value: string
 export function coverComplexBean<T>(source: any, classType: any): {data: T; array: {[key: string]: any[]}};
 /** 将目标对象中为空的字段替换为source中对应key的值或者函数返回值 */
 export function fixEmptyPrototy(target: any, source: {[key: string]: any}): Promise<void>;
-
+/** 将数组中所有对象的某个属性（key）提取为以{key：汇总数量}的对象;当对象的key是空时，会汇总到defKey中,如果没有defKey,那么这个对象将被忽略 */
+export function mixArray<T>(array: T[], key: keyof T, defKey?: string | undefined): {[key: string]: number};
+/** 将数组中所有对象的某个属性（key）提取为以{key：对象数组}的对象;当对象的key是空时，会汇总到defKey中,如果没有defKey,那么这个对象将被忽略 */
+export function mixList<T>(array: T[], key: keyof T, defKey?: string | undefined): {[key: string]: T[]};
 /** mysql service的数据源 */
 export function DataSource(clazz: any, tableName: string, ...idNames: string[]);
 /** mongodb service的数据源 */
@@ -4529,6 +4738,8 @@ export function emptyString(source: any): boolean;
 export function notEmptyString(source: any): boolean;
 /** 将单引号去除 */
 export function safeString(source?: string): string;
+/** 将单引号去除 */
+export function trimObject<T>(data: any): T;
 /** 生成指定位数的随机数 */
 export function randomNumber(len: number): string;
 /** 生成指定位数的随机字符串：字母数字:字母分大小写 */

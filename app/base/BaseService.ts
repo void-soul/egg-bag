@@ -2311,6 +2311,176 @@ export default abstract class BaseService<T> extends Service {
   }
   /**
    *
+   * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+   * @param {string} sqlid sql语句编码
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 指定类型数组
+   */
+  @MethodDebug()
+  async queryMulitBySqlId2<A, B>(
+    sqlid: string,
+    param?: {[propName: string]: any},
+    transction?: SqlSession
+  ): Promise<[A[], B[]]> {
+    const data = await this.queryMulitBySqlId(sqlid, param, transction);
+    return data as any;
+  }
+  /**
+   *
+   * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+   * @param {string} sqlid sql语句编码
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 指定类型数组
+   */
+  @MethodDebug()
+  async queryMulitBySqlId3<A, B, C>(
+    sqlid: string,
+    param?: {[propName: string]: any},
+    transction?: SqlSession
+  ): Promise<[A[], B[], C[]]> {
+    const data = await this.queryMulitBySqlId(sqlid, param, transction);
+    return data as any;
+  }
+  /**
+   *
+   * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+   * @param {string} sqlid sql语句编码
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 指定类型数组
+   */
+  @MethodDebug()
+  async queryMulitBySqlId4<A, B, C, D>(
+    sqlid: string,
+    param?: {[propName: string]: any},
+    transction?: SqlSession
+  ): Promise<[A[], B[], C[], D[]]> {
+    const data = await this.queryMulitBySqlId(sqlid, param, transction);
+    return data as any;
+  }
+  /**
+   *
+   * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+   * @param {string} sqlid sql语句编码
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 指定类型数组
+   */
+  @MethodDebug()
+  async queryMulitBySqlId5<A, B, C, D, E>(
+    sqlid: string,
+    param?: {[propName: string]: any},
+    transction?: SqlSession
+  ): Promise<[A[], B[], C[], D[], E[]]> {
+    const data = await this.queryMulitBySqlId(sqlid, param, transction);
+    return data as any;
+  }
+  /**
+   *
+   * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+   * @param {string} sqlid sql语句编码
+   * @param {{ [propName: string]: any }} [param]
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @returns 指定类型数组
+   */
+  @MethodDebug()
+  async queryMulitBySqlId6<A, B, C, D, E, F>(
+    sqlid: string,
+    param?: {[propName: string]: any},
+    transction?: SqlSession
+  ): Promise<[A[], B[], C[], D[], E[], F[]]> {
+    const data = await this.queryMulitBySqlId(sqlid, param, transction);
+    return data as any;
+  }
+  /**
+ *
+ * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+ * @param {string} sqlid sql语句编码
+ * @param {{ [propName: string]: any }} [param]
+ * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+ * @returns 指定类型数组
+ */
+  @MethodDebug()
+  async queryMulitBySqlId7<A, B, C, D, E, F, G>(
+    sqlid: string,
+    param?: {[propName: string]: any},
+    transction?: SqlSession
+  ): Promise<[A[], B[], C[], D[], E[], F[], G[]]> {
+    const data = await this.queryMulitBySqlId(sqlid, param, transction);
+    return data as any;
+  }
+  /**
+ *
+ * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+ * @param {string} sqlid sql语句编码
+ * @param {{ [propName: string]: any }} [param]
+ * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+ * @returns 指定类型数组
+ */
+  @MethodDebug()
+  async queryMulitBySqlId8<A, B, C, D, E, F, G, H>(
+    sqlid: string,
+    param?: {[propName: string]: any},
+    transction?: SqlSession
+  ): Promise<[A[], B[], C[], D[], E[], F[], G[], H[]]> {
+    const data = await this.queryMulitBySqlId(sqlid, param, transction);
+    return data as any;
+  }
+  /**
+ *
+ * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+ * @param {string} sqlid sql语句编码
+ * @param {{ [propName: string]: any }} [param]
+ * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+ * @returns 指定类型数组
+ */
+  @MethodDebug()
+  async queryMulitBySqlId9<A, B, C, D, E, F, G, H, I>(
+    sqlid: string,
+    param?: {[propName: string]: any},
+    transction?: SqlSession
+  ): Promise<[A[], B[], C[], D[], E[], F[], G[], H[], I[]]> {
+    const data = await this.queryMulitBySqlId(sqlid, param, transction);
+    return data as any;
+  }
+  /**
+ *
+ * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+ * @param {string} sqlid sql语句编码
+ * @param {{ [propName: string]: any }} [param]
+ * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+ * @returns 指定类型数组
+ */
+  @MethodDebug()
+  async queryMulitBySqlId10<A, B, C, D, E, F, G, H, I, J>(
+    sqlid: string,
+    param?: {[propName: string]: any},
+    transction?: SqlSession
+  ): Promise<[A[], B[], C[], D[], E[], F[], G[], H[], I[], J[]]> {
+    const data = await this.queryMulitBySqlId(sqlid, param, transction);
+    return data as any;
+  }
+  /**
+*
+* 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+* @param {string} sqlid sql语句编码
+* @param {{ [propName: string]: any }} [param]
+* @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+* @returns 指定类型数组
+*/
+  @MethodDebug()
+  async queryMulitBySqlId11<A, B, C, D, E, F, G, H, I, J, K>(
+    sqlid: string,
+    param?: {[propName: string]: any},
+    transction?: SqlSession
+  ): Promise<[A[], B[], C[], D[], E[], F[], G[], H[], I[], J[], K[]]> {
+    const data = await this.queryMulitBySqlId(sqlid, param, transction);
+    return data as any;
+  }
+  /**
+   *
    * 执行数据库查询 多列多行
    * @param {string} sql sql语句
    * @param {{ [propName: string]: any }} [param]
@@ -2587,7 +2757,9 @@ export default abstract class BaseService<T> extends Service {
       tableName(this.tableName),
       async (sql: string, params: Empty) => await this.queryMutiRowMutiColumnBySql<L>(sql, params, transction),
       async (sql: string, params: Empty) => (await this.querySingelRowSingelColumnBySql<number>(sql, params, transction)) || 0,
-      async (sql: string, params: Empty) => await this.executeBySql(sql, params, transction)
+      async (sql: string, params: Empty) => await this.executeBySql(sql, params, transction),
+      this,
+      this.app
     );
   }
   /**

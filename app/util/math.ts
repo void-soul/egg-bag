@@ -1,5 +1,5 @@
 import Decimal from 'decimal.js';
-import {Point} from '../../typings';
+import {Point, MoneyOption} from '../../typings';
 
 function isNum(a: any): boolean {
   return a !== '' && a !== null && !isNaN(a);
@@ -19,11 +19,13 @@ function filterNumber(array: any[]): number[] {
   });
   return res;
 }
-function filterNumber2(array: any[]): Decimal[] {
+function filterNumber2(array: any[], def?: number): Decimal[] {
   const res: Decimal[] = [];
   array.forEach((element) => {
     if (isNum(element)) {
       res.push(new Decimal(element));
+    } else if (def !== undefined) {
+      res.push(new Decimal(def));
     }
   });
   return res;
@@ -73,7 +75,7 @@ export const mul = (...args: any[]): number => {
 };
 
 export const sub = (...args: any[]): number => {
-  const arr = filterNumber2(args);
+  const arr = filterNumber2(args, 0);
   if (arr.length > 1) {
     return arr.reduce((a, b) => a.sub(b)).toNumber();
   } else if (arr.length > 0) {
@@ -103,24 +105,25 @@ export const merge = function (value: any, number: any) {
   }
 };
 
-export enum MoneyStyle {
-  currency = 'currency',
-  decimal = 'decimal',
-  percent = 'percent'
-}
 
 export const money = (
   value: any,
-  style: MoneyStyle = MoneyStyle.currency,
-  currency = 'CNY',
-  prefix = 2,
-  def = 0
+  option: MoneyOption = {}
 ): string => {
-  return (isNum(value) ? value : def).toLocaleString('zh', {
-    style,
-    currency,
-    minimumFractionDigits: prefix
-  });
+  // Intl.NumberFormat(option.local ?? 'zh', {
+  //   style: option.style ?? 'currency',
+  //   currency: option.currency ?? 'CNY',
+  //   minimumFractionDigits: option.prefix ?? 2,
+  //   currencyDisplay: option.currencyDisplay ?? 'symbol',
+  //   useGrouping: option.useGrouping ?? true
+  // }).format(isNum(value) ? value : option.def).replace(/CN|\s/g, '');
+  return (isNum(value) ? value : option.def).toLocaleString(option.local ?? 'zh', {
+    style: option.style ?? 'currency',
+    currency: option.currency ?? 'CNY',
+    minimumFractionDigits: option.prefix ?? 2,
+    currencyDisplay: option.currencyDisplay ?? 'symbol',
+    useGrouping: option.useGrouping ?? true
+  }).replace(/CN|\s/g, '');
 };
 
 const IF = function () {
@@ -202,12 +205,9 @@ export class Bus {
     return this.result;
   }
   money(
-    style?: MoneyStyle,
-    currency?: string,
-    prefix?: number,
-    def?: number
+    option?: MoneyOption
   ): string {
-    return money(this.result, style, currency, prefix, def);
+    return money(this.result, option);
   }
   lt(data: any): boolean {
     const [d, r] = filterNumber2([data, this.result]);
@@ -248,6 +248,57 @@ export class Bus {
   ne(data: any): boolean {
     const [d, r] = filterNumber2([data, this.result]);
     return !r.eq(d);
+  }
+
+  ifLt(data: any): this {
+    const [d, r] = filterNumber2([data, this.result]);
+    this.ifit = r.lessThan(d);
+    return this;
+  }
+  ifLe(data: any): this {
+    const [d, r] = filterNumber2([data, this.result]);
+    this.ifit = r.lessThanOrEqualTo(d);
+    return this;
+  }
+  ifGt(data: any): this {
+    const [d, r] = filterNumber2([data, this.result]);
+    this.ifit = r.greaterThan(d);
+    return this;
+  }
+  ifGe(data: any): this {
+    const [d, r] = filterNumber2([data, this.result]);
+    this.ifit = r.greaterThanOrEqualTo(d);
+    return this;
+  }
+  ifNlt(data: any): this {
+    const [d, r] = filterNumber2([data, this.result]);
+    this.ifit = !r.lessThan(d);
+    return this;
+  }
+  ifNle(data: any): this {
+    const [d, r] = filterNumber2([data, this.result]);
+    this.ifit = !r.lessThanOrEqualTo(d);
+    return this;
+  }
+  ifNgt(data: any): this {
+    const [d, r] = filterNumber2([data, this.result]);
+    this.ifit = !r.greaterThan(d);
+    return this;
+  }
+  ifNge(data: any): this {
+    const [d, r] = filterNumber2([data, this.result]);
+    this.ifit = !r.greaterThanOrEqualTo(d);
+    return this;
+  }
+  ifEq(data: any): this {
+    const [d, r] = filterNumber2([data, this.result]);
+    this.ifit = r.equals(d);
+    return this;
+  }
+  ifNe(data: any): this {
+    const [d, r] = filterNumber2([data, this.result]);
+    this.ifit = !r.eq(d);
+    return this;
   }
 }
 

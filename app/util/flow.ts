@@ -3,16 +3,22 @@ import lodash = require('lodash');
 
 /**
  * 流程上下文
- * D: 流转data 类型定义
+ * Q: 请求参数
+ * S: 响应参数
+ * C: 流转data 类型定义
  * M: 消息类型
  */
-export abstract class FlowContext<D, M> {
+export abstract class FlowContext<Q, S, C, M> {
   readonly ctx: Context;
   readonly service: IService;
   readonly app: Application;
   readonly conn: SqlSession;
   /** 提交流程时，业务相关参数 */
-  readonly biz: D;
+  readonly context: C;
+  /** 提交参数 */
+  readonly req: Q;
+  /** 响应参数 */
+  readonly res: S;
   /** 消息通知 */
   readonly noticeList: M[];
   /** 任务执行人id */
@@ -38,27 +44,35 @@ export abstract class FlowContext<D, M> {
 }
 /**
  * 流程定义
- * D: 流转data 类型定义
+ * Q: 请求参数
+ * S: 响应参数
+ * C: 流转data 类型定义
  * M: 消息类型
  */
-export abstract class Flow<D, M> extends FlowContext<D, M>{
+export abstract class Flow<Q, S, C, M> extends FlowContext<Q, S, C, M>{
   /** 流程配置 */
   readonly flowData: FlowData = {nodes: {}, lines: {}};
   /** 实现类缓存 */
-  readonly nodes: {[key: string]: FlowContext<D, M>} = {};
+  readonly nodes: {[key: string]: FlowContext<Q, S, C, M>} = {};
   /** 当流程结束、暂停时，保存数据 */
   abstract save(): Promise<void>;
   /**  流程开始前、暂停后重新执行前、子流程开始前、子流程上报到父流程后执行父流程前，会执行init方法。 */
   abstract init(): Promise<void>;
   /** 前端调用fetch-flow获取流程数据时调用 */
   abstract fetch(): Promise<void>;
-  /** 当本次流程[处理]完毕时,可以根据上下文返回数据给前端. */
-  abstract finish(): Promise<D>;
   /** 当节点被fetch时，前端需要根据节点返回的特殊字段值得到字段信息 */
   abstract special(): Promise<string>;
+  /** 构建context上下文 */
+  abstract build(): Promise<void>;
 }
-/** 任务结点 */
-export abstract class FlowNode<D, M> extends FlowContext<D, M> implements FlowNodeBase {
+/**
+ * 任务结点
+ * Q: 请求参数
+ * S: 响应参数
+ * C: 流转data 类型定义
+ * M: 消息类型
+ */
+export abstract class FlowNode<Q, S, C, M> extends FlowContext<Q, S, C, M> implements FlowNodeBase {
   /** 前端调用fetch-flow获取流程数据时调用 */
   abstract fetch(): Promise<void>;
   /** 当节点被fetch时，前端需要根据节点返回的特殊字段值得到字段信息 */
@@ -72,8 +86,14 @@ export abstract class FlowNode<D, M> extends FlowContext<D, M> implements FlowNo
   /** 在这里可以对流程上下文的noticeList进行操作。只有流程暂停、结束前最后一个目标节点的notice方法会被调用 */
   abstract notice(): Promise<void>;
 }
-/** 开始结点 所有开始节点都不能被指向 */
-export abstract class FlowNodeStart<D, M> extends FlowContext<D, M> implements FlowNodeBase {
+/**
+ * 开始结点 所有开始节点都不能被指向
+ * Q: 请求参数
+ * S: 响应参数
+ * C: 流转data 类型定义
+ * M: 消息类型
+ */
+export abstract class FlowNodeStart<Q, S, C, M> extends FlowContext<Q, S, C, M> implements FlowNodeBase {
   /** 前端调用fetch-flow获取流程数据时调用 */
   abstract fetch(): Promise<void>;
   /** 当节点被fetch时，前端需要根据节点返回的特殊字段值得到字段信息 */
@@ -83,27 +103,49 @@ export abstract class FlowNodeStart<D, M> extends FlowContext<D, M> implements F
 }
 /**
  * 结束节点：不能指向其他节点
+ * Q: 请求参数
+ * S: 响应参数
+ * C: 流转data 类型定义
+ * M: 消息类型
  */
-export abstract class FlowNodeEnd<D, M> extends FlowContext<D, M> implements FlowNodeBase {
+export abstract class FlowNodeEnd<Q, S, C, M> extends FlowContext<Q, S, C, M> implements FlowNodeBase {
   /** 节点作为目标时执行 */
   abstract excute(): Promise<void>;
   /** 在这里可以对流程上下文的noticeList进行操作。只有流程暂停、结束前最后一个目标节点的notice方法会被调用 */
   abstract notice(): Promise<void>;
 }
-/**  自动结点 无需人为,不能暂停,返回数字|undefined决定流程走向. */
-export abstract class FlowNodeAuto<D, M> extends FlowContext<D, M> implements FlowNodeBase {
+/**
+ * 自动结点 无需人为,不能暂停,返回数字|undefined决定流程走向.
+ * Q: 请求参数
+ * S: 响应参数
+ * C: 流转data 类型定义
+ * M: 消息类型
+ */
+export abstract class FlowNodeAuto<Q, S, C, M> extends FlowContext<Q, S, C, M> implements FlowNodeBase {
   /** 节点作为目标时执行,返回string可影响流程走向,抛出异常会被error-action捕获并处理.若没有error-action,则抛出异常 */
   abstract excute(): Promise<string | void>;
 }
-/**  分流结点(无需人为,不能暂停,返回key-value.key=走向,value=走向的上下文) */
-export abstract class FlowNodeShunt<D, M> extends FlowContext<D, M> implements FlowNodeBase {
+/**
+ * 分流结点(无需人为,不能暂停,返回key-value.key=走向,value=走向的上下文)
+ * Q: 请求参数
+ * S: 响应参数
+ * C: 流转data 类型定义
+ * M: 消息类型
+ */
+export abstract class FlowNodeShunt<Q, S, C, M> extends FlowContext<Q, S, C, M> implements FlowNodeBase {
   /** 节点作为目标时执行,返回key-value.key=走向,value=走向的上下文,返回void表示不分流，按默认line进行.抛出异常会被error-action捕获并处理.若没有error-action,则抛出异常 */
-  abstract excute(): Promise<{[k: string]: D} | void>;
+  abstract excute(): Promise<{[k: string]: {req: Q; res: S; context: C}} | void>;
 }
 
 
-/** 系统节点(无需人为,可暂停并作为执行入口)*/
-export abstract class FlowNodeSystem<D, M> extends FlowContext<D, M> implements FlowNodeBase {
+/**
+ * 系统节点(无需人为,可暂停并作为执行入口)
+ * Q: 请求参数
+ * S: 响应参数
+ * C: 流转data 类型定义
+ * M: 消息类型
+ */
+export abstract class FlowNodeSystem<Q, S, C, M> extends FlowContext<Q, S, C, M> implements FlowNodeBase {
   /** 流程暂停后重新执行时，如果以此节点为起始节点，则会执行init方法。 */
   abstract init(): Promise<void>;
   /** 节点作为目标时执行,抛出异常会被error-action捕获并处理.若没有error-action,则抛出异常 */
@@ -116,16 +158,27 @@ export abstract class FlowNodeSystem<D, M> extends FlowContext<D, M> implements 
   abstract special(): Promise<string | void>;
 }
 
-/** 子流程入口(存在于父流程中,需要指定一个子流程编号,一个父流程目前仅支持一个同名子流程编号) */
-export abstract class FlowNodeChild<D, M, C> extends FlowContext<D, M> implements FlowNodeBase {
+/**  */
+/**
+ * 子流程入口(存在于父流程中,需要指定一个子流程编号,一个父流程目前仅支持一个同名子流程编号)
+ * Q: 请求参数
+ * S: 响应参数
+ * C: 流转data 类型定义
+ * M: 消息类型
+ *
+ * Q2：子流程请求参数
+ * S2：子流程响应
+ * C2：子流程流转data
+ */
+export abstract class FlowNodeChild<Q, S, C, M, Q2, S2, C2> extends FlowContext<Q, S, C, M> implements FlowNodeBase {
   /** 进入子流程前执行，进入子流程后执行子流程的开始节点的默认操作 */
   abstract excute(): Promise<void>;
   /** 当发起子流程时，可以在这里根据自己的上下文构建子流程的上下文 */
-  abstract childContext(): Promise<C>;
+  abstract childContext(): Promise<{req: Q2; res: S2; context: C2}>;
   /** 子流程上报时执行 */
   abstract report(): Promise<void>;
   /** 可以在这里根据子流程上下文构建父流程的上下文 */
-  abstract parentContext(childContext: C): Promise<D>;
+  abstract parentContext(req: Q2, res: S2, context: C2): Promise<{req: Q; res: S; context: C}>;
 }
 class StatusError extends Error {
   egg: number;
@@ -148,7 +201,7 @@ interface NodeFilter {
   child?: string; id?: string; code?: string; start?: boolean
 }
 const explainCode = /([A-Za-z]+)(\d*)[-]*(\d*)/;
-interface FlowCore<D, M> {
+interface FlowCore<Q, S, C, M> {
   /** 查询、执行必须参数 */
   flowCode: string;
   srcFlowCode: string;
@@ -168,13 +221,13 @@ interface FlowCore<D, M> {
   lineId?: string;
   lineConfig?: FlowLine;
 
-  context: FlowContext<D, M>;
+  context: FlowContext<Q, S, C, M>;
   specialValue: string;
-  flow: Flow<D, M>;
+  flow: Flow<Q, S, C, M>;
 }
-export class FlowExcute<D, M> {
+export class FlowExcute<Q, S, C, M> {
   private cores: {
-    [key: string]: FlowCore<D, M>;
+    [key: string]: FlowCore<Q, S, C, M>;
   };
   private conn: SqlSession;
   private app: Application;
@@ -190,35 +243,37 @@ export class FlowExcute<D, M> {
     this.cores = {};
     this.flowCodes = [];
   }
-  public async fetch({flowPath, fromNodeId, fromNodeCode, biz, skipError, key}: {
+  public async fetch({flowPath, fromNodeId, fromNodeCode, req, skipData, key}: {
     flowPath: string;
     fromNodeId?: string;
     fromNodeCode?: string;
-    biz: D;
-    skipError?: number;
+    req: Q;
+    skipData?: number;
     key?: string;
   }) {
     this.append(flowPath)
       .defFlow()
-      .active(this.activeCode, biz)
+      .active(this.activeCode, {req})
       .from({id: fromNodeId, code: fromNodeCode, start: true});
-    if (skipError === 1 && !this.cores[this.activeCode].fromNode) {
+    if (skipData === 1 && !this.cores[this.activeCode].fromNode) {
       return {};
     }
     await this.checkFrom()
       .from2To(true)
       .specilAndField();
     const core = this.cores[this.activeCode];
-    if (core.fromNode! instanceof FlowNode || core.fromNode! instanceof FlowNodeStart || core.fromNode! instanceof FlowNodeSystem) {
+    if (skipData === 1) {
+      return this.getResult(key);
+    } else if (core.fromNode! instanceof FlowNode || core.fromNode! instanceof FlowNodeStart || core.fromNode! instanceof FlowNodeSystem) {
+      await core.flow.build.call(core.context);
       await core.flow.fetch.call(core.context);
       await core.fromNode.fetch.call(core.context);
       await this.specilAndField();
-      return await this.getResult(false, key);
-    }
-    if (skipError !== 1) {
-      this.throwNow('起始节点只能是task、start、system');
+      return this.getResult(key);
     } else {
-      return {};
+      await core.flow.build.call(core.context);
+      await core.flow.fetch.call(core.context);
+      return this.getResult(key);
     }
   }
   public async do({
@@ -229,7 +284,7 @@ export class FlowExcute<D, M> {
     actionCode,
     toNodeId,
     toNodeCode,
-    biz
+    req
   }: {
     flowPath: string;
     fromNodeId?: string;
@@ -238,9 +293,9 @@ export class FlowExcute<D, M> {
     actionCode?: string;
     toNodeId?: string;
     toNodeCode?: string;
-    biz: D;
+    req: Q;
   }) {
-    this.append(flowPath).defFlow().active(this.activeCode, biz);
+    this.append(flowPath).defFlow().active(this.activeCode, {req});
     if (fromNodeCode || fromNodeId) {
       this.from({id: fromNodeId, code: fromNodeCode, start: false});
     } else if (toNodeId || toNodeCode) {
@@ -289,7 +344,7 @@ export class FlowExcute<D, M> {
     await this.init();
     await this.specilAndField();
     await this._doFlow(false);
-    return await this.getResult(true);
+    return this.getResult();
   }
   public getLine({flowCode, fromNodeId, fromNodeCode, actionId, actionCode}: {
     flowCode: string; fromNodeId?: string; fromNodeCode?: string; actionId?: string; actionCode?: string;
@@ -307,6 +362,7 @@ export class FlowExcute<D, M> {
   }
   private async init(): Promise<this> {
     const core = this.cores[this.activeCode];
+    await core.flow.build.call(core.context);
     await core.flow.init.call(core.context);
     if (core.fromNode && (core.fromNode instanceof FlowNode || core.fromNode instanceof FlowNodeStart || core.fromNode instanceof FlowNodeSystem)) {
       await core.fromNode.init.call(core.context);
@@ -339,7 +395,7 @@ export class FlowExcute<D, M> {
     }
     return splitIndex;
   }
-  private active(flowCode: string, biz?: D): this {
+  private active(flowCode: string, data?: {req?: Q; res?: S; context?: C}): this {
     const explains = explainCode.exec(flowCode);
     this.throwIf(!explains, `${ flowCode }格式错误`);
     const appFlowCode = explains![1];
@@ -354,7 +410,9 @@ export class FlowExcute<D, M> {
           service: this.service,
           app: this.app,
           conn: this.conn,
-          biz: {} as D,
+          context: {} as C,
+          req: {} as Q,
+          res: {} as S,
           noticeList: [],
           todoList: new Set(),
           logs: [],
@@ -377,7 +435,9 @@ export class FlowExcute<D, M> {
           service: this.service,
           app: this.app,
           conn: this.conn,
-          biz: lodash.cloneDeep(this.cores[srcFlowCode].context.biz),
+          context: lodash.cloneDeep(this.cores[srcFlowCode].context.context),
+          req: lodash.cloneDeep(this.cores[srcFlowCode].context.req),
+          res: lodash.cloneDeep(this.cores[srcFlowCode].context.res),
           noticeList: lodash.cloneDeep(this.cores[srcFlowCode].context.noticeList),
           todoList: lodash.cloneDeep(this.cores[srcFlowCode].context.todoList),
           logs: lodash.cloneDeep(this.cores[srcFlowCode].context.logs),
@@ -390,9 +450,10 @@ export class FlowExcute<D, M> {
         specialValue: ''
       };
     }
-    if (biz) {
-      lodash.assign(this.cores[flowCode].context.biz, biz);
+    if (data) {
+      lodash.assign(this.cores[flowCode].context, data);
     }
+
     this.activeCode = flowCode;
     return this;
   }
@@ -536,7 +597,7 @@ export class FlowExcute<D, M> {
     let core = this.cores[this.activeCode];
     const to = core.toNodeConfig?.name || core.toNodeId || 'unkonwn';
     let from = core.fromNodeConfig?.name || core.fromNodeId || 'unkonwn';
-    debugFlow(`${ core.flowCode }::from[${ from }]=>[${ core.lineConfig?.name || core.lineConfig?.code || core.lineId || 'unkonwn' }]=>[${ to }]`);
+    debugFlow(`${ core.flowCode }>>>[${ from }]=>[${ core.lineConfig?.name || core.lineConfig?.code || core.lineId || 'unkonwn' }]=>[${ to }]`);
     core.context.todoList.clear();
     if (core.lineConfig?.log && skip !== true) {
       core.context.logs.push(core.lineConfig.log);
@@ -554,7 +615,7 @@ export class FlowExcute<D, M> {
       }
       case 'task': {
         try {
-          const node = core.toNode! as FlowNode<D, M>;
+          const node = core.toNode! as FlowNode<Q, S, C, M>;
           await node.excute.call(core.context);
           await node.todo.call(core.context);
           if (core.context.todoList.size === 0) {
@@ -583,7 +644,7 @@ export class FlowExcute<D, M> {
       }
       case 'auto': {
         try {
-          const node = core.toNode! as FlowNodeAuto<D, M>;
+          const node = core.toNode! as FlowNodeAuto<Q, S, C, M>;
           const nextSwitch = await node.excute.call(core.context);
           if (lines.noError.length > 1 && typeof nextSwitch === 'string') {
             nextAction = lines.noError.find(item => item.line.swi.includes(nextSwitch));
@@ -604,14 +665,14 @@ export class FlowExcute<D, M> {
       }
       case 'shunt': {
         try {
-          const node = core.toNode! as FlowNodeShunt<D, M>;
+          const node = core.toNode! as FlowNodeShunt<Q, S, C, M>;
           const nextSwitch = await node.excute.call(core.context);
           if (lines.noError.length > 1 && typeof nextSwitch === 'object') {
             let i = 0;
-            for (const [k, biz] of Object.entries(nextSwitch)) {
+            for (const [k, data] of Object.entries(nextSwitch)) {
               const matchAction = lines.noError.find(item => item.line.swi.includes(k)) || lines.def;
               this.throwIf(!matchAction, `${ to }结果为${ k },但无匹配的操作`);
-              await this.active(`${ core.flowCode }-${ i++ }`, biz).to2From(false).line(matchAction!).to({id: matchAction?.line.to})._doFlow(false);
+              await this.active(`${ core.flowCode }-${ i++ }`, data).to2From(false).line(matchAction!).to({id: matchAction?.line.to})._doFlow(false);
             }
             return;
           } else {
@@ -631,11 +692,11 @@ export class FlowExcute<D, M> {
       case 'child': {
         const child = core.toNodeConfig!.child!;
         this.throwIf(!core.toNodeConfig?.child, '未声明子流程');
-        const node = core.toNode! as FlowNodeChild<D, M, any>;
+        const node = core.toNode! as FlowNodeChild<Q, S, C, M, any, any, any>;
         await node.excute.call(core.context);
         await this.save();
-        const biz = await node.childContext.call(core.context);
-        await this.append(child).active(child, biz).from({start: true}).checkFrom().init();
+        const childData = await node.childContext.call(core.context);
+        await this.append(child).active(child, childData).from({start: true}).checkFrom().init();
         core = this.cores[this.activeCode];
         const childLines = this.explainLines(core.fromNodeLines!);
         from = core.fromNodeConfig?.name || core.fromNodeId || 'unkonwn';
@@ -645,7 +706,7 @@ export class FlowExcute<D, M> {
       }
       case 'sys': {
         try {
-          const node = core.toNode! as FlowNodeSystem<D, M>;
+          const node = core.toNode! as FlowNodeSystem<Q, S, C, M>;
           await node.excute.call(core.context);
         } catch (error) {
           if (error.eggBag !== 1 && lines.error) {
@@ -658,7 +719,7 @@ export class FlowExcute<D, M> {
         break;
       }
       case 'end': {
-        const node = core.toNode! as FlowNodeEnd<D, M>;
+        const node = core.toNode! as FlowNodeEnd<Q, S, C, M>;
         await node.excute.call(core.context);
         break;
       }
@@ -672,16 +733,15 @@ export class FlowExcute<D, M> {
       if (core.toNodeConfig!.up === true && activeIndex > 0) {
         const parentCodes = this.flowCodes[activeIndex - 1];
         for (const parentCode of parentCodes) {
-          const childBiz = core.context.biz;
           const child = core.flowCode;
           this.active(parentCode).from({child});
           core = this.cores[this.activeCode];
           from = core.fromNodeConfig?.name || core.fromNodeId || 'unkonwn';
           if (core.fromNode) {
             this.throwIf(core.fromNodeLines!.length !== 1, `${ from }只能有一个出线`);
-            const parentNode = core.fromNode as FlowNodeChild<D, M, any>;
-            const biz = await parentNode.parentContext.call(core.context, childBiz);
-            this.active(core.flowCode, biz);
+            const parentNode = core.fromNode as FlowNodeChild<Q, S, C, M, any, any, any>;
+            const parentData = await parentNode.parentContext.call(core.context, core.context.res, core.context.req, core.context.context);
+            this.active(core.flowCode, parentData);
             await this.init();
             await this.line(core.fromNodeLines![0]).to({id: core.fromNodeLines![0].line.to})._doFlow(true);
           }
@@ -696,7 +756,7 @@ export class FlowExcute<D, M> {
     await core.flow.save.call(core.context);
     core.context.error.length = core.context.logs.length = 0;
   }
-  private async getResult(isDo: boolean, key?: string) {
+  private getResult(key?: string) {
     const core = this.cores[this.activeCode];
     let tmplines: {id: string; line: FlowLine;}[] = [];
     let lines: SimplyFlowLine[] = [];
@@ -722,7 +782,7 @@ export class FlowExcute<D, M> {
       lines = tmplines.map(item => this.line2Simply(item, core));
     }
     return {
-      biz: isDo ? await core.flow.finish.call(core.context) : core.context.biz,
+      res: core.context.res,
       flowCode: core.flowCode,
       fromNodeId: core.toNodeId,
       fromNodeCode: core.toNodeConfig?.code,
@@ -794,7 +854,7 @@ export class FlowExcute<D, M> {
       };
     }
   }
-  private line2Simply(item: {id: string; line: FlowLine}, core: FlowCore<D, M>): SimplyFlowLine {
+  private line2Simply(item: {id: string; line: FlowLine}, core: FlowCore<Q, S, C, M>): SimplyFlowLine {
     const explains = explainCode.exec(core.flowCode);
     const activeIndex = this.flowCodes.findIndex(item => item.includes(explains![1]));
     return {

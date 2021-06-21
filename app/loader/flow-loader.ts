@@ -13,7 +13,7 @@ export function loadFlow(this: Application) {
     for (const flowName of flowNames) {
       const oneFlowPath = path.join(flowPath, flowName);
       const subFiles = fs.readdirSync(oneFlowPath);
-      let flow: Flow<any, any> | undefined;
+      let flow: Flow<any, any, any, any> | undefined;
       const nodes: {[code: string]: FlowNodeBase} = {};
       for (const subFile of subFiles) {
         const subFileName = subFile.replace(path.extname(subFile), '');
@@ -21,7 +21,7 @@ export function loadFlow(this: Application) {
         const stat = fs.statSync(subFullPath);
         if (stat.isDirectory() === false) {
           if (subFileName === 'index') {
-            flow = new (require(subFullPath).default)() as Flow<any, any>;
+            flow = new (require(subFullPath).default)() as Flow<any, any, any, any>;
             const flowData = require(path.join(oneFlowPath, 'data.json'));
             Object.assign(flow, {flowData});
             debug(`found flow ${ flowName }`);

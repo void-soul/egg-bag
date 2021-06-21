@@ -7,8 +7,17 @@ export default class Enum {
     this._desc = desc;
     this._config = config;
   }
-  eq(value: string): boolean {
-    return this._value === value;
+  eq(value: string | number | undefined | null): boolean {
+    if (value === undefined) {
+      return false;
+    }
+    if (value === null) {
+      return false;
+    }
+    if (typeof value === 'number') {
+      return this._value === `${ value }`;
+    }
+    return this._value === `${ value }`;
   }
   value(): string {
     return this._value;

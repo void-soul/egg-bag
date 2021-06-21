@@ -219,18 +219,18 @@ export default {
     }
   },
   /** 流程获取 */
-  async fetchFlow<D, M>(this: Context, param: {
+  async fetchFlow<Q, S, C, M>(this: Context, param: {
     flowPath: string;
     fromNodeId?: string;
     fromNodeCode?: string;
     toNodeId?: string;
     toNodeCode?: string;
-    biz: D;
+    req: Q;
     conn?: SqlSession;
-    skipError?: number;
+    skipData?: number;
     key?: string;
   }, devid?: string): Promise<{
-    biz: D;
+    res: S;
     flowCode: string;
     flowPath: string;
     fromNodeId: string | undefined;
@@ -249,19 +249,19 @@ export default {
     } else if (!this.me) {
       this[USER] = this.app.config.defUser;
     }
-    return await this.service.paasService.fetchFlow<D, M>(param);
+    return await this.service.paasService.fetchFlow<Q, S, C, M>(param);
   },
   /** 流程处理 */
-  async doFlow<D, M>(this: Context, param: {
+  async doFlow<Q, S, C, M>(this: Context, param: {
     flowPath: string;
     fromNodeId?: string;
     fromNodeCode?: string;
     actionId?: string;
     actionCode?: string;
-    biz: D;
+    req: Q;
     conn?: SqlSession;
   }, devid?: string): Promise<{
-    biz: D;
+    res: S;
     flowCode: string;
     flowPath: string;
     fromNodeId: string | undefined;
@@ -280,6 +280,6 @@ export default {
     } else if (!this.me && this.app.config.defUser) {
       this[USER] = this.app.config.defUser;
     }
-    return await this.service.paasService.doFlow<D, M>(param);
+    return await this.service.paasService.doFlow<Q, S, C, M>(param);
   }
 };

@@ -82,9 +82,14 @@ export function loadSql(this: Application) {
     }
     if (typeof source.template === 'string') {
       const buildParam = new Build(count, param);
-      const sql = Mustache.render(source.template, buildParam, fnMap);
-      debug(id, sql);
-      return sql;
+      try {
+        const sql = Mustache.render(source.template, buildParam, fnMap);
+        debug(id, sql);
+        return sql;
+      } catch (error) {
+        ctx.logger.error(`sql:${ id } render failed`);
+        throw error;
+      }
     } else {
       const sql = source.template.call(ctx, param);
       debug(id, sql);

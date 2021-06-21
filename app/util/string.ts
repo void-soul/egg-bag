@@ -37,6 +37,16 @@ export const safeString = (source?: string): string => {
   }
   return '';
 };
+export const trimObject = <T>(data: any): T => {
+  if (data) {
+    for (const k in data) {
+      if (typeof data[k] === 'string') {
+        data[k] = data[k].trim();
+      }
+    }
+  }
+  return data;
+};
 
 export const randomNumber = (len: number): string => {
   return `${ parseInt(`${ (Math.random() * 9 + 1) * Math.pow(10, (len - 1)) }`, 10) }`;

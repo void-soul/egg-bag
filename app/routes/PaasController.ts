@@ -393,8 +393,8 @@ const fetchFlow = {
   path: '/fetch-flow',
   method: 'post',
   before: [ILogin],
-  async handel(this: Controller, {body: {flowPath, fromNodeId, fromNodeCode, biz, skipError, key}}) {
-    return await this.service.paasService.fetchFlow({flowPath, fromNodeId, fromNodeCode, biz, skipError, key});
+  async handel(this: Controller, {body: {flowPath, fromNodeId, fromNodeCode, req, skipData, key}}) {
+    return await this.service.paasService.fetchFlow({flowPath, fromNodeId, fromNodeCode, req, skipData, key});
   }
 };
 
@@ -403,8 +403,8 @@ const doFlow = {
   method: 'post',
   lock: true,
   before: [ILogin],
-  async handel(this: Controller, {body: {flowPath, fromNodeId, fromNodeCode, actionId, actionCode, biz}}) {
-    return await this.service.paasService.doFlow({flowPath, fromNodeId, fromNodeCode, actionId, actionCode, biz});
+  async handel(this: Controller, {body: {flowPath, fromNodeId, fromNodeCode, actionId, actionCode, req}}) {
+    return await this.service.paasService.doFlow({flowPath, fromNodeId, fromNodeCode, actionId, actionCode, req});
   }
 };
 const getFlowLine = {
