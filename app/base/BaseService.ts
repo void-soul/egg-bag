@@ -2284,7 +2284,7 @@ export default abstract class BaseService<T> extends Service {
     if (transction === undefined) {
       return await this.app.mysql.query(sql, param);
     } else {
-      return await this.transction((conn) => conn.query(sql, param), transction);
+      return await this.transction(async (conn) => conn.query(sql, param), transction);
     }
   }
 
@@ -2306,7 +2306,7 @@ export default abstract class BaseService<T> extends Service {
     if (transction === undefined) {
       return await this.app.mysql.query(sql as string, param);
     } else {
-      return await this.transction((conn) => conn.query(sql as string, param), transction);
+      return await this.transction(async (conn) => conn.query(sql as string, param), transction);
     }
   }
   /**
@@ -2529,7 +2529,7 @@ export default abstract class BaseService<T> extends Service {
     if (transction === undefined) {
       return await this.app.mysql.query(sql, param);
     } else {
-      return await this.transction((conn) => conn.query(sql, param), transction);
+      return await this.transction(async (conn) => conn.query(sql, param), transction);
     }
   }
   /**
@@ -2761,6 +2761,158 @@ export default abstract class BaseService<T> extends Service {
       this,
       this.app
     );
+  }
+  /**
+   * 创建复杂查询、修改、删除对象
+   * 例如: lambda()
+   *       .andEq(CpResource.resourcecode, 'xxx')
+   *       .select(CpResource.resourcename)
+   *
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns {LambdaQuery<L>}
+   */
+  lambda<L>(transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName): LambdaQuery<L> {
+    return this.lambdaQuery<L>(transction, tableName);
+  }
+
+  /**
+   * 批量执行Lambdas
+   * @param lambdas
+   * @param transction
+   * @returns
+   */
+  @MethodDebug()
+  async execLambdas(lambdas: LambdaQuery<any>[], transction?: SqlSession): Promise<number[]> {
+    return await this.transction(async (conn) => {
+      const result: number[] = [];
+      for (const lambda of lambdas) {
+        const {sql, param} = lambda.get();
+        const r = await conn.query(sql, param);
+        result.push(r.affectedRows);
+      }
+      return result;
+    }, transction);
+  }
+  /**
+   * 批量查询LambdaQuery
+   * @param lambdas
+   * @param transction
+   * @returns
+   */
+  @MethodDebug()
+  async queryLambdas(lambdas: LambdaQuery<any>[], transction?: SqlSession): Promise<any[][]> {
+    if (transction === undefined) {
+      const result: any[][] = [];
+      for (const lambda of lambdas) {
+        const {sql, param} = lambda.get();
+        const r = await this.app.mysql.query(sql, param);
+        result.push(r);
+      }
+      return result;
+    } else {
+      return await this.transction(async (conn) => {
+        const result: any[][] = [];
+        for (const lambda of lambdas) {
+          const {sql, param} = lambda.get();
+          const r = await conn.query(sql, param);
+          result.push(r);
+        }
+        return result;
+      }, transction);
+    }
+  }
+  /**
+   * 批量查询LambdaQuery，并将结果合并为一个数组
+   * @param lambdas
+   * @param transction
+   * @returns
+   */
+  @MethodDebug()
+  async queryLambdasMix<A>(
+    lambdas: LambdaQuery<A>[], transction?: SqlSession
+  ): Promise<A[]> {
+    const result_ = await this.queryLambdas(lambdas, transction) as A[][];
+    const result: A[] = [];
+    for (const r of result_) {
+      for (const a of r) {
+        result.push(a);
+      }
+    }
+    return result;
+  }
+  /**
+   * 批量查询LambdaQuery
+   * @param lambdas
+   * @param transction
+   * @returns
+   */
+  @MethodDebug()
+  async queryLambda2<A, B>(
+    lambdas: [LambdaQuery<A>, LambdaQuery<B>], transction?: SqlSession
+  ): Promise<[A[], B[]]> {
+    return await this.queryLambdas(lambdas, transction) as any;
+  }
+  /**
+   * 批量查询LambdaQuery
+   * @param lambdas
+   * @param transction
+   * @returns
+   */
+  @MethodDebug()
+  async queryLambda3<A, B, C>(
+    lambdas: [LambdaQuery<A>, LambdaQuery<B>, LambdaQuery<C>], transction?: SqlSession
+  ): Promise<[A[], B[], C[]]> {
+    return await this.queryLambdas(lambdas, transction) as any;
+  }
+  /**
+   * 批量查询LambdaQuery
+   * @param lambdas
+   * @param transction
+   * @returns
+   */
+  @MethodDebug()
+  async queryLambda4<A, B, C, D>(
+    lambdas: [LambdaQuery<A>, LambdaQuery<B>, LambdaQuery<C>, LambdaQuery<D>], transction?: SqlSession
+  ): Promise<[A[], B[], C[], D[]]> {
+    return await this.queryLambdas(lambdas, transction) as any;
+  }
+
+  /**
+   * 批量查询LambdaQuery
+   * @param lambdas
+   * @param transction
+   * @returns
+   */
+  @MethodDebug()
+  async queryLambda5<A, B, C, D, E>(
+    lambdas: [LambdaQuery<A>, LambdaQuery<B>, LambdaQuery<C>, LambdaQuery<D>], transction?: SqlSession
+  ): Promise<[A[], B[], C[], D[], E[]]> {
+    return await this.queryLambdas(lambdas, transction) as any;
+  }
+
+  /**
+   * 创建复杂查询对象
+   * 例如: lambdaQueryMe()
+   *       .andEq(CpResource.resourcecode, 'xxx')
+   *       .select(CpResource.resourcename)
+   *
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns {LambdaQuery<L>}
+   */
+  lambdaMe(transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName): LambdaQuery<T> {
+    return this.lambdaQuery<T>(transction, tableName);
   }
   /**
    * 创建复杂查询对象

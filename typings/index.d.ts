@@ -9,7 +9,7 @@ import {IncomingMessage, ServerResponse} from 'http';
 // tslint:disable-next-line:no-implicit-dependencies
 import {Socket, Server as SocketServer, Namespace as SocketNameSpace} from 'socket.io';
 /** 链式计算 */
-declare class Bus {
+export class Bus {
   constructor (result);
   /** 加 */
   add(...args: any[]): this;
@@ -80,12 +80,35 @@ declare class Bus {
   ifNgt(data: any): this;
 }
 /** 仿java lambda 查询 */
-declare class LambdaQuery<T> {
-  /** 为下次链条执行提供条件判断：仅限非异步方法 */
-  if(condition: boolean): this;
-  and(lambda: LambdaQuery<T>): this;
-  or(lambda: LambdaQuery<T>): this;
+export class LambdaQuery<T> {
+  /**
+      * 缓存查询结果
+      * @param param
+      * @returns
+      */
+  cache(param: {
+    /** 返回缓存清除key,参数=方法的参数+当前用户对象，可以用来批量清空缓存 */
+    clearKey?: string[];
+    /** 自动清空缓存的时间，单位分钟 */
+    autoClearTime?: number;
+    /** 随着当前用户sesion的清空而一起清空 */
+    clearWithSession?: boolean;
+  }): this;
+  /**
+   * 设置为不缓存查询结果
+   * @returns
+   */
+  notCache(): this;
+  /**
+   * 清除缓存结果
+   * @returns
+   */
+  clearCache(): this;
+  and(fn: (query: LambdaQuery<T>) => LambdaQuery<T>): this;
+  or(fn: (query: LambdaQuery<T>) => LambdaQuery<T>): this;
   andEq(key: keyof T, value: T[keyof T]): this;
+  andRegexp(key: keyof T, value: T[keyof T]): this;
+  andNotRegexp(key: keyof T, value: T[keyof T]): this;
   andShiftEq(key1: keyof T, key2: keyof T, value: T[keyof T]): this;
   andEqT(t: {
     [P in keyof T]?: T[P];
@@ -97,6 +120,8 @@ declare class LambdaQuery<T> {
   andLess(key: keyof T, value: T[keyof T]): this;
   andLessEq(key: keyof T, value: T[keyof T]): this;
   andLike(key: keyof T, value: T[keyof T]): this;
+  andLikePrecise(key: keyof T, value: string): this;
+  andNotLikePrecise(key: keyof T, value: string): this;
   andNotLike(key: keyof T, value: T[keyof T]): this;
   andLeftLike(key: keyof T, value: T[keyof T]): this;
   andNotLeftLike(key: keyof T, value: T[keyof T]): this;
@@ -115,35 +140,47 @@ declare class LambdaQuery<T> {
   groupBy(key: keyof T): this;
   asc(...keys: (keyof T)[]): this;
   desc(...keys: (keyof T)[]): this;
+  /**
+   * 为下次链条执行提供条件判断：仅限非异步方法
+   * @param condition
+   * @returns
+   */
+  if(condition: boolean): this;
   limit(startRow: number, pageSize: number): this;
   page(pageNumber: number, pageSize: number): this;
-  where(): string;
   updateColumn(key: keyof T, value: T[keyof T]): this;
-  cache(param: {
-    /** 返回缓存清除key,参数=方法的参数+当前用户对象，可以用来批量清空缓存 */
-    clearKey?: string[];
-    /** 自动清空缓存的时间，单位分钟 */
-    autoClearTime?: number;
-    /** 随着当前用户sesion的清空而一起清空 */
-    clearWithSession?: boolean;
-  }): this;
   select(...columns: (keyof T)[]): Promise<T[]>;
+  selectPrepare(...columns: (keyof T)[]): this;
   one(...columns: (keyof T)[]): Promise<T | undefined>;
+  onePrepare(...columns: (keyof T)[]): this;
   count(): Promise<number>;
+  countPrepare(): this;
   update(data?: T): Promise<number>;
+  updatePrepare(data?: T): this;
   delete(): Promise<number>;
+  deletePrepare(): this;
   array<K extends T[keyof T]>(key: keyof T): Promise<K[]>;
   singel<K extends T[keyof T]>(key: keyof T): Promise<K | undefined>;
   sum(key: keyof T): Promise<number>;
+  sumPrepare(key: keyof T): this;
   avg(key: keyof T): Promise<number>;
-  groupConcat(key: keyof T, param?: {
+  avgPrepare(key: keyof T): this;
+  groupConcat(key: keyof T, _param?: {
     distinct?: boolean;
     separator?: string;
   }): Promise<string>;
-
+  groupConcatPrepare(key: keyof T, param?: {
+    distinct?: boolean;
+    separator?: string;
+  }): this;
+  /** 获得sql和参数 */
+  get(): {
+    sql: string;
+    param: Empty;
+  };
 }
 type JSType = 'double' | 'string' | 'object' | 'array' | 'binData' | 'undefined' | 'objectId' | 'bool' | 'date' | 'null' | 'regex' | 'javascript' | 'javascriptWithScope' | 'int' | 'timestamp' | 'long' | 'decimal' | 'minKey' | 'maxKey';
-declare class LambdaQueryMongo<T> {
+export class LambdaQueryMongo<T> {
   /** 为下次链条执行提供条件判断：仅限非异步方法 */
   if(condition: boolean): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/eq/ */
@@ -278,7 +315,7 @@ declare class LambdaQueryMongo<T> {
   array<K extends T[keyof T]>(key: keyof T): Promise<K[]>;
   singel<K extends T[keyof T]>(key: keyof T): Promise<K | undefined>;
 }
-declare class PageQuery<T> {
+export class PageQuery<T> {
   list: T[];
   totalPage: number;
   totalRow: number;
@@ -2168,15 +2205,15 @@ export abstract class BaseMongoService<T> extends Service {
 }
 export abstract class BaseService<T> extends Service {
   /**
-      * 插入所有列
-      * 返回自增主键或者0
-      * @param {T} data
-      * @param {*} [transction=true] 独立事务
-      * @param {(serviceTableName: string) => string} [tableName=(
-      *       serviceTableName: string
-      *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
-      * @returns
-      */
+     * 插入所有列
+     * 返回自增主键或者0
+     * @param {T} data
+     * @param {*} [transction=true] 独立事务
+     * @param {(serviceTableName: string) => string} [tableName=(
+     *       serviceTableName: string
+     *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+     * @returns
+     */
   insert(data: {
     [P in keyof T]?: T[P];
   }, transction?: SqlSession, tableName?: (serviceTableName: string) => string): Promise<number>;
@@ -3203,60 +3240,60 @@ export abstract class BaseService<T> extends Service {
     [propName: string]: any;
   }, transction?: SqlSession): Promise<[A[], B[], C[], D[], E[], F[]]>;
   /**
-   *
-   * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
-   * @param {string} sqlid sql语句编码
-   * @param {{ [propName: string]: any }} [param]
-   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
-   * @returns 指定类型数组
-   */
+  *
+  * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+  * @param {string} sqlid sql语句编码
+  * @param {{ [propName: string]: any }} [param]
+  * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+  * @returns 指定类型数组
+  */
   queryMulitBySqlId7<A, B, C, D, E, F, G>(sqlid: string, param?: {
     [propName: string]: any;
   }, transction?: SqlSession): Promise<[A[], B[], C[], D[], E[], F[], G[]]>;
   /**
- *
- * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
- * @param {string} sqlid sql语句编码
- * @param {{ [propName: string]: any }} [param]
- * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
- * @returns 指定类型数组
- */
+  *
+  * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+  * @param {string} sqlid sql语句编码
+  * @param {{ [propName: string]: any }} [param]
+  * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+  * @returns 指定类型数组
+  */
   queryMulitBySqlId8<A, B, C, D, E, F, G, H>(sqlid: string, param?: {
     [propName: string]: any;
   }, transction?: SqlSession): Promise<[A[], B[], C[], D[], E[], F[], G[], H[]]>;
   /**
-*
-* 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
-* @param {string} sqlid sql语句编码
-* @param {{ [propName: string]: any }} [param]
-* @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
-* @returns 指定类型数组
-*/
-  queryMulitBySqlId9<A, B, C, D, E, F, G, H, J>(sqlid: string, param?: {
+  *
+  * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+  * @param {string} sqlid sql语句编码
+  * @param {{ [propName: string]: any }} [param]
+  * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+  * @returns 指定类型数组
+  */
+  queryMulitBySqlId9<A, B, C, D, E, F, G, H, I>(sqlid: string, param?: {
     [propName: string]: any;
-  }, transction?: SqlSession): Promise<[A[], B[], C[], D[], E[], F[], G[], H[], J[]]>;
+  }, transction?: SqlSession): Promise<[A[], B[], C[], D[], E[], F[], G[], H[], I[]]>;
   /**
-*
-* 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
-* @param {string} sqlid sql语句编码
-* @param {{ [propName: string]: any }} [param]
-* @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
-* @returns 指定类型数组
-*/
-  queryMulitBySqlId10<A, B, C, D, E, F, G, H, J, K>(sqlid: string, param?: {
+  *
+  * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+  * @param {string} sqlid sql语句编码
+  * @param {{ [propName: string]: any }} [param]
+  * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+  * @returns 指定类型数组
+  */
+  queryMulitBySqlId10<A, B, C, D, E, F, G, H, I, J>(sqlid: string, param?: {
     [propName: string]: any;
-  }, transction?: SqlSession): Promise<[A[], B[], C[], D[], E[], F[], G[], H[], J[], K[]]>;
+  }, transction?: SqlSession): Promise<[A[], B[], C[], D[], E[], F[], G[], H[], I[], J[]]>;
   /**
-*
-* 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
-* @param {string} sqlid sql语句编码
-* @param {{ [propName: string]: any }} [param]
-* @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
-* @returns 指定类型数组
-*/
-  queryMulitBySqlId11<A, B, C, D, E, F, G, H, J, K, L>(sqlid: string, param?: {
+  *
+  * 执行数据库查询,sql语句可包含多条查询语句,一次性返回所有结果,结果是一个数据集数组与sql语句的顺序对应
+  * @param {string} sqlid sql语句编码
+  * @param {{ [propName: string]: any }} [param]
+  * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+  * @returns 指定类型数组
+  */
+  queryMulitBySqlId11<A, B, C, D, E, F, G, H, I, J, K>(sqlid: string, param?: {
     [propName: string]: any;
-  }, transction?: SqlSession): Promise<[A[], B[], C[], D[], E[], F[], G[], H[], J[], K[], L[]]>;
+  }, transction?: SqlSession): Promise<[A[], B[], C[], D[], E[], F[], G[], H[], I[], J[], K[]]>;
   /**
    *
    * 执行数据库查询 多列多行
@@ -3385,6 +3422,81 @@ export abstract class BaseService<T> extends Service {
    * @returns {LambdaQuery<L>}
    */
   lambdaQuery<L>(transction?: SqlSession, tableName?: (serviceTableName: string) => string): LambdaQuery<L>;
+  /**
+   * 创建复杂查询、修改、删除对象
+   * 例如: lambda()
+   *       .andEq(CpResource.resourcecode, 'xxx')
+   *       .select(CpResource.resourcename)
+   *
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns {LambdaQuery<L>}
+   */
+  lambda<L>(transction?: SqlSession, tableName?: (serviceTableName: string) => string): LambdaQuery<L>;
+  /**
+   * 批量执行Lambdas
+   * @param lambdas
+   * @param transction
+   * @returns
+   */
+  execLambdas(lambdas: LambdaQuery<any>[], transction?: SqlSession): Promise<number[]>;
+  /**
+   * 批量查询LambdaQuery
+   * @param lambdas
+   * @param transction
+   * @returns
+   */
+  queryLambdas(lambdas: LambdaQuery<any>[], transction?: SqlSession): Promise<any[][]>;
+  /**
+   * 批量查询LambdaQuery，并将结果合并为一个数组
+   * @param lambdas
+   * @param transction
+   * @returns
+   */
+  queryLambdasMix<A>(lambdas: LambdaQuery<A>[], transction?: SqlSession): Promise<A[]>;
+  /**
+   * 批量查询LambdaQuery
+   * @param lambdas
+   * @param transction
+   * @returns
+   */
+  queryLambda2<A, B>(lambdas: [LambdaQuery<A>, LambdaQuery<B>], transction?: SqlSession): Promise<[A[], B[]]>;
+  /**
+   * 批量查询LambdaQuery
+   * @param lambdas
+   * @param transction
+   * @returns
+   */
+  queryLambda3<A, B, C>(lambdas: [LambdaQuery<A>, LambdaQuery<B>, LambdaQuery<C>], transction?: SqlSession): Promise<[A[], B[], C[]]>;
+  /**
+   * 批量查询LambdaQuery
+   * @param lambdas
+   * @param transction
+   * @returns
+   */
+  queryLambda4<A, B, C, D>(lambdas: [LambdaQuery<A>, LambdaQuery<B>, LambdaQuery<C>, LambdaQuery<D>], transction?: SqlSession): Promise<[A[], B[], C[], D[]]>;
+  /**
+   * 批量查询LambdaQuery
+   * @param lambdas
+   * @param transction
+   * @returns
+   */
+  queryLambda5<A, B, C, D, E>(lambdas: [LambdaQuery<A>, LambdaQuery<B>, LambdaQuery<C>, LambdaQuery<D>], transction?: SqlSession): Promise<[A[], B[], C[], D[], E[]]>;
+  /**
+   * 创建复杂查询对象
+   * 例如: lambdaQueryMe()
+   *       .andEq(CpResource.resourcecode, 'xxx')
+   *       .select(CpResource.resourcename)
+   *
+   * @param {*} [transction=true] 开始独立事务查询?默认true，可设置为某个事务连接，用于查询脏数据
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns {LambdaQuery<L>}
+   */
+  lambdaMe(transction?: SqlSession, tableName?: (serviceTableName: string) => string): LambdaQuery<T>;
   /**
    * 创建复杂查询对象
    * 例如: lambdaQueryMe()

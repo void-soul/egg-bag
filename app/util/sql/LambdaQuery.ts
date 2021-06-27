@@ -45,6 +45,7 @@ export default class LambdaQuery<T> {
   private context: BaseContextClass;
   private app: Application;
   protected ifv = true;
+  private sql = '';
   constructor (
     table: string,
     search: (sql: string, param: Empty) => Promise<T[]>,
@@ -60,6 +61,11 @@ export default class LambdaQuery<T> {
     this.context = context;
     this.app = app;
   }
+  /**
+   * 缓存查询结果
+   * @param param
+   * @returns
+   */
   @IF()
   cache(param: {
     /** 返回缓存清除key,参数=方法的参数+当前用户对象，可以用来批量清空缓存 */
@@ -72,19 +78,34 @@ export default class LambdaQuery<T> {
     this._cache = param;
     return this;
   }
+  /**
+   * 设置为不缓存查询结果
+   * @returns
+   */
   @IF()
   notCache(): this {
     this._cache = undefined;
     return this;
   }
+  /**
+   * 清除缓存结果
+   * @returns
+   */
   @IF()
-  and(lambda: LambdaQuery<T>): this {
-    this.andQuerys.push(lambda);
+  clearCache(): this {
+    const key = md5Util(this.sql + JSON.stringify(this.param));
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    this.app.redis.get('other').del(`[cache]${ key }`);
     return this;
   }
   @IF()
-  or(lambda: LambdaQuery<T>): this {
-    this.orQuerys.push(lambda);
+  and(fn: (query: LambdaQuery<T>) => LambdaQuery<T>): this {
+    this.andQuerys.push(fn(new LambdaQuery<T>(this.table, this.search, this.findCount, this.excute, this.context, this.app)));
+    return this;
+  }
+  @IF()
+  or(fn: (query: LambdaQuery<T>) => LambdaQuery<T>): this {
+    this.orQuerys.push(fn(new LambdaQuery<T>(this.table, this.search, this.findCount, this.excute, this.context, this.app)));
     return this;
   }
   @IF()
@@ -93,6 +114,20 @@ export default class LambdaQuery<T> {
     value: T[keyof T]
   ): this {
     return this.common(key, value, '=');
+  }
+  @IF()
+  andRegexp(
+    key: keyof T,
+    value: T[keyof T]
+  ): this {
+    return this.common(key, value, 'REGEXP');
+  }
+  @IF()
+  andNotRegexp(
+    key: keyof T,
+    value: T[keyof T]
+  ): this {
+    return this.common(key, value, 'REGEXP', 'NOT');
   }
   @IF()
   andShiftEq(key1: keyof T, key2: keyof T, value: T[keyof T]): this {
@@ -150,6 +185,20 @@ export default class LambdaQuery<T> {
     value: T[keyof T]
   ): this {
     return this.like(key, value);
+  }
+  @IF()
+  andLikePrecise(
+    key: keyof T,
+    value: string
+  ): this {
+    return this.common(key, value, 'LIKE');
+  }
+  @IF()
+  andNotLikePrecise(
+    key: keyof T,
+    value: string
+  ): this {
+    return this.common(key, value, 'LIKE', 'NOT');
   }
   @IF()
   andNotLike(
@@ -260,6 +309,11 @@ export default class LambdaQuery<T> {
     }
     return this;
   }
+  /**
+   * 为下次链条执行提供条件判断：仅限非异步方法
+   * @param condition
+   * @returns
+   */
   if(condition: boolean) {
     this.ifv = condition;
     return this;
@@ -276,9 +330,6 @@ export default class LambdaQuery<T> {
     this.pageSize = pageSize;
     return this;
   }
-  where(): string {
-    return this.condition.join(' ');
-  }
   @IF()
   updateColumn(key: keyof T, value: T[keyof T]) {
     if (!this.updateData) {
@@ -288,131 +339,169 @@ export default class LambdaQuery<T> {
     return this;
   }
   async select(...columns: (keyof T)[]): Promise<T[]> {
-    let sql = `SELECT ${ columns && columns.length > 0 ? columns.join(',') : '*'
-      } FROM ${ this.table } `;
-    sql += `WHERE 1 = 1 ${ this.where() } `;
-    if (this.orQuerys.length > 0) {
-      for (const query of this.orQuerys) {
-        sql += ` OR (${ query.where() }) `;
-      }
-    }
-    if (this.andQuerys.length > 0) {
-      for (const query of this.andQuerys) {
-        sql += ` AND (${ query.where() }) `;
-      }
-    }
-    if (this.group.length > 0) {
-      sql += `GROUP BY ${ this.group.join(',') } `;
-    }
-    if (this.order.length > 0) {
-      sql += `ORDER BY ${ this.order.join(',') } `;
-    }
-    if (this.pageSize > 0) {
-      sql += `LIMIT ${ this.startRow }, ${ this.pageSize }`;
-    }
-
-
+    this.selectPrepare(...columns);
     if (this._cache) {
-      const key = md5Util(sql);
+      const key = md5Util(this.sql + JSON.stringify(this.param));
       const cache = await this.app.redis.get('other').get(`[cache]${ key }`);
       if (cache) {
         debug(`cache for query ${ key } hit!`);
         return JSON.parse(cache);
       }
 
-      const result = await this.search(sql, this.param);
+      const result = await this.search(this.sql, this.param);
       await setCache.call(this.context, {
-        key: md5Util(sql),
+        key,
         result,
         ...this._cache
       });
       return result;
     } else {
-      return await this.search(sql, this.param);
+      return await this.search(this.sql, this.param);
     }
+  }
+  @IF()
+  selectPrepare(...columns: (keyof T)[]): this {
+    this.sql = `SELECT ${ columns && columns.length > 0 ? columns.join(',') : '*'
+      } FROM ${ this.table } `;
+    this.sql += `WHERE 1 = 1 ${ this.condition.join(' ') } `;
+    if (this.orQuerys.length > 0) {
+      for (const query of this.orQuerys) {
+        const {sql, param} = query.where(this.index);
+        this.sql += ` OR (${ sql }) `;
+        Object.assign(this.param, param);
+      }
+    }
+    if (this.andQuerys.length > 0) {
+      for (const query of this.andQuerys) {
+        const {sql, param} = query.where(this.index);
+        this.sql += ` AND (${ sql }) `;
+        Object.assign(this.param, param);
+      }
+    }
+    if (this.group.length > 0) {
+      this.sql += `GROUP BY ${ this.group.join(',') } `;
+    }
+    if (this.order.length > 0) {
+      this.sql += `ORDER BY ${ this.order.join(',') } `;
+    }
+    if (this.pageSize > 0) {
+      this.sql += `LIMIT ${ this.startRow }, ${ this.pageSize }`;
+    }
+    return this;
   }
   async one(...columns: (keyof T)[]): Promise<T | undefined> {
     this.limit(0, 1);
     const list = await this.select(...columns);
     return list[0];
   }
+  @IF()
+  onePrepare(...columns: (keyof T)[]): this {
+    this.limit(0, 1);
+    return this.selectPrepare(...columns);
+  }
   async count(): Promise<number> {
-    let sql = `SELECT COUNT(1) FROM ${ this.table } `;
-    sql += `WHERE 1 = 1 ${ this.where() } `;
-    if (this.orQuerys.length > 0) {
-      for (const query of this.orQuerys) {
-        sql += ` OR (${ query.where() }) `;
-      }
-    }
-    if (this.andQuerys.length > 0) {
-      for (const query of this.andQuerys) {
-        sql += ` AND (${ query.where() }) `;
-      }
-    }
-    if (this.group.length > 0) {
-      sql += `GROUP by ${ this.group.join(',') } `;
-    }
-
+    this.countPrepare();
     if (this._cache) {
-      const key = md5Util(sql);
+      const key = md5Util(this.sql + JSON.stringify(this.param));
       const cache = await this.app.redis.get('other').get(`[cache]${ key }`);
       if (cache) {
         debug(`cache for query ${ key } hit!`);
         return JSON.parse(cache);
       }
 
-      const result = await this.findCount(sql, this.param);
+      const result = await this.findCount(this.sql, this.param);
       await setCache.call(this.context, {
-        key: md5Util(sql),
+        key,
         result,
         ...this._cache
       });
       return result;
     } else {
-      return await this.findCount(sql, this.param);
+      return await this.findCount(this.sql, this.param);
     }
   }
+  @IF()
+  countPrepare(): this {
+    this.sql = `SELECT COUNT(1) FROM ${ this.table } `;
+    this.sql += `WHERE 1 = 1 ${ this.condition.join(' ') } `;
+    if (this.orQuerys.length > 0) {
+      for (const query of this.orQuerys) {
+        const {sql, param} = query.where(this.index);
+        this.sql += ` OR (${ sql }) `;
+        Object.assign(this.param, param);
+      }
+    }
+    if (this.andQuerys.length > 0) {
+      for (const query of this.andQuerys) {
+        const {sql, param} = query.where(this.index);
+        this.sql += ` AND (${ sql }) `;
+        Object.assign(this.param, param);
+      }
+    }
+    if (this.group.length > 0) {
+      this.sql += `GROUP by ${ this.group.join(',') } `;
+    }
+    return this;
+  }
   async update(data?: T): Promise<number> {
+    this.updatePrepare(data);
+    return await this.excute(this.sql, this.param);
+  }
+  @IF()
+  updatePrepare(data?: T): this {
     if (!data) {
       data = {} as T;
     }
     if (this.updateData) {
       Object.assign(data, this.updateData);
     }
-    let sql = `UPDATE ${ this.table } SET `;
+    this.sql = `UPDATE ${ this.table } SET `;
     const sets = new Array<string>();
     for (const key in data) {
       if ((data as any).hasOwnProperty(key)) {
         sets.push(` ${ key } = :${ key } `);
       }
     }
-    sql += `${ sets.join(',') } WHERE 1 = 1 ${ this.where() } `;
+    this.sql += `${ sets.join(',') } WHERE 1 = 1 ${ this.condition.join(' ') } `;
     if (this.orQuerys.length > 0) {
       for (const query of this.orQuerys) {
-        sql += ` OR (${ query.where() }) `;
+        const {sql, param} = query.where(this.index);
+        this.sql += ` OR (${ sql }) `;
+        Object.assign(this.param, param);
       }
     }
     if (this.andQuerys.length > 0) {
       for (const query of this.andQuerys) {
-        sql += ` AND (${ query.where() }) `;
+        const {sql, param} = query.where(this.index);
+        this.sql += ` AND (${ sql }) `;
+        Object.assign(this.param, param);
       }
     }
     Object.assign(this.param, data);
-    return await this.excute(sql, this.param);
+    return this;
   }
   async delete(): Promise<number> {
-    let sql = `DELETE FROM ${ this.table }  WHERE 1 = 1 ${ this.where() } `;
+    this.deletePrepare();
+    return await this.excute(this.sql, this.param);
+  }
+  @IF()
+  deletePrepare(): this {
+    this.sql = `DELETE FROM ${ this.table }  WHERE 1 = 1 ${ this.condition.join(' ') } `;
     if (this.orQuerys.length > 0) {
       for (const query of this.orQuerys) {
-        sql += ` OR (${ query.where() }) `;
+        const {sql, param} = query.where(this.index);
+        this.sql += ` OR (${ sql }) `;
+        Object.assign(this.param, param);
       }
     }
     if (this.andQuerys.length > 0) {
       for (const query of this.andQuerys) {
-        sql += ` AND (${ query.where() }) `;
+        const {sql, param} = query.where(this.index);
+        this.sql += ` AND (${ sql }) `;
+        Object.assign(this.param, param);
       }
     }
-    return await this.excute(sql, this.param);
+    return this;
   }
   async array<K extends T[keyof T]>(key: keyof T): Promise<K[]> {
     const list = await this.select(key);
@@ -425,28 +514,16 @@ export default class LambdaQuery<T> {
     }
   }
   async sum(key: keyof T): Promise<number> {
-    let sql = `SELECT SUM(${ key }) ct FROM ${ this.table } `;
-    sql += `WHERE 1 = 1 ${ this.where() } `;
-    if (this.orQuerys.length > 0) {
-      for (const query of this.orQuerys) {
-        sql += ` OR (${ query.where() }) `;
-      }
-    }
-    if (this.andQuerys.length > 0) {
-      for (const query of this.andQuerys) {
-        sql += ` AND (${ query.where() }) `;
-      }
-    }
-
+    this.sumPrepare(key);
     if (this._cache) {
-      const key = md5Util(sql);
+      const key = md5Util(this.sql + JSON.stringify(this.param));
       const cache = await this.app.redis.get('other').get(`[cache]${ key }`);
       if (cache) {
         debug(`cache for query ${ key } hit!`);
         return JSON.parse(cache);
       }
 
-      const result_ = await this.search(sql, this.param);
+      const result_ = await this.search(this.sql, this.param);
       let result = 0;
       if (result_.length > 0) {
         result = (result_[0] as unknown as {ct: number}).ct;
@@ -454,42 +531,51 @@ export default class LambdaQuery<T> {
         return 0;
       }
       await setCache.call(this.context, {
-        key: md5Util(sql),
+        key,
         result,
         ...this._cache
       });
       return result;
     } else {
-      const data = await this.search(sql, this.param);
+      const data = await this.search(this.sql, this.param);
       if (data.length > 0) {
         return (data[0] as unknown as {ct: number}).ct;
       } else {
         return 0;
       }
     }
+  }
+  @IF()
+  sumPrepare(key: keyof T): this {
+    this.sql = `SELECT SUM(${ key }) ct FROM ${ this.table } `;
+    this.sql += `WHERE 1 = 1 ${ this.condition.join(' ') } `;
+    if (this.orQuerys.length > 0) {
+      for (const query of this.orQuerys) {
+        const {sql, param} = query.where(this.index);
+        this.sql += ` OR (${ sql }) `;
+        Object.assign(this.param, param);
+      }
+    }
+    if (this.andQuerys.length > 0) {
+      for (const query of this.andQuerys) {
+        const {sql, param} = query.where(this.index);
+        this.sql += ` AND (${ sql }) `;
+        Object.assign(this.param, param);
+      }
+    }
+    return this;
   }
   async avg(key: keyof T): Promise<number> {
-    let sql = `SELECT AVG(${ key }) ct FROM ${ this.table } `;
-    sql += `WHERE 1 = 1 ${ this.where() } `;
-    if (this.orQuerys.length > 0) {
-      for (const query of this.orQuerys) {
-        sql += ` OR (${ query.where() }) `;
-      }
-    }
-    if (this.andQuerys.length > 0) {
-      for (const query of this.andQuerys) {
-        sql += ` AND (${ query.where() }) `;
-      }
-    }
+    this.avgPrepare(key);
     if (this._cache) {
-      const key = md5Util(sql);
+      const key = md5Util(this.sql + JSON.stringify(this.param));
       const cache = await this.app.redis.get('other').get(`[cache]${ key }`);
       if (cache) {
         debug(`cache for query ${ key } hit!`);
         return JSON.parse(cache);
       }
 
-      const result_ = await this.search(sql, this.param);
+      const result_ = await this.search(this.sql, this.param);
       let result = 0;
       if (result_.length > 0) {
         result = (result_[0] as unknown as {ct: number}).ct;
@@ -497,13 +583,13 @@ export default class LambdaQuery<T> {
         return 0;
       }
       await setCache.call(this.context, {
-        key: md5Util(sql),
+        key,
         result,
         ...this._cache
       });
       return result;
     } else {
-      const data = await this.search(sql, this.param);
+      const data = await this.search(this.sql, this.param);
       if (data.length > 0) {
         return (data[0] as unknown as {ct: number}).ct;
       } else {
@@ -511,28 +597,37 @@ export default class LambdaQuery<T> {
       }
     }
   }
-  async groupConcat(key: keyof T, param?: {distinct?: boolean, separator?: string}): Promise<string> {
-    let sql = `SELECT GROUP_CONCAT(${ param && param.distinct ? 'DISTINCT' : '' } ${ key } ${ this.order.length > 0 ? `ORDER BY ${ this.order.join(',') } ` : '' } SEPARATOR '${ param && param.separator || ',' }') ct FROM ${ this.table } `;
-    sql += `WHERE 1 = 1 ${ this.where() } `;
+  @IF()
+  avgPrepare(key: keyof T): this {
+    this.sql = `SELECT AVG(${ key }) ct FROM ${ this.table } `;
+    this.sql += `WHERE 1 = 1 ${ this.condition.join(' ') } `;
     if (this.orQuerys.length > 0) {
       for (const query of this.orQuerys) {
-        sql += ` OR (${ query.where() }) `;
+        const {sql, param} = query.where(this.index);
+        this.sql += ` OR (${ sql }) `;
+        Object.assign(this.param, param);
       }
     }
     if (this.andQuerys.length > 0) {
       for (const query of this.andQuerys) {
-        sql += ` AND (${ query.where() }) `;
+        const {sql, param} = query.where(this.index);
+        this.sql += ` AND (${ sql }) `;
+        Object.assign(this.param, param);
       }
     }
+    return this;
+  }
+  async groupConcat(key: keyof T, _param?: {distinct?: boolean, separator?: string}): Promise<string> {
+    this.groupConcatPrepare(key, _param);
     if (this._cache) {
-      const key = md5Util(sql);
+      const key = md5Util(this.sql + JSON.stringify(this.param));
       const cache = await this.app.redis.get('other').get(`[cache]${ key }`);
       if (cache) {
         debug(`cache for query ${ key } hit!`);
         return JSON.parse(cache);
       }
 
-      const result_ = await this.search(sql, this.param);
+      const result_ = await this.search(this.sql, this.param);
       let result = '';
       if (result_.length > 0) {
         result = (result_[0] as unknown as {ct: string}).ct;
@@ -540,19 +635,43 @@ export default class LambdaQuery<T> {
         return '';
       }
       await setCache.call(this.context, {
-        key: md5Util(sql),
+        key,
         result,
         ...this._cache
       });
       return result;
     } else {
-      const data = await this.search(sql, this.param);
+      const data = await this.search(this.sql, this.param);
       if (data.length > 0) {
         return (data[0] as unknown as {ct: string}).ct;
       } else {
         return '';
       }
     }
+  }
+  @IF()
+  groupConcatPrepare(key: keyof T, param?: {distinct?: boolean, separator?: string}): this {
+    this.sql = `SELECT GROUP_CONCAT(${ param && param.distinct ? 'DISTINCT' : '' } ${ key } ${ this.order.length > 0 ? `ORDER BY ${ this.order.join(',') } ` : '' } SEPARATOR '${ param && param.separator || ',' }') ct FROM ${ this.table } `;
+    this.sql += `WHERE 1 = 1 ${ this.condition.join(' ') } `;
+    if (this.orQuerys.length > 0) {
+      for (const query of this.orQuerys) {
+        const {sql, param} = query.where(this.index);
+        this.sql += ` OR (${ sql }) `;
+        Object.assign(this.param, param);
+      }
+    }
+    if (this.andQuerys.length > 0) {
+      for (const query of this.andQuerys) {
+        const {sql, param} = query.where(this.index);
+        this.sql += ` AND (${ sql }) `;
+        Object.assign(this.param, param);
+      }
+    }
+    return this;
+  }
+  /** 获得sql和参数 */
+  get(): {sql: string; param: Empty} {
+    return {sql: this.sql, param: this.param};
   }
   private nil(key: keyof T, not = ''): this {
     this.condition.push(`AND ${ key } is ${ not } null`);
@@ -619,5 +738,14 @@ export default class LambdaQuery<T> {
     this.condition.push(`AND (${ key1 } << 8) + ${ key2 } ${ not } ${ op } :${ pkey } `);
     this.param[pkey] = value;
     return this;
+  }
+  private where(index: number): {sql: string; param: Empty} {
+    const param: Empty = this.param;
+    const sql = this.condition.join(' ');
+    for (const [k, v] of Object.entries(this.param)) {
+      param[[...k].reverse().join('').replace(/\d+/, (a: string) => `${ parseInt(a) + index }`)] = v;
+      delete param[k];
+    }
+    return {sql, param};
   }
 }
