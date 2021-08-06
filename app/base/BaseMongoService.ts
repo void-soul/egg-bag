@@ -14,9 +14,14 @@ const MethodDebug = function <T>() {
     descriptor.value = async function (this: BaseMongoService<T>) {
       // eslint-disable-next-line prefer-rest-params
       const args = Array.from(arguments);
-      const result = await fn.call(this, ...args);
-      debug(`${ propertyKey }:${ this['tableName'] }`);
-      return result;
+      try {
+        const result = await fn.call(this, ...args);
+        debug(`${ propertyKey }:${ this['tableName'] }`);
+        return result;
+      } catch (error) {
+        this.app.logger.error(`service ${ propertyKey } have an error, it's argumens: ${ args.join('#') }`);
+        throw error;
+      }
     };
   };
 };
@@ -1428,7 +1433,7 @@ export default abstract class BaseMongoService<T> extends Service {
     param?: {[propName: string]: any},
     transction?: MongoSession
   ): Promise<number> {
-    const item = this.app._getSql<T>(this.ctx, false, sqlid, param) as MongoFilter<T>;
+    const item = this.app._getSql<T>(this.ctx, false, false, sqlid, param) as MongoFilter<T>;
     return await this.countBySql<T>(item, transction);
   }
   /**
@@ -1455,7 +1460,7 @@ export default abstract class BaseMongoService<T> extends Service {
     param?: {[propName: string]: any},
     transction?: MongoSession
   ): Promise<L[]> {
-    const item = this.app._getSql<L>(this.ctx, false, sqlid, param) as MongoFilter<L>;
+    const item = this.app._getSql<L>(this.ctx, false, false, sqlid, param) as MongoFilter<L>;
     return await this.queryMutiRowMutiColumnBySql(item, transction);
   }
   /**
@@ -1729,13 +1734,24 @@ export default abstract class BaseMongoService<T> extends Service {
         pageNumber: number,
         limitSelf: boolean,
         countSelf: boolean,
+        sumSelf: boolean,
         query: PageQuery<L>,
         _orderBy?: string,
         orderMongo?: {[P in keyof L]: 1 | -1}
       ) => {
+        if (sumSelf === true) {
+          const itemSum = this.app._getSql<L>(this.ctx, false, true, sqlid, {
+            ...param,
+            pageSize,
+            pageNumber,
+            limitSelf,
+            orderMongo
+          }) as MongoFilter<L>;
+          query.sum = await this.querySingelRowMutiColumnBySql<L>(itemSum, transction);
+        }
         if (limitSelf === false) {
           if (pageSize > 0) {
-            const pageItem = countSelf ? this.app._getSql<L>(this.ctx, true, sqlid, param) as MongoFilter<L> : this.app._getSql<L>(this.ctx, true, `${ sqlid }_count`, param) as MongoFilter<L>;
+            const pageItem = countSelf ? this.app._getSql<L>(this.ctx, true, false, sqlid, param) as MongoFilter<L> : this.app._getSql<L>(this.ctx, true, false, `${ sqlid }_count`, param) as MongoFilter<L>;
             const totalRow = await this.countBySql(
               pageItem,
               transction
@@ -1756,7 +1772,7 @@ export default abstract class BaseMongoService<T> extends Service {
             skip: pageSize
           });
         }
-        const item = this.app._getSql<L>(this.ctx, false, sqlid, {
+        const item = this.app._getSql<L>(this.ctx, false, false, sqlid, {
           ...param,
           pageSize,
           pageNumber,

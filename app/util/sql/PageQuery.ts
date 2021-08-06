@@ -8,6 +8,7 @@ const _orderMongo = Symbol('_orderMongo');
 const _param = Symbol('param');
 const _limitSelf = Symbol('limitSelf');
 const _countSelf = Symbol('countSelf');
+const _sumSelf = Symbol('sumSelf');
 /**
  *
  * 分页查询对象
@@ -16,9 +17,11 @@ const _countSelf = Symbol('countSelf');
  */
 export default class PageQuery<T> {
   list: T[];
+  sum: T | null;
   totalPage: number;
   totalRow: number;
   private [_limitSelf] = false;
+  private [_sumSelf] = false;
   private [_countSelf] = false;
   private [_pageNumber] = 1;
   private [_pageSize] = 0;
@@ -31,6 +34,7 @@ export default class PageQuery<T> {
     pageNumber: number,
     limitSelf: boolean,
     countSelf: boolean,
+    sumSelf: boolean,
     query: PageQuery<T>,
     orderBy?: string,
     orderMongo?: {[P in keyof T]: 1 | -1},
@@ -42,6 +46,7 @@ export default class PageQuery<T> {
       pageNumber: number,
       limitSelf: boolean,
       countSelf: boolean,
+      sumSelf: boolean,
       query: PageQuery<T>,
       orderBy?: string,
       orderMongo?: {[P in keyof T]: 1 | -1},
@@ -84,6 +89,10 @@ export default class PageQuery<T> {
     this[_countSelf] = countSelf === true || countSelf === 'true';
     return this;
   }
+  sumSelf(sumSelf: boolean | string): this {
+    this[_sumSelf] = sumSelf === true || sumSelf === 'true';
+    return this;
+  }
   async select(): Promise<this> {
     await this.search(
       this[_param],
@@ -91,6 +100,7 @@ export default class PageQuery<T> {
       this[_pageNumber],
       this[_limitSelf],
       this[_countSelf],
+      this[_sumSelf],
       this,
       this[_orderBy],
       this[_orderMongo]

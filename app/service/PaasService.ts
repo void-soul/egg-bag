@@ -3,7 +3,7 @@ import BaseService from '../base/BaseService';
 import {Empty} from '../util/empty';
 import {randomNumber, uuid} from '../util/string';
 import svgCaptcha = require('svg-captcha');
-import {SqlSession} from '../../typings';
+import {FlowDoParam, FlowDoResult, FlowFetchParam, FlowFetchResult, SqlSession} from '../../typings';
 import {FlowExcute} from '../util/flow';
 const debug = require('debug')('egg-bag:base');
 /**
@@ -65,25 +65,24 @@ export default class extends BaseService<Empty> {
   }
   public async fetchFlow<Q, S, C, M>({
     flowPath, fromNodeId, fromNodeCode, req, conn, skipData, key
-  }: {
-    flowPath: string;
-    fromNodeId?: string;
-    fromNodeCode?: string;
-    req: Q;
-    conn?: SqlSession;
-    skipData?: number;
-    key?: string;
-  }) {
-    if (conn) {
-      return (new FlowExcute<Q, S, C, M>(this.ctx, this.ctx.service, this.app, conn)).fetch({
-        flowPath, fromNodeId, fromNodeCode, req, skipData, key
-      });
-    } else {
-      return await this.transction(async conn2 => {
-        return (new FlowExcute<Q, S, C, M>(this.ctx, this.ctx.service, this.app, conn2)).fetch({
+  }: FlowFetchParam<Q>): Promise<FlowFetchResult<S>> {
+    try {
+      if (conn) {
+        return (new FlowExcute<Q, S, C, M>(this.ctx, this.ctx.service, this.app, conn)).fetch({
           flowPath, fromNodeId, fromNodeCode, req, skipData, key
         });
-      });
+      } else {
+        return await this.transction(async conn2 => {
+          return (new FlowExcute<Q, S, C, M>(this.ctx, this.ctx.service, this.app, conn2)).fetch({
+            flowPath, fromNodeId, fromNodeCode, req, skipData, key
+          });
+        });
+      }
+    } catch (error) {
+      this.app.emit('flow-fetch-error', error.message, {
+        flowPath, fromNodeId, fromNodeCode, req, conn, skipData, key
+      }, this.ctx.me);
+      throw error;
     }
   }
   public async doFlow<Q, S, C, M>({
@@ -96,31 +95,10 @@ export default class extends BaseService<Empty> {
     toNodeCode,
     req,
     conn
-  }: {
-    flowPath: string;
-    fromNodeId?: string;
-    fromNodeCode?: string;
-    actionId?: string;
-    actionCode?: string;
-    toNodeId?: string;
-    toNodeCode?: string;
-    req: Q;
-    conn?: SqlSession;
-  }) {
-    if (conn) {
-      return (new FlowExcute<Q, S, C, M>(this.ctx, this.ctx.service, this.app, conn)).do({
-        flowPath,
-        fromNodeId,
-        fromNodeCode,
-        actionId,
-        actionCode,
-        toNodeId,
-        toNodeCode,
-        req
-      });
-    } else {
-      return await this.transction(async conn2 => {
-        return (new FlowExcute<Q, S, C, M>(this.ctx, this.ctx.service, this.app, conn2)).do({
+  }: FlowDoParam<Q>): Promise<FlowDoResult<S>> {
+    try {
+      if (conn) {
+        return (new FlowExcute<Q, S, C, M>(this.ctx, this.ctx.service, this.app, conn)).do({
           flowPath,
           fromNodeId,
           fromNodeCode,
@@ -130,7 +108,32 @@ export default class extends BaseService<Empty> {
           toNodeCode,
           req
         });
-      });
+      } else {
+        return await this.transction(async conn2 => {
+          return (new FlowExcute<Q, S, C, M>(this.ctx, this.ctx.service, this.app, conn2)).do({
+            flowPath,
+            fromNodeId,
+            fromNodeCode,
+            actionId,
+            actionCode,
+            toNodeId,
+            toNodeCode,
+            req
+          });
+        });
+      }
+    } catch (error) {
+      this.app.emit('flow-do-error', error.message, {
+        flowPath,
+        fromNodeId,
+        fromNodeCode,
+        actionId,
+        actionCode,
+        toNodeId,
+        toNodeCode,
+        req
+      }, this.ctx.me);
+      throw error;
     }
   }
   public getLine(param: {

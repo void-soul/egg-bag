@@ -12,9 +12,14 @@ const MethodDebug = function <T>() {
     descriptor.value = async function (this: BaseService<T>) {
       // eslint-disable-next-line prefer-rest-params
       const args = Array.from(arguments);
-      const result = await fn.call(this, ...args);
-      debug(`${ propertyKey }:${ this['tableName'] }`);
-      return result;
+      try {
+        const result = await fn.call(this, ...args);
+        debug(`${ propertyKey }:${ this['tableName'] }`);
+        return result;
+      } catch (error) {
+        this.app.logger.error(`service ${ propertyKey } have an error, it's argumens: ${ JSON.stringify(args.filter(i => typeof i !== 'object' || (typeof i === 'object' && !i.insert))) }`);
+        throw error;
+      }
     };
   };
 };
@@ -1436,8 +1441,8 @@ export default abstract class BaseService<T> extends Service {
         param[key] = value;
       }
       const result = await conn.query(`
-        UPDATE ${ tableName(this.tableName) } SET ${ set.join(',') } WHERE ${ where.join('') };
-        SELECT ${ keys.join(',') } FROM ${ tableName(this.tableName) } WHERE ${ where.join('') };
+        UPDATE ${ tableName(this.tableName) } SET ${ set.join(',') } WHERE ${ where.join(' AND ') };
+        SELECT ${ keys.join(',') } FROM ${ tableName(this.tableName) } WHERE ${ where.join(' AND ') };
       `, param);
       return result[1][0];
     }, transction);
@@ -2171,7 +2176,7 @@ export default abstract class BaseService<T> extends Service {
     param?: {[propName: string]: any},
     transction?: SqlSession
   ): Promise<number> {
-    const sql = this.app._getSql(this.ctx, false, sqlid, param);
+    const sql = this.app._getSql(this.ctx, false, false, sqlid, param);
     return await this.transction(async (conn) => {
       const result = await conn.query(sql as string, param);
       return result.affectedRows;
@@ -2259,7 +2264,7 @@ export default abstract class BaseService<T> extends Service {
     param?: {[propName: string]: any},
     transction?: SqlSession
   ): Promise<number> {
-    const sql = this.app._getSql(this.ctx, false, sqlid, param);
+    const sql = this.app._getSql(this.ctx, false, false, sqlid, param);
     const count = await this.querySingelRowSingelColumnBySql<number>(
       sql as string,
       param,
@@ -2302,7 +2307,7 @@ export default abstract class BaseService<T> extends Service {
     param?: {[propName: string]: any},
     transction?: SqlSession
   ): Promise<L[][]> {
-    const sql = this.app._getSql(this.ctx, false, sqlid, param);
+    const sql = this.app._getSql(this.ctx, false, false, sqlid, param);
     if (transction === undefined) {
       return await this.app.mysql.query(sql as string, param);
     } else {
@@ -2509,7 +2514,7 @@ export default abstract class BaseService<T> extends Service {
     param?: {[propName: string]: any},
     transction?: SqlSession
   ): Promise<L[]> {
-    const sql = this.app._getSql(this.ctx, false, sqlid, param);
+    const sql = this.app._getSql(this.ctx, false, false, sqlid, param);
     return await this.queryMutiRowMutiColumnBySql<L>(sql as string, param, transction);
   }
   /**
@@ -2568,7 +2573,7 @@ export default abstract class BaseService<T> extends Service {
     transction?: SqlSession
   ): Promise<L | null> {
     const data = await this.queryMutiRowMutiColumnBySql<L>(sql, param, transction);
-    return data && data.length > 0 ? null : data[0];
+    return data && data.length > 0 ? data[0] : null;
   }
   /**
    *
@@ -2669,6 +2674,7 @@ export default abstract class BaseService<T> extends Service {
         pageNumber: number,
         limitSelf: boolean,
         countSelf: boolean,
+        sumSelf: boolean,
         query: PageQuery<L>,
         orderBy?: string
       ) => {
@@ -2680,16 +2686,15 @@ export default abstract class BaseService<T> extends Service {
             orderBy
           });
         }
-        // else {
-        //   Object.assign(param, {
-        //     pageSize,
-        //     pageNumber,
-        //     limitSelf,
-        //     countSelf,
-        //     orderBy
-        //   });
-        // }
-        sql = this.app._getSql(this.ctx, false, sqlid, param);
+        sql = this.app._getSql(this.ctx, false, false, sqlid, param);
+        if (sumSelf === true) {
+          const sqlPage: string | MongoFilter<unknown> = this.app._getSql(this.ctx, false, true, sqlid, param);
+          query.sum = await this.querySingelRowMutiColumnBySql<L>(
+            sqlPage as string,
+            param,
+            transction
+          );
+        }
         if (limitSelf !== true) {
           if (countSelf !== true) {
             sql = `SELECT _a.* FROM (${ sql }) _a `;
@@ -2701,13 +2706,12 @@ export default abstract class BaseService<T> extends Service {
             sql = `${ sql } LIMIT ${ calc(pageNumber).sub(1).mul(pageSize).over() }, ${ pageSize }`;
           }
         }
-
         if (pageSize > 0) {
           let sqlPage: string | MongoFilter<unknown>;
           if (countSelf === true) {
-            sqlPage = this.app._getSql(this.ctx, true, `${ sqlid }_count`, param);
+            sqlPage = this.app._getSql(this.ctx, true, false, `${ sqlid }_count`, param);
           } else {
-            sqlPage = this.app._getSql(this.ctx, true, sqlid, param);
+            sqlPage = this.app._getSql(this.ctx, true, false, sqlid, param);
           }
           const totalRow = await this.querySingelRowSingelColumnBySql<number>(
             sqlPage as string,
@@ -2811,8 +2815,10 @@ export default abstract class BaseService<T> extends Service {
       const result: any[][] = [];
       for (const lambda of lambdas) {
         const {sql, param} = lambda.get();
-        const r = await this.app.mysql.query(sql, param);
-        result.push(r);
+        if (sql) {
+          const r = await this.app.mysql.query(sql, param);
+          result.push(r);
+        }
       }
       return result;
     } else {
@@ -2820,8 +2826,10 @@ export default abstract class BaseService<T> extends Service {
         const result: any[][] = [];
         for (const lambda of lambdas) {
           const {sql, param} = lambda.get();
-          const r = await conn.query(sql, param);
-          result.push(r);
+          if (sql) {
+            const r = await conn.query(sql, param);
+            result.push(r);
+          }
         }
         return result;
       }, transction);

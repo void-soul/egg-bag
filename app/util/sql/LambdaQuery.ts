@@ -19,6 +19,20 @@ const IF = function <T>() {
     };
   };
 };
+const IF2 = function <T>(def: any) {
+  return function (_target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
+    const fn = descriptor.value;
+    descriptor.value = async function (this: LambdaQuery<T>) {
+      if (this.ifv === true && this.ifvFix === true) {
+        // eslint-disable-next-line prefer-rest-params
+        const args = Array.from(arguments);
+        return await fn.call(this, ...args);
+      } else {
+        return def;
+      }
+    };
+  };
+};
 export default class LambdaQuery<T> {
   private andQuerys: LambdaQuery<T>[] = [];
   private orQuerys: LambdaQuery<T>[] = [];
@@ -45,7 +59,9 @@ export default class LambdaQuery<T> {
   private context: BaseContextClass;
   private app: Application;
   protected ifv = true;
+  protected ifvFix = true;
   private sql = '';
+  private relaces: string[] = [];
   constructor (
     table: string,
     search: (sql: string, param: Empty) => Promise<T[]>,
@@ -113,6 +129,7 @@ export default class LambdaQuery<T> {
     key: keyof T,
     value: T[keyof T]
   ): this {
+
     return this.common(key, value, '=');
   }
   @IF()
@@ -182,8 +199,12 @@ export default class LambdaQuery<T> {
   @IF()
   andLike(
     key: keyof T,
-    value: T[keyof T]
+    value: T[keyof T],
+    force?: boolean
   ): this {
+    if (force === true && (value === undefined || value === null || (value as any) === '')) {
+      this.ifvFix = false;
+    }
     return this.like(key, value);
   }
   @IF()
@@ -203,36 +224,56 @@ export default class LambdaQuery<T> {
   @IF()
   andNotLike(
     key: keyof T,
-    value: T[keyof T]
+    value: T[keyof T],
+    force?: boolean
   ): this {
+    if (force === true && (value === undefined || value === null || (value as any) === '')) {
+      this.ifvFix = false;
+    }
     return this.like(key, value, 'NOT');
   }
   @IF()
   andLeftLike(
     key: keyof T,
-    value: T[keyof T]
+    value: T[keyof T],
+    force?: boolean
   ): this {
+    if (force === true && (value === undefined || value === null || (value as any) === '')) {
+      this.ifvFix = false;
+    }
     return this.like(key, value, '', '%', '');
   }
   @IF()
   andNotLeftLike(
     key: keyof T,
-    value: T[keyof T]
+    value: T[keyof T],
+    force?: boolean
   ): this {
+    if (force === true && (value === undefined || value === null || (value as any) === '')) {
+      this.ifvFix = false;
+    }
     return this.like(key, value, 'NOT', '%', '');
   }
   @IF()
   andRightLike(
     key: keyof T,
-    value: T[keyof T]
+    value: T[keyof T],
+    force?: boolean
   ): this {
+    if (force === true && (value === undefined || value === null || (value as any) === '')) {
+      this.ifvFix = false;
+    }
     return this.like(key, value, '', '', '%');
   }
   @IF()
   andNotRightLike(
     key: keyof T,
-    value: T[keyof T]
+    value: T[keyof T],
+    force?: boolean
   ): this {
+    if (force === true && (value === undefined || value === null || (value as any) === '')) {
+      this.ifvFix = false;
+    }
     return this.like(key, value, 'NOT', '', '%');
   }
   @IF()
@@ -244,12 +285,18 @@ export default class LambdaQuery<T> {
     return this.nil(key, 'NOT');
   }
   @IF()
-  andIn(key: keyof T, value: T[keyof T][]): this {
+  andIn(key: keyof T, value: T[keyof T][], force?: boolean): this {
+    if (force === true && value.length === 0) {
+      this.ifvFix = false;
+    }
     return this.commonIn(key, value);
   }
 
   @IF()
-  andNotIn(key: keyof T, value: T[keyof T][]): this {
+  andNotIn(key: keyof T, value: T[keyof T][], force?: boolean): this {
+    if (force === true && value.length === 0) {
+      this.ifvFix = false;
+    }
     return this.commonIn(key, value, 'NOT');
   }
   @IF()
@@ -310,7 +357,7 @@ export default class LambdaQuery<T> {
     return this;
   }
   /**
-   * 为下次链条执行提供条件判断：仅限非异步方法
+   * 为下次链条执行提供条件判断：非异步方法跳过，异步方法不执行并返回默认值
    * @param condition
    * @returns
    */
@@ -338,6 +385,24 @@ export default class LambdaQuery<T> {
     this.updateData[key] = value;
     return this;
   }
+  /**
+   * 替换查询一列
+   * @param key 列名
+   * @param valueToFind  要查找的值
+   * @param valueToReplace 替换结果
+   * @param key2 别名，默认是列名
+   * @returns
+   */
+  @IF()
+  replaceColumn(key: keyof T, valueToFind: T[keyof T], valueToReplace: T[keyof T], key2?: string) {
+    const pkey1 = `${ key }_${ this.index++ }`;
+    const pkey2 = `${ key }_${ this.index++ }`;
+    this.relaces.push(`REPLACE(${ key }, :${ pkey1 }, :${ pkey2 }) AS ${ key2 || key as any as string }`);
+    this.param[pkey1] = valueToFind as any as string;
+    this.param[pkey2] = valueToReplace as any as string;
+    return this;
+  }
+  @IF2([])
   async select(...columns: (keyof T)[]): Promise<T[]> {
     this.selectPrepare(...columns);
     if (this._cache) {
@@ -361,23 +426,7 @@ export default class LambdaQuery<T> {
   }
   @IF()
   selectPrepare(...columns: (keyof T)[]): this {
-    this.sql = `SELECT ${ columns && columns.length > 0 ? columns.join(',') : '*'
-      } FROM ${ this.table } `;
-    this.sql += `WHERE 1 = 1 ${ this.condition.join(' ') } `;
-    if (this.orQuerys.length > 0) {
-      for (const query of this.orQuerys) {
-        const {sql, param} = query.where(this.index);
-        this.sql += ` OR (${ sql }) `;
-        Object.assign(this.param, param);
-      }
-    }
-    if (this.andQuerys.length > 0) {
-      for (const query of this.andQuerys) {
-        const {sql, param} = query.where(this.index);
-        this.sql += ` AND (${ sql }) `;
-        Object.assign(this.param, param);
-      }
-    }
+    this.sql = `SELECT ${ columns && columns.length > 0 ? columns.join(',') : '*' } ${ this.relaces.length > 0 ? `, ${ this.relaces.join(',') }` : '' } FROM ${ this.table } ${ this.buildWhere(true) }`;
     if (this.group.length > 0) {
       this.sql += `GROUP BY ${ this.group.join(',') } `;
     }
@@ -389,6 +438,7 @@ export default class LambdaQuery<T> {
     }
     return this;
   }
+  @IF2(undefined)
   async one(...columns: (keyof T)[]): Promise<T | undefined> {
     this.limit(0, 1);
     const list = await this.select(...columns);
@@ -399,6 +449,7 @@ export default class LambdaQuery<T> {
     this.limit(0, 1);
     return this.selectPrepare(...columns);
   }
+  @IF2(0)
   async count(): Promise<number> {
     this.countPrepare();
     if (this._cache) {
@@ -422,30 +473,20 @@ export default class LambdaQuery<T> {
   }
   @IF()
   countPrepare(): this {
-    this.sql = `SELECT COUNT(1) FROM ${ this.table } `;
-    this.sql += `WHERE 1 = 1 ${ this.condition.join(' ') } `;
-    if (this.orQuerys.length > 0) {
-      for (const query of this.orQuerys) {
-        const {sql, param} = query.where(this.index);
-        this.sql += ` OR (${ sql }) `;
-        Object.assign(this.param, param);
-      }
-    }
-    if (this.andQuerys.length > 0) {
-      for (const query of this.andQuerys) {
-        const {sql, param} = query.where(this.index);
-        this.sql += ` AND (${ sql }) `;
-        Object.assign(this.param, param);
-      }
-    }
+    this.sql = `SELECT COUNT(1) FROM ${ this.table } ${ this.buildWhere(true) }`;
     if (this.group.length > 0) {
       this.sql += `GROUP by ${ this.group.join(',') } `;
     }
     return this;
   }
+  @IF2(0)
   async update(data?: T): Promise<number> {
     this.updatePrepare(data);
-    return await this.excute(this.sql, this.param);
+    if (this.sql) {
+      return await this.excute(this.sql, this.param);
+    } else {
+      return 0;
+    }
   }
   @IF()
   updatePrepare(data?: T): this {
@@ -455,64 +496,43 @@ export default class LambdaQuery<T> {
     if (this.updateData) {
       Object.assign(data, this.updateData);
     }
-    this.sql = `UPDATE ${ this.table } SET `;
     const sets = new Array<string>();
     for (const key in data) {
       if ((data as any).hasOwnProperty(key)) {
         sets.push(` ${ key } = :${ key } `);
       }
     }
-    this.sql += `${ sets.join(',') } WHERE 1 = 1 ${ this.condition.join(' ') } `;
-    if (this.orQuerys.length > 0) {
-      for (const query of this.orQuerys) {
-        const {sql, param} = query.where(this.index);
-        this.sql += ` OR (${ sql }) `;
-        Object.assign(this.param, param);
-      }
+    if (sets.length > 0) {
+      this.sql = `UPDATE ${ this.table } SET ${ sets.join(',') } ${ this.buildWhere(true) }`;
+      Object.assign(this.param, data);
+    } else {
+      this.sql = '';
     }
-    if (this.andQuerys.length > 0) {
-      for (const query of this.andQuerys) {
-        const {sql, param} = query.where(this.index);
-        this.sql += ` AND (${ sql }) `;
-        Object.assign(this.param, param);
-      }
-    }
-    Object.assign(this.param, data);
     return this;
   }
+  @IF2(0)
   async delete(): Promise<number> {
     this.deletePrepare();
     return await this.excute(this.sql, this.param);
   }
   @IF()
   deletePrepare(): this {
-    this.sql = `DELETE FROM ${ this.table }  WHERE 1 = 1 ${ this.condition.join(' ') } `;
-    if (this.orQuerys.length > 0) {
-      for (const query of this.orQuerys) {
-        const {sql, param} = query.where(this.index);
-        this.sql += ` OR (${ sql }) `;
-        Object.assign(this.param, param);
-      }
-    }
-    if (this.andQuerys.length > 0) {
-      for (const query of this.andQuerys) {
-        const {sql, param} = query.where(this.index);
-        this.sql += ` AND (${ sql }) `;
-        Object.assign(this.param, param);
-      }
-    }
+    this.sql = `DELETE FROM ${ this.table } ${ this.buildWhere(true) } `;
     return this;
   }
+  @IF2([])
   async array<K extends T[keyof T]>(key: keyof T): Promise<K[]> {
     const list = await this.select(key);
     return list.map(item => item[key] as K);
   }
+  @IF2(undefined)
   async singel<K extends T[keyof T]>(key: keyof T): Promise<K | undefined> {
     const one = await this.one(key);
     if (one) {
       return one[key] as K;
     }
   }
+  @IF2(0)
   async sum(key: keyof T): Promise<number> {
     this.sumPrepare(key);
     if (this._cache) {
@@ -547,24 +567,10 @@ export default class LambdaQuery<T> {
   }
   @IF()
   sumPrepare(key: keyof T): this {
-    this.sql = `SELECT SUM(${ key }) ct FROM ${ this.table } `;
-    this.sql += `WHERE 1 = 1 ${ this.condition.join(' ') } `;
-    if (this.orQuerys.length > 0) {
-      for (const query of this.orQuerys) {
-        const {sql, param} = query.where(this.index);
-        this.sql += ` OR (${ sql }) `;
-        Object.assign(this.param, param);
-      }
-    }
-    if (this.andQuerys.length > 0) {
-      for (const query of this.andQuerys) {
-        const {sql, param} = query.where(this.index);
-        this.sql += ` AND (${ sql }) `;
-        Object.assign(this.param, param);
-      }
-    }
+    this.sql = `SELECT SUM(${ key }) ct FROM ${ this.table } ${ this.buildWhere(true) }`;
     return this;
   }
+  @IF2(0)
   async avg(key: keyof T): Promise<number> {
     this.avgPrepare(key);
     if (this._cache) {
@@ -599,24 +605,10 @@ export default class LambdaQuery<T> {
   }
   @IF()
   avgPrepare(key: keyof T): this {
-    this.sql = `SELECT AVG(${ key }) ct FROM ${ this.table } `;
-    this.sql += `WHERE 1 = 1 ${ this.condition.join(' ') } `;
-    if (this.orQuerys.length > 0) {
-      for (const query of this.orQuerys) {
-        const {sql, param} = query.where(this.index);
-        this.sql += ` OR (${ sql }) `;
-        Object.assign(this.param, param);
-      }
-    }
-    if (this.andQuerys.length > 0) {
-      for (const query of this.andQuerys) {
-        const {sql, param} = query.where(this.index);
-        this.sql += ` AND (${ sql }) `;
-        Object.assign(this.param, param);
-      }
-    }
+    this.sql = `SELECT AVG(${ key }) ct FROM ${ this.table } ${ this.buildWhere(true) }`;
     return this;
   }
+  @IF2('')
   async groupConcat(key: keyof T, _param?: {distinct?: boolean, separator?: string}): Promise<string> {
     this.groupConcatPrepare(key, _param);
     if (this._cache) {
@@ -651,22 +643,7 @@ export default class LambdaQuery<T> {
   }
   @IF()
   groupConcatPrepare(key: keyof T, param?: {distinct?: boolean, separator?: string}): this {
-    this.sql = `SELECT GROUP_CONCAT(${ param && param.distinct ? 'DISTINCT' : '' } ${ key } ${ this.order.length > 0 ? `ORDER BY ${ this.order.join(',') } ` : '' } SEPARATOR '${ param && param.separator || ',' }') ct FROM ${ this.table } `;
-    this.sql += `WHERE 1 = 1 ${ this.condition.join(' ') } `;
-    if (this.orQuerys.length > 0) {
-      for (const query of this.orQuerys) {
-        const {sql, param} = query.where(this.index);
-        this.sql += ` OR (${ sql }) `;
-        Object.assign(this.param, param);
-      }
-    }
-    if (this.andQuerys.length > 0) {
-      for (const query of this.andQuerys) {
-        const {sql, param} = query.where(this.index);
-        this.sql += ` AND (${ sql }) `;
-        Object.assign(this.param, param);
-      }
-    }
+    this.sql = `SELECT GROUP_CONCAT(${ param && param.distinct ? 'DISTINCT' : '' } ${ key } ${ this.order.length > 0 ? `ORDER BY ${ this.order.join(',') } ` : '' } SEPARATOR '${ param && param.separator || ',' }') ct FROM ${ this.table } ${ this.buildWhere(true) }`;
     return this;
   }
   /** 获得sql和参数 */
@@ -684,11 +661,13 @@ export default class LambdaQuery<T> {
     left = '%',
     right = '%'
   ): this {
-    const pkey = `${ key }_${ this.index++ }`;
-    this.condition.push(
-      `AND ${ key } ${ not } like concat('${ left }', :${ pkey }, '${ right }') `
-    );
-    this.param[pkey] = value;
+    if (value !== null && value !== undefined && value !== '') {
+      const pkey = `${ key }_${ this.index++ }`;
+      this.condition.push(
+        `AND ${ key } ${ not } like concat('${ left }', :${ pkey }, '${ right }') `
+      );
+      this.param[pkey] = value;
+    }
     return this;
   }
   private between(
@@ -739,13 +718,51 @@ export default class LambdaQuery<T> {
     this.param[pkey] = value;
     return this;
   }
-  private where(index: number): {sql: string; param: Empty} {
+  private buildWhere(core?: boolean) {
+    const wheres = new Array<string>();
+    const where = this.condition.join(' ');
+    if (where) {
+      wheres.push(`(${ where.replace(/and|or/i, '') })`);
+    }
+    if (this.orQuerys.length > 0) {
+      for (const query of this.orQuerys) {
+        const {sql, param, index} = query.where(this.index);
+        this.index = index;
+        if (sql) {
+          wheres.push(` OR (${ sql }) `);
+        }
+        Object.assign(this.param, param);
+      }
+    }
+    if (this.andQuerys.length > 0) {
+      for (const query of this.andQuerys) {
+        const {sql, param, index} = query.where(this.index);
+        this.index = index;
+        if (sql) {
+          wheres.push(` AND (${ sql }) `);
+        }
+        Object.assign(this.param, param);
+      }
+    }
+    if (core === true) {
+      if (wheres.length > 0) {
+        return `WHERE ${ wheres.join(' ') }`;
+      } else {
+        return '';
+      }
+    } else {
+      return wheres.join(' ');
+    }
+  }
+  private where(index: number): {sql: string; param: Empty; index: number} {
     const param: Empty = this.param;
-    const sql = this.condition.join(' ');
+    let sql = this.buildWhere();
     for (const [k, v] of Object.entries(this.param)) {
-      param[[...k].reverse().join('').replace(/\d+/, (a: string) => `${ parseInt(a) + index }`)] = v;
+      const newName = k.replace(/\d+$/, (_a: string) => `${ index++ }`);
+      sql = sql.replace(k, newName);
+      param[newName] = v;
       delete param[k];
     }
-    return {sql, param};
+    return {sql, param, index};
   }
 }

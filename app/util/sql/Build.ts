@@ -9,6 +9,7 @@ import lodash = require('lodash');
 export default class Build {
   private static page = 'COUNT(1) zccw1986 ';
   private count: boolean;
+  private sum: boolean;
 
   /**
    *
@@ -19,9 +20,11 @@ export default class Build {
    */
   constructor (
     count: boolean,
+    sum: boolean,
     param: {[propName: string]: any} = {}
   ) {
     this.count = count;
+    this.sum = sum;
     lodash.assign(this, param);
   }
   /**
@@ -34,6 +37,21 @@ export default class Build {
     return (text: string, render: (text: string) => string) => {
       if (this.count === true) {
         return Build.page;
+      } else if (this.sum !== true) {
+        return render(text);
+      }
+    };
+  }
+  /**
+ *
+ * 汇总查询专用
+ * @returns
+ * @memberof Build
+ */
+  sumTag() {
+    return (text: string, render: (text: string) => string) => {
+      if (this.sum !== true) {
+        return '';
       } else {
         return render(text);
       }
@@ -41,13 +59,13 @@ export default class Build {
   }
   /**
    *
-   * 当分页时忽略函数内包含的内容
+   * 当分页时、汇总时忽略函数内包含的内容
    * @returns
    * @memberof Build
    */
   pageIgnoreTag() {
     return (text: string, render: (text: string) => string) => {
-      if (this.count === true) {
+      if (this.count === true || this.sum === true) {
         return '';
       } else {
         return render(text);
@@ -109,7 +127,7 @@ export default class Build {
    */
   orderTag() {
     return (text: string, render: (text: string) => string) => {
-      if (this.count === true) {
+      if (this.count === true || this.sum === true) {
         return '';
       } else {
         const orderBy = new Array<string>();
@@ -127,7 +145,7 @@ export default class Build {
   /**
    *
    * 分页时将分组部分代码用此函数包起来，可以自动拼接GROUP BY
-   * 查询条数时，自动忽略此部分
+   * 当分页时、汇总时，自动忽略此部分
    * etc
    * {{#groupTag}} name, age {{/groupTag}}
    * ===
@@ -137,7 +155,7 @@ export default class Build {
    */
   groupTag() {
     return (text: string, render: (text: string) => string) => {
-      if (this.count === true) {
+      if (this.count === true || this.sum === true) {
         return '';
       } else {
         const groupBy = render(text) || '';

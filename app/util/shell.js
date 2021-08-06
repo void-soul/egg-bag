@@ -109,23 +109,34 @@ const EggShell = (app, options = {}) => {
               const message = ctx.body._msg || ctx.query._msg;
               const title = ctx.body._title || ctx.query._title;
               const event = ctx.body._event || ctx.query._event;
-              if (uri && message) {
+              const asRequest = !!event || !!title || !!message;
+              if (uri && asRequest) {
                 result = 1;
                 instance[pName](ctx)
                   .then(_data => {
-                    if (_data === undefined || _data === null) {
-                      ctx.app.emitTo('USER-', ctx.me.userid, event, {
-                        message: `${ title || message }处理完毕`,
-                        uri
-                      });
-                    } else if (typeof _data === 'object') {
-                      ctx.app.emitTo('USER-', ctx.me.userid, event, {
-                        message: `${ title || message }处理完毕,${ message.replace(/\{\{([a-z0-9A-Z]+)\}\}/g, (a, b) => (_data[b] === undefined || _data[b] === null ? '' : _data[b])) }`,
-                        uri
-                      });
+                    if (message) {
+                      if (_data === undefined || _data === null) {
+                        ctx.app.emitTo('USER-', ctx.me.userid, event, {
+                          message: `${ title || message }处理完毕`,
+                          uri
+                        });
+                      } else if (typeof _data === 'object') {
+                        ctx.app.emitTo('USER-', ctx.me.userid, event, {
+                          message: `${ title || message }处理完毕,${ message.replace(/\{\{([a-z0-9A-Z]+)\}\}/g, (a, b) => (_data[b] === undefined || _data[b] === null ? '' : _data[b])) }`,
+                          uri
+                        });
+                      } else {
+                        ctx.app.emitTo('USER-', ctx.me.userid, event, {
+                          message: `${ title || message }处理完毕,${ message.replace('{{.}}', _data) }`,
+                          uri
+                        });
+                      }
                     } else {
                       ctx.app.emitTo('USER-', ctx.me.userid, event, {
-                        message: `${ title || message }处理完毕,${ message.replace('{{.}}', _data) }`,
+                        params: {
+                          data: _data,
+                          title
+                        },
                         uri
                       });
                     }

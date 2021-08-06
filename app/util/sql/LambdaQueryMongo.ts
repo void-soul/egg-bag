@@ -14,6 +14,20 @@ const IF = function <T>() {
     };
   };
 };
+const IF2 = function <T>(def: any) {
+  return function (_target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
+    const fn = descriptor.value;
+    descriptor.value = async function (this: LambdaQueryMongo<T>) {
+      if (this.ifv === true && this.ifvFix === true) {
+        // eslint-disable-next-line prefer-rest-params
+        const args = Array.from(arguments);
+        return await fn.call(this, ...args);
+      } else {
+        return def;
+      }
+    };
+  };
+};
 export default class LambdaQueryMongo<T> {
   private _query: {[P in keyof T]?: any} = {};
   private _order: {[P in keyof T]?: number} = {};
@@ -25,6 +39,7 @@ export default class LambdaQueryMongo<T> {
   private _update: (lambda: LambdaQueryMongo<T>, data: {[P in keyof T]?: T[P]}, keys: string[]) => Promise<number>;
   private _remove: (lambda: LambdaQueryMongo<T>) => Promise<number>;
   protected ifv = true;
+  protected ifvFix = true;
   constructor (
     find: (lambda: LambdaQueryMongo<T>, columns: Array<keyof T>) => Promise<T[]>,
     findCount: (lambda: LambdaQueryMongo<T>) => Promise<number>,
@@ -112,8 +127,12 @@ export default class LambdaQueryMongo<T> {
   @IF()
   $in(
     key: keyof T,
-    value: Array<T[keyof T] | RegExp>
+    value: Array<T[keyof T] | RegExp>,
+    force?: boolean
   ): this {
+    if (force === true && value.length === 0) {
+      this.ifvFix = false;
+    }
     if (value && value.length > 0) {
       return this.common(value, '$in', key);
     }
@@ -123,8 +142,12 @@ export default class LambdaQueryMongo<T> {
   @IF()
   $$in(
     key: keyof T,
-    value: Array<T[keyof T] | RegExp>
+    value: Array<T[keyof T] | RegExp>,
+    force?: boolean
   ): this {
+    if (force === true && value.length === 0) {
+      this.ifvFix = false;
+    }
     if (value && value.length > 0) {
       return this.common({$in: value}, '$not', key);
     }
@@ -134,8 +157,12 @@ export default class LambdaQueryMongo<T> {
   @IF()
   $nin(
     key: keyof T,
-    value: Array<T[keyof T] | RegExp>
+    value: Array<T[keyof T] | RegExp>,
+    force?: boolean
   ): this {
+    if (force === true && value.length === 0) {
+      this.ifvFix = false;
+    }
     if (value && value.length > 0) {
       return this.common(value, '$nin', key);
     }
@@ -145,8 +172,12 @@ export default class LambdaQueryMongo<T> {
   @IF()
   $$nin(
     key: keyof T,
-    value: Array<T[keyof T] | RegExp>
+    value: Array<T[keyof T] | RegExp>,
+    force?: boolean
   ): this {
+    if (force === true && value.length === 0) {
+      this.ifvFix = false;
+    }
     if (value && value.length > 0) {
       return this.common({$nin: value}, '$not', key);
     }
@@ -376,6 +407,7 @@ export default class LambdaQueryMongo<T> {
    * @returns {Promise<T[]>}
    * @memberof LambdaQueryMongo
    */
+  @IF2([])
   async select(...columns: Array<keyof T>): Promise<T[]> {
     return await this._find(this, columns);
   }
@@ -386,6 +418,7 @@ export default class LambdaQueryMongo<T> {
    * @returns {(Promise<T | undefined>)}
    * @memberof LambdaQueryMongo
    */
+  @IF2(undefined)
   async one(...columns: Array<keyof T>): Promise<T | undefined> {
     const result = await this._find(this, columns);
     return result[0];
@@ -396,13 +429,16 @@ export default class LambdaQueryMongo<T> {
    * @returns {Promise<number>}
    * @memberof LambdaQueryMongo
    */
+  @IF2(0)
   async count(): Promise<number> {
     return await this._findCount(this);
   }
+  @IF2(0)
   async sum(key: keyof T): Promise<number> {
     const data = await this.select(key);
     return add(...data.map(item => item[key] as any as number));
   }
+  @IF2(0)
   async avg(key: keyof T): Promise<number> {
     const data = await this.select(key);
     const sum = add(...data.map(item => item[key] as any as number));
@@ -414,6 +450,7 @@ export default class LambdaQueryMongo<T> {
    * @returns {Promise<number>}
    * @memberof LambdaQueryMongo
    */
+  @IF2(0)
   async update(data: T): Promise<number> {
     return await this._update(this, data, this._keys);
   }
@@ -423,13 +460,16 @@ export default class LambdaQueryMongo<T> {
    * @returns {Promise<number>}
    * @memberof LambdaQueryMongo
    */
+  @IF2(0)
   async delete(): Promise<number> {
     return await this._remove(this);
   }
+  @IF2([])
   async array<K extends T[keyof T]>(key: keyof T): Promise<K[]> {
     const list = await this.select(key);
     return list.map(item => item[key] as K);
   }
+  @IF2([])
   async singel<K extends T[keyof T]>(key: keyof T): Promise<K | undefined> {
     const one = await this.one(key);
     if (one) {

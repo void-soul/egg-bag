@@ -4,7 +4,6 @@ import {MongoClient, MongoClientOptions, FilterQuery, ClientSession, SessionOpti
 import {Redis} from 'ioredis';
 import {Schema} from 'fast-json-stringify';
 export * from 'egg';
-export {Application, IService, Context} from 'egg';
 import {IncomingMessage, ServerResponse} from 'http';
 // tslint:disable-next-line:no-implicit-dependencies
 import {Socket, Server as SocketServer, Namespace as SocketNameSpace} from 'socket.io';
@@ -82,10 +81,10 @@ export class Bus {
 /** 仿java lambda 查询 */
 export class LambdaQuery<T> {
   /**
-      * 缓存查询结果
-      * @param param
-      * @returns
-      */
+    * 缓存查询结果
+    * @param param
+    * @returns
+    */
   cache(param: {
     /** 返回缓存清除key,参数=方法的参数+当前用户对象，可以用来批量清空缓存 */
     clearKey?: string[];
@@ -119,18 +118,18 @@ export class LambdaQuery<T> {
   andGreatEq(key: keyof T, value: T[keyof T]): this;
   andLess(key: keyof T, value: T[keyof T]): this;
   andLessEq(key: keyof T, value: T[keyof T]): this;
-  andLike(key: keyof T, value: T[keyof T]): this;
+  andLike(key: keyof T, value: T[keyof T], force?: boolean): this;
   andLikePrecise(key: keyof T, value: string): this;
   andNotLikePrecise(key: keyof T, value: string): this;
-  andNotLike(key: keyof T, value: T[keyof T]): this;
-  andLeftLike(key: keyof T, value: T[keyof T]): this;
-  andNotLeftLike(key: keyof T, value: T[keyof T]): this;
-  andRightLike(key: keyof T, value: T[keyof T]): this;
-  andNotRightLike(key: keyof T, value: T[keyof T]): this;
+  andNotLike(key: keyof T, value: T[keyof T], force?: boolean): this;
+  andLeftLike(key: keyof T, value: T[keyof T], force?: boolean): this;
+  andNotLeftLike(key: keyof T, value: T[keyof T], force?: boolean): this;
+  andRightLike(key: keyof T, value: T[keyof T], force?: boolean): this;
+  andNotRightLike(key: keyof T, value: T[keyof T], force?: boolean): this;
   andIsNull(key: keyof T): this;
   andIsNotNull(key: keyof T): this;
-  andIn(key: keyof T, value: T[keyof T][]): this;
-  andNotIn(key: keyof T, value: T[keyof T][]): this;
+  andIn(key: keyof T, value: T[keyof T][], force?: boolean): this;
+  andNotIn(key: keyof T, value: T[keyof T][], force?: boolean): this;
   andBetween(key: keyof T, value1: T[keyof T], value2: T[keyof T]): this;
   andNotBetween(key: keyof T, value1: T[keyof T], value2: T[keyof T]): this;
   andPow(key: keyof T, value: number): this;
@@ -141,7 +140,7 @@ export class LambdaQuery<T> {
   asc(...keys: (keyof T)[]): this;
   desc(...keys: (keyof T)[]): this;
   /**
-   * 为下次链条执行提供条件判断：仅限非异步方法
+   * 为下次链条执行提供条件判断：非异步方法跳过，异步方法不执行并返回默认值
    * @param condition
    * @returns
    */
@@ -149,6 +148,15 @@ export class LambdaQuery<T> {
   limit(startRow: number, pageSize: number): this;
   page(pageNumber: number, pageSize: number): this;
   updateColumn(key: keyof T, value: T[keyof T]): this;
+  /**
+   * 替换查询一列
+   * @param key 列名
+   * @param valueToFind  要查找的值
+   * @param valueToReplace 替换结果
+   * @param key2 别名，默认是列名
+   * @returns
+   */
+  replaceColumn(key: keyof T, valueToFind: T[keyof T], valueToReplace: T[keyof T], key2?: string | undefined): this;
   select(...columns: (keyof T)[]): Promise<T[]>;
   selectPrepare(...columns: (keyof T)[]): this;
   one(...columns: (keyof T)[]): Promise<T | undefined>;
@@ -181,8 +189,7 @@ export class LambdaQuery<T> {
 }
 type JSType = 'double' | 'string' | 'object' | 'array' | 'binData' | 'undefined' | 'objectId' | 'bool' | 'date' | 'null' | 'regex' | 'javascript' | 'javascriptWithScope' | 'int' | 'timestamp' | 'long' | 'decimal' | 'minKey' | 'maxKey';
 export class LambdaQueryMongo<T> {
-  /** 为下次链条执行提供条件判断：仅限非异步方法 */
-  if(condition: boolean): this;
+  /** 为下次链条执行提供条件判断,异步方法时返回空数组/undefinded/0 */
   /** https://docs.mongodb.com/manual/reference/operator/query/eq/ */
   $eq(key: keyof T, value: T[keyof T]): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/eq/ */
@@ -204,13 +211,13 @@ export class LambdaQueryMongo<T> {
   /** not https://docs.mongodb.com/manual/reference/operator/query/gte/ */
   $$gte(key: keyof T, value: T[keyof T]): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/in/ */
-  $in(key: keyof T, value: Array<T[keyof T] | RegExp>): this;
+  $in(key: keyof T, value: Array<T[keyof T] | RegExp>, force?: boolean): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/in/ */
-  $$in(key: keyof T, value: Array<T[keyof T] | RegExp>): this;
+  $$in(key: keyof T, value: Array<T[keyof T] | RegExp>, force?: boolean): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/nin/ */
-  $nin(key: keyof T, value: Array<T[keyof T] | RegExp>): this;
+  $nin(key: keyof T, value: Array<T[keyof T] | RegExp>, force?: boolean): this;
   /** not https://docs.mongodb.com/manual/reference/operator/query/nin/ */
-  $$nin(key: keyof T, value: Array<T[keyof T] | RegExp>): this;
+  $$nin(key: keyof T, value: Array<T[keyof T] | RegExp>, force?: boolean): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/lt/ */
   $lt(key: keyof T, value: T[keyof T]): this;
   /** https://docs.mongodb.com/manual/reference/operator/query/lt/ */
@@ -272,8 +279,8 @@ export class LambdaQueryMongo<T> {
   desc(...keys: Array<keyof T>): this;
   limit(startRow: number, pageSize: number): this;
   page(pageNumber: number, pageSize: number): this;
-  /** 添加key */
   key(...keys: string[]): this;
+  if(condition: boolean): this;
   /**
    * 中断查询方法
    * @param {...string[]} columns
@@ -319,6 +326,7 @@ export class PageQuery<T> {
   list: T[];
   totalPage: number;
   totalRow: number;
+  sum: T;
   constructor (search: (param: Empty, pageSize: number, pageNumber: number, limitSelf: boolean, query: PageQuery<T>, orderBy?: string, orderMongo?: {[P in keyof T]: 1 | -1}) => any);
   param(key: string, value: any): this;
   params(param: Empty): this;
@@ -328,6 +336,7 @@ export class PageQuery<T> {
   pageSize(size: number): this;
   limitSelf(limitSelf: boolean | string): this;
   countSelf(countSelf: boolean | string): this;
+  sumSelf(sumSelf: boolean | string): this;
   select(): Promise<this>;
 }
 export interface EnmuJson {
@@ -3622,6 +3631,55 @@ export abstract class BaseSchedule extends Subscription {
   abstract excute(): Promise<string>;
 }
 
+export class FlowFetchParam<Q> {
+  flowPath: string;
+  fromNodeId?: string;
+  fromNodeCode?: string;
+  req: Q;
+  conn?: SqlSession;
+  skipData?: number;
+  key?: string;
+}
+
+export class FlowFetchResult<S> {
+  res: S;
+  flowCode: string;
+  flowPath: string;
+  fromNodeId: string | undefined;
+  fromNodeCode: string | undefined;
+  lines: {
+    name: string | number;
+    code: string;
+    from: string;
+    to: string;
+    back: boolean;
+    right: boolean;
+    id: string;
+  }[];
+  fields: FlowField;
+}
+
+export class FlowDoParam<Q> {
+  flowPath: string;
+  fromNodeId?: string;
+  fromNodeCode?: string;
+  toNodeId?: string;
+  toNodeCode?: string;
+  actionId?: string;
+  actionCode?: string;
+  req: Q;
+  conn?: SqlSession;
+}
+
+export class FlowDoResult<S> {
+  res: S;
+  flowCode: string;
+  flowPath: string;
+  fromNodeId: string | undefined;
+  fromNodeCode: string | undefined;
+  lines: SimplyFlowLine[];
+  fields: FlowField;
+}
 
 // tslint:disable-next-line:max-classes-per-file
 declare class PaasService extends BaseService<Empty> {
@@ -3640,51 +3698,9 @@ declare class PaasService extends BaseService<Empty> {
   /** 删除图形验证码缓存 */
   removePicCode(key: string): Promise<number>;
   /** 流程获取,skipData=仅返回工作流结构,不返回数据,默认返回 */
-  fetchFlow<Q, S, C, M>(param: {
-    flowPath: string;
-    fromNodeId?: string;
-    fromNodeCode?: string;
-    req: Q;
-    conn?: SqlSession;
-    skipData?: number;
-    key?: string;
-  }): Promise<{
-    res: S;
-    flowCode: string;
-    flowPath: string;
-    fromNodeId: string | undefined;
-    fromNodeCode: string | undefined;
-    lines: {
-      name: string | number;
-      code: string;
-      from: string;
-      to: string;
-      back: boolean;
-      right: boolean;
-      id: string;
-    }[];
-    fields: FlowField;
-  }>;
+  fetchFlow<Q, S, C, M>(param: FlowFetchParam<Q>): Promise<FlowFetchResult<S>>;
   /** 流程处理 */
-  doFlow<Q, S, C, M>(param: {
-    flowPath: string;
-    fromNodeId?: string;
-    fromNodeCode?: string;
-    toNodeId?: string;
-    toNodeCode?: string;
-    actionId?: string;
-    actionCode?: string;
-    req: Q;
-    conn?: SqlSession;
-  }): Promise<{
-    res: S;
-    flowCode: string;
-    flowPath: string;
-    fromNodeId: string | undefined;
-    fromNodeCode: string | undefined;
-    lines: SimplyFlowLine[];
-    fields: FlowField;
-  }>;
+  doFlow<Q, S, C, M>(param: FlowDoParam<Q>): Promise<FlowDoResult<S>>;
   /** 获取指定流程、指定节点操作 */
   getLine(param: {
     flowCode: string;
@@ -4059,7 +4075,7 @@ declare module 'egg' {
     _asyncSubClient: {[code: string]: (...args: any[]) => Promise<any>};
     _flowMap: {[flowCode: string]: any};
     /** 加载sql模板，位于 app/sql、app/sql-script */
-    _getSql<T>(ctx: Context, count: boolean, id: string, param?: {[key: string]: any}): string | MongoFilter<T>;
+    _getSql<T>(ctx: Context, count: boolean, sum: boolean, id: string, param?: {[key: string]: any}): string | MongoFilter<T>;
     stringifyUser: (user: BaseUser) => string;
     throwNow(message: string, status?: number): never;
     throwIf(test: boolean, message: string, status?: number): void;
@@ -4209,52 +4225,10 @@ declare module 'egg' {
      * @memberof Application
      */
     clearContextMethodCache(clearKey: string): Promise<void>;
-    /** 流程获取 skipData=仅返回工作流结构,不返回数据,默认返回 */
-    fetchFlow<Q, S, C, M>(param: {
-      flowPath: string;
-      fromNodeId?: string;
-      fromNodeCode?: string;
-      req: Q;
-      conn?: SqlSession;
-      skipData?: number;
-      key?: string;
-    }, devid?: string): Promise<{
-      res: S;
-      flowCode: string;
-      flowPath: string;
-      fromNodeId: string | undefined;
-      fromNodeCode: string | undefined;
-      lines: {
-        name: string | number;
-        code: string;
-        from: string;
-        to: string;
-        back: boolean;
-        right: boolean;
-        id: string;
-      }[];
-      fields: FlowField;
-    }>;
+    /** 流程获取,skipData=仅返回工作流结构,不返回数据,默认返回 */
+    fetchFlow<Q, S, C, M>(param: FlowFetchParam<Q>, devid?: string): Promise<FlowFetchResult<S>>;
     /** 流程处理 */
-    doFlow<Q, S, C, M>(param: {
-      flowPath: string;
-      fromNodeId?: string;
-      fromNodeCode?: string;
-      toNodeId?: string;
-      toNodeCode?: string;
-      actionId?: string;
-      actionCode?: string;
-      req: Q;
-      conn?: SqlSession;
-    }, devid?: string): Promise<{
-      res: S;
-      flowCode: string;
-      flowPath: string;
-      fromNodeId: string | undefined;
-      fromNodeCode: string | undefined;
-      lines: SimplyFlowLine[];
-      fields: FlowField;
-    }>;
+    doFlow<Q, S, C, M>(param: FlowDoParam<Q>, devid?: string): Promise<FlowDoResult<S>>;
   }
   interface EggAppConfig {
     /** 禁止打开router列表/打印响应日志，prod默认关。dev默认开，其他环境手动配置 */
@@ -4642,52 +4616,10 @@ declare module 'egg' {
      * @memberof Application
      */
     emitASyncWithDevid(name: string, devid: string, ...args: any[]): Promise<any>;
-    /** 流程获取 skipData=仅返回工作流结构,不返回数据,默认返回 */
-    fetchFlow<Q, S, C, M>(param: {
-      flowPath: string;
-      fromNodeId?: string;
-      fromNodeCode?: string;
-      req: Q;
-      conn?: SqlSession;
-      skipData?: number;
-      key?: string;
-    }, devid?: string): Promise<{
-      res: S;
-      flowCode: string;
-      flowPath: string;
-      fromNodeId: string | undefined;
-      fromNodeCode: string | undefined;
-      lines: {
-        name: string | number;
-        code: string;
-        from: string;
-        to: string;
-        back: boolean;
-        right: boolean;
-        id: string;
-      }[];
-      fields: FlowField;
-    }>;
+    /** 流程获取,skipData=仅返回工作流结构,不返回数据,默认返回 */
+    fetchFlow<Q, S, C, M>(param: FlowFetchParam<Q>, devid?: string): Promise<FlowFetchResult<S>>;
     /** 流程处理 */
-    doFlow<Q, S, C, M>(param: {
-      flowPath: string;
-      fromNodeId?: string;
-      fromNodeCode?: string;
-      toNodeId?: string;
-      toNodeCode?: string;
-      actionId?: string;
-      actionCode?: string;
-      req: Q;
-      conn?: SqlSession;
-    }, devid?: string): Promise<{
-      res: S;
-      flowCode: string;
-      flowPath: string;
-      fromNodeId: string | undefined;
-      fromNodeCode: string | undefined;
-      lines: SimplyFlowLine[];
-      fields: FlowField;
-    }>;
+    doFlow<Q, S, C, M>(param: FlowDoParam<Q>, devid?: string): Promise<FlowDoResult<S>>;
   }
   interface IService {
     /** 内置的一个mongoservice */

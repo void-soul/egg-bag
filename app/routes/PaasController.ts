@@ -9,7 +9,7 @@ const query = {
   method: 'get',
   before: [ILogin],
   async handel(this: Controller, {
-    query: {sqlCode, currentPage, pageSize, sortName, sortType, limitSelf, countSelf},
+    query: {sqlCode, currentPage, pageSize, sortName, sortType, limitSelf, countSelf, sumSelf},
     queries
   }) {
     this.app.throwIf(!sqlCode, '没有指定sql语句编码!');
@@ -37,7 +37,8 @@ const query = {
       .pageSize(pageSize)
       .params(params)
       .limitSelf(limitSelf)
-      .countSelf(countSelf);
+      .countSelf(countSelf)
+      .sumSelf(sumSelf);
     if (sortName && sortType) {
       page.orderBy(`${ sortName } ${ sortType }`);
     }
@@ -49,7 +50,7 @@ const query2 = {
   method: 'post',
   before: [ILogin],
   async handel(this: Controller, {
-    body: {sqlCode, currentPage, pageSize, sortName, sortType, limitSelf, countSelf},
+    body: {sqlCode, currentPage, pageSize, sortName, sortType, limitSelf, countSelf, sumSelf},
     body
   }) {
     this.app.throwIf(!sqlCode, '没有指定sql语句编码!');
@@ -70,7 +71,8 @@ const query2 = {
       .pageSize(pageSize)
       .params(params)
       .limitSelf(limitSelf)
-      .countSelf(countSelf);
+      .countSelf(countSelf)
+      .sumSelf(sumSelf);
     if (sortName && sortType) {
       page.orderBy(`${ sortName } ${ sortType }`);
     }
@@ -83,7 +85,7 @@ const excel = {
   excel: true,
   before: [ILogin],
   async handel(this: Controller, {
-    query: {sqlCode, sortName, sortType},
+    query: {sqlCode, sortName, sortType, sumSelf},
     queries
   }) {
     this.app.throwIf(!sqlCode, '没有指定sql语句编码!');
@@ -107,7 +109,8 @@ const excel = {
     });
     const page = this.service.paasService
       .pageQueryMe(sqlCode)
-      .params(params);
+      .params(params)
+      .sumSelf(sumSelf);
     if (sortName && sortType) {
       page.orderBy(`${ sortName } ${ sortType }`);
     }
@@ -117,7 +120,8 @@ const excel = {
       config: this.app._globalValues.GlobalMap,
       now: nowTime(),
       me: this.ctx.me,
-      params
+      params,
+      sum: page.sum
     };
   }
 };
@@ -127,7 +131,7 @@ const excel2 = {
   excel: true,
   before: [ILogin],
   async handel(this: Controller, {
-    body: {sqlCode, sortName, sortType},
+    body: {sqlCode, sortName, sortType, sumSelf},
     body
   }) {
     this.app.throwIf(!sqlCode, '没有指定sql语句编码!');
@@ -144,7 +148,8 @@ const excel2 = {
     }
     const page = this.service.paasService
       .pageQueryMe(sqlCode)
-      .params(params);
+      .params(params)
+      .sumSelf(sumSelf);
     if (sortName && sortType) {
       page.orderBy(`${ sortName } ${ sortType }`);
     }
@@ -154,7 +159,8 @@ const excel2 = {
       config: this.app._globalValues.GlobalMap,
       now: nowTime(),
       me: this.ctx.me,
-      params
+      params,
+      sum: page.sum
     };
   }
 };
@@ -163,7 +169,7 @@ const queryMongo = {
   before: [ILogin],
   method: 'get',
   async handel(this: Controller, {
-    query: {sqlCode, currentPage, pageSize, sortName, sortType, limitSelf, countSelf},
+    query: {sqlCode, currentPage, pageSize, sortName, sortType, limitSelf, countSelf, sumSelf},
     queries
   }) {
     this.app.throwIf(!sqlCode, '没有指定sql语句编码!');
@@ -188,7 +194,8 @@ const queryMongo = {
       .pageSize(pageSize)
       .params(params)
       .limitSelf(limitSelf)
-      .countSelf(countSelf);
+      .countSelf(countSelf)
+      .sumSelf(sumSelf);
     if (sortName && sortType) {
       page.orderByMongo(sortName, sortType === 'asc' ? 1 : -1);
     }
@@ -200,7 +207,7 @@ const queryMongo2 = {
   before: [ILogin],
   method: 'post',
   async handel(this: Controller, {
-    body: {sqlCode, currentPage, pageSize, sortName, sortType, limitSelf, countSelf},
+    body: {sqlCode, currentPage, pageSize, sortName, sortType, limitSelf, countSelf, sumSelf},
     body
   }) {
     this.app.throwIf(!sqlCode, '没有指定sql语句编码!');
@@ -218,7 +225,8 @@ const queryMongo2 = {
       .pageSize(pageSize)
       .params(params)
       .limitSelf(limitSelf)
-      .countSelf(countSelf);
+      .countSelf(countSelf)
+      .sumSelf(sumSelf);
     if (sortName && sortType) {
       page.orderByMongo(sortName, sortType === 'asc' ? 1 : -1);
     }
@@ -231,7 +239,7 @@ const excelMongo = {
   excel: true,
   before: [ILogin],
   async handel(this: Controller, {
-    query: {sqlCode, sortName, sortType},
+    query: {sqlCode, sortName, sortType, sumSelf},
     queries
   }) {
     this.app.throwIf(!sqlCode, '没有指定sql语句编码!');
@@ -252,7 +260,8 @@ const excelMongo = {
     });
     const page = this.service.paasMongoService
       .pageQueryMe(sqlCode)
-      .params(params);
+      .params(params)
+      .sumSelf(sumSelf);
     if (sortName && sortType) {
       page.orderByMongo(sortName, sortType === 'asc' ? 1 : -1);
     }
@@ -262,7 +271,8 @@ const excelMongo = {
       config: this.app._globalValues.GlobalMap,
       now: nowTime(),
       me: this.ctx.me,
-      params
+      params,
+      sum: page.sum
     };
   }
 };
@@ -272,7 +282,7 @@ const excelMongo2 = {
   excel: true,
   before: [ILogin],
   async handel(this: Controller, {
-    body: {sqlCode, sortName, sortType},
+    body: {sqlCode, sortName, sortType, sumSelf},
     body
   }) {
     this.app.throwIf(!sqlCode, '没有指定sql语句编码!');
@@ -286,7 +296,8 @@ const excelMongo2 = {
     }
     const page = this.service.paasMongoService
       .pageQueryMe(sqlCode)
-      .params(params);
+      .params(params)
+      .sumSelf(sumSelf);
     if (sortName && sortType) {
       page.orderByMongo(sortName, sortType === 'asc' ? 1 : -1);
     }
@@ -296,7 +307,8 @@ const excelMongo2 = {
       config: this.app._globalValues.GlobalMap,
       now: nowTime(),
       me: this.ctx.me,
-      params
+      params,
+      sum: page.sum
     };
   }
 };

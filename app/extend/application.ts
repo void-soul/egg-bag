@@ -4,7 +4,7 @@ import {Application} from 'egg';
 import md5Util = require('md5');
 import {Context} from 'vm';
 import {clearCache} from '../util/method-enhance';
-import {SqlSession, FlowField} from '../../typings';
+import {FlowFetchParam, FlowFetchResult, FlowDoParam, FlowDoResult} from '../../typings';
 const debug = require('debug')('egg-bag:ms');
 export default {
   /**
@@ -203,56 +203,12 @@ export default {
     await clearCache.call(this, clearKey);
   },
   /** 流程获取 */
-  async fetchFlow<Q, S, C, M>(this: Application, param: {
-    flowPath: string;
-    fromNodeId?: string;
-    fromNodeCode?: string;
-    req: Q;
-    conn?: SqlSession;
-    skipData?: number;
-    key?: string;
-  }, devid?: string): Promise<{
-    res: S;
-    flowCode: string;
-    flowPath: string;
-    fromNodeId: string | undefined;
-    fromNodeCode: string | undefined;
-    lines: {
-      name: string | number;
-      code: string;
-      from: string;
-      to: string;
-    }[];
-    fields: FlowField;
-  }> {
+  async fetchFlow<Q, S, C, M>(this: Application, param: FlowFetchParam<Q>, devid?: string): Promise<FlowFetchResult<S>> {
     const ctx = this.createAnonymousContext();
     return await ctx.fetchFlow<Q, S, C, M>(param, devid);
   },
   /** 流程处理 */
-  async doFlow<Q, S, C, M>(this: Application, param: {
-    flowPath: string;
-    fromNodeId?: string;
-    fromNodeCode?: string;
-    toNodeId?: string;
-    toNodeCode?: string;
-    actionId?: string;
-    actionCode?: string;
-    req: Q;
-    conn?: SqlSession;
-  }, devid?: string): Promise<{
-    res: S;
-    flowCode: string;
-    flowPath: string;
-    fromNodeId: string | undefined;
-    fromNodeCode: string | undefined;
-    lines: {
-      name: string | number;
-      code: string;
-      from: string;
-      to: string;
-    }[];
-    fields: FlowField;
-  }> {
+  async doFlow<Q, S, C, M>(this: Application, param: FlowDoParam<Q>, devid?: string): Promise<FlowDoResult<S>> {
     const ctx = this.createAnonymousContext();
     return await ctx.doFlow<Q, S, C, M>(param, devid);
   }

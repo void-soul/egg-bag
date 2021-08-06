@@ -75,13 +75,13 @@ export function loadSql(this: Application) {
     debug('not found any sql-fn');
   }
 
-  this._getSql = function <T>(ctx: Context, count: boolean, id: string, param?: {[key: string]: any}): string | MongoFilter<T> {
+  this._getSql = function <T>(ctx: Context, count: boolean, sum: boolean, id: string, param?: {[key: string]: any}): string | MongoFilter<T> {
     const source: SQLSource = sqlSourceMap[id];
     if (source === undefined) {
       throw new Error(`sql-file ${ id } not found!`);
     }
     if (typeof source.template === 'string') {
-      const buildParam = new Build(count, param);
+      const buildParam = new Build(count, sum, param);
       try {
         const sql = Mustache.render(source.template, buildParam, fnMap);
         debug(id, sql);

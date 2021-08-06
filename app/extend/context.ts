@@ -1,9 +1,8 @@
 import {Context} from 'egg';
 import {uuid} from '../util/string';
 import lodash = require('lodash');
-import {BaseUser, FlowField} from '../../typings';
+import {BaseUser, FlowDoParam, FlowDoResult, FlowFetchParam, FlowFetchResult} from '../../typings';
 import SocketConfig from '../enums/SocketConfig';
-import {SqlSession} from '../../typings';
 const debug = require('debug')('egg-bag:ms');
 const USER = 'Context#user';
 export default {
@@ -15,6 +14,12 @@ export default {
     if (!user.devid) {
       if (this.me && this.me.devid) {
         user.devid = this.me.devid;
+        user.wx_mini_session_key = this.me.wx_mini_session_key;
+        user.client_online = this.me.client_online;
+        user.browser = this.me.browser;
+        user.device = this.me.device;
+        user.os = this.me.os;
+        user.socket = this.me.socket;
       } else {
         user.devid = uuid();
         newUser = true;
@@ -219,30 +224,7 @@ export default {
     }
   },
   /** 流程获取 */
-  async fetchFlow<Q, S, C, M>(this: Context, param: {
-    flowPath: string;
-    fromNodeId?: string;
-    fromNodeCode?: string;
-    toNodeId?: string;
-    toNodeCode?: string;
-    req: Q;
-    conn?: SqlSession;
-    skipData?: number;
-    key?: string;
-  }, devid?: string): Promise<{
-    res: S;
-    flowCode: string;
-    flowPath: string;
-    fromNodeId: string | undefined;
-    fromNodeCode: string | undefined;
-    lines: {
-      name: string | number;
-      code: string;
-      from: string;
-      to: string;
-    }[];
-    fields: FlowField;
-  }> {
+  async fetchFlow<Q, S, C, M>(this: Context, param: FlowFetchParam<Q>, devid?: string): Promise<FlowFetchResult<S>> {
     if (devid) {
       await this.loginByDevid(devid);
       this.app.throwIf(!this.me, '缓存的登录信息已失效!');
@@ -252,28 +234,7 @@ export default {
     return await this.service.paasService.fetchFlow<Q, S, C, M>(param);
   },
   /** 流程处理 */
-  async doFlow<Q, S, C, M>(this: Context, param: {
-    flowPath: string;
-    fromNodeId?: string;
-    fromNodeCode?: string;
-    actionId?: string;
-    actionCode?: string;
-    req: Q;
-    conn?: SqlSession;
-  }, devid?: string): Promise<{
-    res: S;
-    flowCode: string;
-    flowPath: string;
-    fromNodeId: string | undefined;
-    fromNodeCode: string | undefined;
-    lines: {
-      name: string | number;
-      code: string;
-      from: string;
-      to: string;
-    }[];
-    fields: FlowField;
-  }> {
+  async doFlow<Q, S, C, M>(this: Context, param: FlowDoParam<Q>, devid?: string): Promise<FlowDoResult<S>> {
     if (devid) {
       await this.loginByDevid(devid);
       this.app.throwIf(!this.me, '缓存的登录信息已失效!');

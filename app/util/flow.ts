@@ -1,4 +1,4 @@
-import {FlowField, FlowData, FlowLine, Context, SqlSession, Application, IService, FlowNodeConfig, FlowNodeBase, SimplyFlowLine} from '../../typings';
+import {FlowField, FlowData, FlowLine, Context, SqlSession, Application, IService, FlowNodeConfig, FlowNodeBase, SimplyFlowLine, FlowDoParam, FlowDoResult, FlowFetchParam, FlowFetchResult} from '../../typings';
 import lodash = require('lodash');
 
 /**
@@ -235,6 +235,7 @@ export class FlowExcute<Q, S, C, M> {
   private service: IService;
   private activeCode = '';
   private flowCodes: string[][];
+  private flowPath = '';
   constructor (ctx: Context, service: IService, app: Application, conn: SqlSession) {
     this.ctx = ctx;
     this.service = service;
@@ -243,20 +244,14 @@ export class FlowExcute<Q, S, C, M> {
     this.cores = {};
     this.flowCodes = [];
   }
-  public async fetch({flowPath, fromNodeId, fromNodeCode, req, skipData, key}: {
-    flowPath: string;
-    fromNodeId?: string;
-    fromNodeCode?: string;
-    req: Q;
-    skipData?: number;
-    key?: string;
-  }) {
+  public async fetch({flowPath, fromNodeId, fromNodeCode, req, skipData, key}: FlowFetchParam<Q>): Promise<FlowFetchResult<S>> {
+    this.flowPath = flowPath;
     this.append(flowPath)
       .defFlow()
       .active(this.activeCode, {req})
       .from({id: fromNodeId, code: fromNodeCode, start: true});
     if (skipData === 1 && !this.cores[this.activeCode].fromNode) {
-      return {};
+      return {} as any;
     }
     await this.checkFrom()
       .from2To(true)
@@ -285,16 +280,8 @@ export class FlowExcute<Q, S, C, M> {
     toNodeId,
     toNodeCode,
     req
-  }: {
-    flowPath: string;
-    fromNodeId?: string;
-    fromNodeCode?: string;
-    actionId?: string;
-    actionCode?: string;
-    toNodeId?: string;
-    toNodeCode?: string;
-    req: Q;
-  }) {
+  }: FlowDoParam<Q>): Promise<FlowDoResult<S>> {
+    this.flowPath = flowPath;
     this.append(flowPath).defFlow().active(this.activeCode, {req});
     if (fromNodeCode || fromNodeId) {
       this.from({id: fromNodeId, code: fromNodeCode, start: false});
@@ -788,7 +775,8 @@ export class FlowExcute<Q, S, C, M> {
       fromNodeCode: core.toNodeConfig?.code,
       lines,
       fields: core.context.field,
-      error: core.context.error
+      error: core.context.error,
+      flowPath: this.flowPath
     };
   }
   private throwIf(test: boolean, message: string) {
