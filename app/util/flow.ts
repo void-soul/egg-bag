@@ -619,7 +619,7 @@ export class FlowExcute<Q, S, C, M> {
               skipDo = true;
             }
           }
-        } catch (error) {
+        } catch (error: any) {
           if (error.eggBag !== 1 && lines.error) {
             core.context.error.push(error.message);
             nextAction = lines.error;
@@ -640,7 +640,7 @@ export class FlowExcute<Q, S, C, M> {
             nextAction = lines.def;
           }
           this.throwIf(!nextAction, `${ to }结果为${ nextSwitch },但无匹配的操作`);
-        } catch (error) {
+        } catch (error: any) {
           if (error.eggBag !== 1 && lines.error) {
             core.context.error.push(error.message);
             nextAction = lines.error;
@@ -666,7 +666,7 @@ export class FlowExcute<Q, S, C, M> {
             this.throwIf(!lines.def, `${ to }无匹配的操作`);
             nextAction = lines.def;
           }
-        } catch (error) {
+        } catch (error: any) {
           if (error.eggBag !== 1 && lines.error) {
             core.context.error.push(error.message);
             nextAction = lines.error;
@@ -695,7 +695,7 @@ export class FlowExcute<Q, S, C, M> {
         try {
           const node = core.toNode! as FlowNodeSystem<Q, S, C, M>;
           await node.excute.call(core.context);
-        } catch (error) {
+        } catch (error: any) {
           if (error.eggBag !== 1 && lines.error) {
             core.context.error.push(error.message);
             nextAction = lines.error;

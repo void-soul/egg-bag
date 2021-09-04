@@ -4,7 +4,7 @@ import * as path from 'path';
 import {Application, Controller} from 'egg';
 import {mul, div} from '../util/math';
 import {notEmptyString, randomString} from '../util/string';
-import {WxPayOption, WxCreatedorder, WxOrder, WxCreateOrderResult, WxOrderQuery, WxCreateRefundOrder, WxRefundOrderQuery, WxRefundOrder, WxPayHook, WxRefHook, WxRefResult} from '../../typings';
+import {WxPayOption, WxCreatedorder, WxOrder, WxCreateOrderResult, WxOrderQuery, WxCreateRefundOrder, WxRefundOrderQuery, WxRefundOrder, WxPayHook, WxRefHook, WxRefResult, WxPayToUser} from '../../typings';
 import rp = require('request-promise');
 import Xml2Js = require('xml2js');
 import {omit} from 'lodash';
@@ -16,7 +16,7 @@ const parser = new Xml2Js.Parser({trim: true, explicitArray: false, explicitRoot
 const builder = new Xml2Js.Builder({xmldec: {version: '1.0'}, rootName: 'xml', cdata: true});
 const sign_type = 'MD5';
 const omitProps = ['return_code', 'return_msg', 'appid', 'mch_id', 'nonce_str', 'sign', 'result_code', 'err_code', 'err_code_des', 'trade_type'];
-const moneyProps = ['total_fee', 'settlement_total_fee', 'cash_fee', 'coupon_fee', 'refund_fee', 'settlement_refund_fee', 'coupon_refund_fee'];
+const moneyProps = ['total_fee', 'amount', 'settlement_total_fee', 'cash_fee', 'coupon_fee', 'refund_fee', 'settlement_refund_fee', 'coupon_refund_fee'];
 const urls = {
   micropay: 'https://api.mch.weixin.qq.com/pay/micropay',
   reverse: 'https://api.mch.weixin.qq.com/secapi/pay/reverse',
@@ -54,6 +54,12 @@ export class WxPay {
     app.throwIfNot(fs.existsSync(this.option.cert), `微信支付应用${ appCode }不存在`);
     this.certBuffer = fs.readFileSync(this.option.cert);
     this.installRoute(app, appCode);
+  }
+  async transfers(option: WxPayToUser) {
+    const params = this.buildParam({
+      ...option
+    }, 'mch_appid', 'mchid', false);
+    return await this.request('transfers', params, true);
   }
   async unifiedorder(wxOrderOption: WxCreatedorder, dataCache?: {[key: string]: any}, devid?: string): Promise<WxCreateOrderResult> {
     const params = this.buildParam({
@@ -125,7 +131,7 @@ export class WxPay {
     await this.app.delCache(`${ out_trade_no }-wx-pay-${ this.appCode }-devid`, 'static');
     try {
       await this.closeorder(out_trade_no);
-    } catch (error) {
+    } catch (error: any) {
       this.app.coreLogger.error(error);
     }
   }
@@ -181,7 +187,7 @@ export class WxPay {
     if (option.strict === true) {
       this.app.throwIf(response.return_code === 'FAIL', `${ this.appCode }-${ name }-${ response.return_code }-${ response.return_msg }`);
       this.app.throwIf(response.result_code === 'FAIL', `${ this.appCode }-${ name }-${ response.result_code }-${ response.err_code_des }`);
-      this.app.throwIf(response.errcode, `${ this.appCode }-${ name }-${ response.errcode }-${ response.err_code_des }`);
+      this.app.throwIf(response.err_code, `${ this.appCode }-${ name }-${ response.err_code }-${ response.err_code_des }`);
       this.app.throwIf(response.appid !== undefined && response.appid !== this.option.appid, `${ this.appCode }-${ name }-提交(${ this.option.appid })、返回(${ response.appid })的appid不符`);
       this.app.throwIf(response.mch_id !== undefined && response.mch_id !== this.option.mch_id, `${ this.appCode }-${ name }-提交(${ this.option.mch_id })、返回(${ response.mch_id })的mch_id不符`);
     }
@@ -236,18 +242,25 @@ export class WxPay {
     }
     return result as any;
   }
-  private buildParam(param: {[key: string]: string | undefined | number}, appid = true): {
+  /**
+   *
+   * @param param 业务基本参数
+   * @param appid 应用ID参数名称
+   * @param mch_id  商户ID参数名称
+   * @param sign_typeNeed sign_type是否需要?
+   * @returns
+   */
+  private buildParam(param: {[key: string]: string | undefined | number}, appid = 'appid', mch_id = 'mch_id', sign_typeNeed = true): {
     [key: string]: string | undefined | number;
   } {
-    Object.assign(param, {
-      mch_id: this.option.mch_id,
-      nonce_str: randomString(32),
-      sign_type
-    });
+    Object.assign(param, {nonce_str: randomString(32)});
+    param[mch_id] = this.option.mch_id;
     if (appid) {
-      param.appid = this.option.appid;
+      param[appid] = this.option.appid;
     }
-    param.sign_type = sign_type;
+    if (sign_typeNeed === true) {
+      param.sign_type = sign_type;
+    }
     Object.keys(param).filter((key) => moneyProps.includes(key)).forEach((key) => {
       param[key] = mul(param[key], 100);
     });
@@ -288,7 +301,7 @@ export class WxPay {
             await this.app.delCache(`${ data.out_trade_no }-wx-pay-${ appCode }`, 'static');
             await this.app.delCache(`${ data.out_trade_no }-wx-pay-${ appCode }-devid`, 'static');
             return builder.buildObject({return_code: 'SUCCESS', return_msg: 'OK'});
-          } catch (error) {
+          } catch (error: any) {
             this.app.coreLogger.error(error);
             return builder.buildObject({return_code: 'FAIL', return_msg: error.message});
           } finally {
@@ -328,7 +341,7 @@ export class WxPay {
             await this.app.delCache(`${ data.out_refund_no }-wx-ref-${ appCode }-devid`, 'static');
             await this.app.delCache(`${ data.out_refund_no }-wx-ref-${ appCode }`, 'static');
             return builder.buildObject({return_code: 'SUCCESS', return_msg: 'OK'});
-          } catch (error) {
+          } catch (error: any) {
             this.app.coreLogger.error(error);
             return builder.buildObject({return_code: 'FAIL', return_msg: error.message});
           } finally {

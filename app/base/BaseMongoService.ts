@@ -5,7 +5,7 @@ import {Service} from 'egg';
 import {notEmptyString} from '../util/string';
 // import * as vm from 'vm';
 // import {StatusError} from '../util/shell';
-import {FilterQuery} from 'mongodb';
+import {Filter} from 'mongodb';
 import {MongoSession, MongoFilter} from '../../typings';
 const debug = require('debug')('egg-bag:mongo');
 const MethodDebug = function <T>() {
@@ -57,7 +57,7 @@ export default abstract class BaseMongoService<T> extends Service {
       const id = await this.getDb().collection(tableName(this.tableName)).insertOne(this.filterEmptyAndTransient(data, false), {
         session
       });
-      return id.insertedCount;
+      return id.insertedId;
     }, transction);
   }
   /**
@@ -890,8 +890,7 @@ export default abstract class BaseMongoService<T> extends Service {
         session
       });
       const result = await cursor.toArray();
-      await cursor.close();
-      cursor.destroy();
+      cursor.close();
       return result;
     }, transction);
   }
@@ -939,8 +938,7 @@ export default abstract class BaseMongoService<T> extends Service {
         session
       });
       const result = await cursor.toArray();
-      await cursor.close();
-      cursor.destroy();
+      cursor.close();
       return result;
     }, transction);
   }
@@ -1011,8 +1009,7 @@ export default abstract class BaseMongoService<T> extends Service {
         session
       });
       const result = await cursor.toArray();
-      await cursor.close();
-      cursor.destroy();
+      cursor.close();
       return result;
     }, transction);
   }
@@ -1107,8 +1104,7 @@ export default abstract class BaseMongoService<T> extends Service {
         session
       });
       const result = await cursor.toArray();
-      await cursor.close();
-      cursor.destroy();
+      cursor.close();
       return result;
     }, transction);
   }
@@ -1194,8 +1190,7 @@ export default abstract class BaseMongoService<T> extends Service {
             projection
           });
           const result = await cursor.toArray();
-          await cursor.close();
-          cursor.destroy();
+          cursor.close();
           return result;
         }, transction);
       },
@@ -1301,8 +1296,7 @@ export default abstract class BaseMongoService<T> extends Service {
         session
       });
       const result = await cursor.toArray();
-      await cursor.close();
-      cursor.destroy();
+      cursor.close();
       return result;
     }, transction);
   }
@@ -1473,7 +1467,7 @@ export default abstract class BaseMongoService<T> extends Service {
   @MethodDebug()
   async countBySql<L>(
     item: {
-      query: {[P in keyof L]?: L[P] | FilterQuery<L>};
+      query: {[P in keyof L]?: L[P] | Filter<L>};
       tableName?: string;
     },
     transction?: MongoSession
@@ -1496,7 +1490,7 @@ export default abstract class BaseMongoService<T> extends Service {
   @MethodDebug()
   async queryMutiRowMutiColumnBySql<L>(
     item: {
-      query: {[P in keyof L]?: L[P] | FilterQuery<L>};
+      query: {[P in keyof L]?: L[P] | Filter<L>};
       options: {
         limit?: number;
         skip?: number;
@@ -1521,8 +1515,7 @@ export default abstract class BaseMongoService<T> extends Service {
         session
       });
       const result = await cursor.toArray();
-      await cursor.close();
-      cursor.destroy();
+      cursor.close();
       return result;
     }, transction);
   }
@@ -1568,7 +1561,7 @@ export default abstract class BaseMongoService<T> extends Service {
   @MethodDebug()
   async querySingelRowMutiColumnBySql<L>(
     item: {
-      query: {[P in keyof L]?: L[P] | FilterQuery<L>};
+      query: {[P in keyof L]?: L[P] | Filter<L>};
       options: {
         limit?: number;
         skip?: number;
@@ -1597,7 +1590,7 @@ export default abstract class BaseMongoService<T> extends Service {
   @MethodDebug()
   async queryMutiRowSingelColumnBySql<M>(
     item: {
-      query: {[P in keyof T]?: T[P] | FilterQuery<T>};
+      query: {[P in keyof T]?: T[P] | Filter<T>};
       options: {
         limit?: number;
         skip?: number;
@@ -1659,7 +1652,7 @@ export default abstract class BaseMongoService<T> extends Service {
   @MethodDebug()
   async querySingelRowSingelColumnBySql<M>(
     item: {
-      query: {[P in keyof T]?: T[P] | FilterQuery<T>};
+      query: {[P in keyof T]?: T[P] | Filter<T>};
       options: {
         limit?: number;
         skip?: number;
@@ -1899,7 +1892,7 @@ export default abstract class BaseMongoService<T> extends Service {
   // private getSqlItem<L>(sql: string, params: {[key: string]: any} = {}) {
   //   const sandbox: {
   //     db: {
-  //       query: {[P in keyof L]?: L[P] | FilterQuery<L>};
+  //       query: {[P in keyof L]?: L[P] | Filter<L>};
   //       options: {
   //         limit?: number;
   //         skip?: number;

@@ -173,6 +173,10 @@ export class LambdaQuery<T> {
   sumPrepare(key: keyof T): this;
   avg(key: keyof T): Promise<number>;
   avgPrepare(key: keyof T): this;
+  max(key: keyof T): Promise<number>;
+  maxPrepare(key: keyof T): this;
+  min(key: keyof T): Promise<number>;
+  minPrepare(key: keyof T): this;
   groupConcat(key: keyof T, _param?: {
     distinct?: boolean;
     separator?: string;
@@ -850,6 +854,20 @@ export interface WxCreatedorder {
   };
 }
 
+export interface WxPayToUserResponse {
+  payment_no: string;
+  partner_trade_no: string;
+  payment_time: string;
+}
+export interface WxPayToUser {
+  partner_trade_no: string;
+  openid: string;
+  check_name: 'NO_CHECK' | 'FORCE_CHECK';
+  re_user_name?: string;
+  amount: number;
+  desc?: string;
+  spbill_create_ip?: string;
+}
 export interface WxCreateOrderJSAPI {
   appId: string;
   timeStamp: string;
@@ -994,6 +1012,15 @@ export interface WxRefHook {
   refund_request_source: 'API' | 'VENDOR_PLATFORM';
 }
 export interface WxPay {
+  /**
+ * 企业付款到零钱
+ * https://pay.weixin.qq.com/wiki/doc/api/tools/mch_pay.php?chapter=14_2
+ *
+ * option中的amount单位是元
+ * 处理失败时返回异常
+ * @memberof WxPay
+ */
+  transfers(option: WxPayToUser): Promise<WxPayToUserResponse>;
   /**
    * 统一下单接口参数定义
    * https://pay.weixin.qq.com/wiki/doc/api/jsapi.php?chapter=9_1

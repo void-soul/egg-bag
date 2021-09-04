@@ -78,7 +78,7 @@ export default class extends BaseService<Empty> {
           });
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       this.app.emit('flow-fetch-error', error.message, {
         flowPath, fromNodeId, fromNodeCode, req, conn, skipData, key
       }, this.ctx.me);
@@ -122,7 +122,7 @@ export default class extends BaseService<Empty> {
           });
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       this.app.emit('flow-do-error', error.message, {
         flowPath,
         fromNodeId,

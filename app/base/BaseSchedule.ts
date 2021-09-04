@@ -65,7 +65,7 @@ export default abstract class BaseSchedule extends Subscription {
       const data = await this.excute();
       ms = data;
       this.app.coreLogger.info(`${ lockKey } +${ +new Date() - start }ms,data: ${ data || 'empty!' }`);
-    } catch (e) {
+    } catch (e: any) {
       ms = e ? e.message : 'has error';
       hasError = true;
       this.app.coreLogger.error(`${ lockKey } +${ +new Date() - start }ms,error: ${ e ? e.message : 'has error!!' }`);
@@ -89,7 +89,7 @@ export default abstract class BaseSchedule extends Subscription {
             };
             try {
               await this.service[this.config.scheduleLogService.name].insert(log);
-            } catch (error) {
+            } catch (error: any) {
               this.app.coreLogger.error(`${ lockKey } save log error: ${ error ? error.message : 'has error!!' }`);
             }
           }

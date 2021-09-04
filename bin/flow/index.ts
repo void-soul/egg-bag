@@ -66,9 +66,9 @@ const flow = async (port: number) => {
       if (!existsSync(nodeFile)) {
         mdDir(join(baseDir, 'flow', code));
         writeFileSync(nodeFile, `/* eslint-disable @typescript-eslint/require-await */
-import {${type}} from 'egg-bag';
+import {${ type }} from 'egg-bag';
 import {Request, Response, Context} from '.';
-export default class extends ${type}<Request, Response, Context, ?>{
+export default class extends ${ type }<Request, Response, Context, ?>{
 }`);
       }
       launch(nodeFile, 'code');

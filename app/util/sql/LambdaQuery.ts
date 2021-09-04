@@ -608,6 +608,82 @@ export default class LambdaQuery<T> {
     this.sql = `SELECT AVG(${ key }) ct FROM ${ this.table } ${ this.buildWhere(true) }`;
     return this;
   }
+  @IF2(0)
+  async max(key: keyof T): Promise<number> {
+    this.maxPrepare(key);
+    if (this._cache) {
+      const key = md5Util(this.sql + JSON.stringify(this.param));
+      const cache = await this.app.redis.get('other').get(`[cache]${ key }`);
+      if (cache) {
+        debug(`cache for query ${ key } hit!`);
+        return JSON.parse(cache);
+      }
+
+      const result_ = await this.search(this.sql, this.param);
+      let result = 0;
+      if (result_.length > 0) {
+        result = (result_[0] as unknown as {ct: number}).ct;
+      } else {
+        return 0;
+      }
+      await setCache.call(this.context, {
+        key,
+        result,
+        ...this._cache
+      });
+      return result;
+    } else {
+      const data = await this.search(this.sql, this.param);
+      if (data.length > 0) {
+        return (data[0] as unknown as {ct: number}).ct;
+      } else {
+        return 0;
+      }
+    }
+  }
+  @IF()
+  maxPrepare(key: keyof T): this {
+    this.sql = `SELECT MAX(${ key }) mx FROM ${ this.table } ${ this.buildWhere(true) }`;
+    return this;
+  }
+  @IF2(0)
+  async min(key: keyof T): Promise<number> {
+    this.minPrepare(key);
+    if (this._cache) {
+      const key = md5Util(this.sql + JSON.stringify(this.param));
+      const cache = await this.app.redis.get('other').get(`[cache]${ key }`);
+      if (cache) {
+        debug(`cache for query ${ key } hit!`);
+        return JSON.parse(cache);
+      }
+
+      const result_ = await this.search(this.sql, this.param);
+      let result = 0;
+      if (result_.length > 0) {
+        result = (result_[0] as unknown as {ct: number}).ct;
+      } else {
+        return 0;
+      }
+      await setCache.call(this.context, {
+        key,
+        result,
+        ...this._cache
+      });
+      return result;
+    } else {
+      const data = await this.search(this.sql, this.param);
+      if (data.length > 0) {
+        return (data[0] as unknown as {ct: number}).ct;
+      } else {
+        return 0;
+      }
+    }
+  }
+  @IF()
+  minPrepare(key: keyof T): this {
+    this.sql = `SELECT MAX(${ key }) mx FROM ${ this.table } ${ this.buildWhere(true) }`;
+    return this;
+  }
   @IF2('')
   async groupConcat(key: keyof T, _param?: {distinct?: boolean, separator?: string}): Promise<string> {
     this.groupConcatPrepare(key, _param);
