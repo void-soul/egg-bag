@@ -5,7 +5,9 @@ import PageQuery from '../util/sql/PageQuery';
 import {Empty} from '../util/empty';
 import {notEmptyString} from '../util/string';
 import {SqlSession, MongoFilter} from '../../typings';
+import lodash = require('lodash');
 const debug = require('debug')('egg-bag:sql');
+
 const MethodDebug = function <T>() {
   return function (_target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const fn = descriptor.value;
@@ -2176,6 +2178,7 @@ export default abstract class BaseService<T> extends Service {
     param?: {[propName: string]: any},
     transction?: SqlSession
   ): Promise<number> {
+    param = this.fixParam(param);
     const sql = this.app._getSql(this.ctx, false, false, sqlid, param);
     return await this.transction(async (conn) => {
       const result = await conn.query(sql as string, param);
@@ -2197,7 +2200,7 @@ export default abstract class BaseService<T> extends Service {
     transction?: SqlSession
   ): Promise<number> {
     return await this.transction(async (conn: any) => {
-      const result = await conn.query(sql, param);
+      const result = await conn.query(sql, this.fixParam(param));
       return result.affectedRows;
     }, transction);
   }
@@ -2264,6 +2267,7 @@ export default abstract class BaseService<T> extends Service {
     param?: {[propName: string]: any},
     transction?: SqlSession
   ): Promise<number> {
+    param = this.fixParam(param);
     const sql = this.app._getSql(this.ctx, false, false, sqlid, param);
     const count = await this.querySingelRowSingelColumnBySql<number>(
       sql as string,
@@ -2287,9 +2291,9 @@ export default abstract class BaseService<T> extends Service {
     transction?: SqlSession
   ): Promise<L[][]> {
     if (transction === undefined) {
-      return await this.app.mysql.query(sql, param);
+      return await this.app.mysql.query(sql, this.fixParam(param));
     } else {
-      return await this.transction(async (conn) => conn.query(sql, param), transction);
+      return await this.transction(async (conn) => conn.query(sql, this.fixParam(param)), transction);
     }
   }
 
@@ -2307,6 +2311,7 @@ export default abstract class BaseService<T> extends Service {
     param?: {[propName: string]: any},
     transction?: SqlSession
   ): Promise<L[][]> {
+    param = this.fixParam(param);
     const sql = this.app._getSql(this.ctx, false, false, sqlid, param);
     if (transction === undefined) {
       return await this.app.mysql.query(sql as string, param);
@@ -2514,6 +2519,7 @@ export default abstract class BaseService<T> extends Service {
     param?: {[propName: string]: any},
     transction?: SqlSession
   ): Promise<L[]> {
+    param = this.fixParam(param);
     const sql = this.app._getSql(this.ctx, false, false, sqlid, param);
     return await this.queryMutiRowMutiColumnBySql<L>(sql as string, param, transction);
   }
@@ -2532,9 +2538,9 @@ export default abstract class BaseService<T> extends Service {
     transction?: SqlSession
   ): Promise<L[]> {
     if (transction === undefined) {
-      return await this.app.mysql.query(sql, param);
+      return await this.app.mysql.query(sql, this.fixParam(param));
     } else {
-      return await this.transction(async (conn) => conn.query(sql, param), transction);
+      return await this.transction(async (conn) => conn.query(sql, this.fixParam(param)), transction);
     }
   }
   /**
@@ -2686,6 +2692,7 @@ export default abstract class BaseService<T> extends Service {
             orderBy
           });
         }
+        param = this.fixParam(param);
         sql = this.app._getSql(this.ctx, false, false, sqlid, param);
         if (sumSelf === true) {
           const sqlPage: string | MongoFilter<unknown> = this.app._getSql(this.ctx, false, true, sqlid, param);
@@ -2797,7 +2804,7 @@ export default abstract class BaseService<T> extends Service {
       const result: number[] = [];
       for (const lambda of lambdas) {
         const {sql, param} = lambda.get();
-        const r = await conn.query(sql, param);
+        const r = await conn.query(sql, this.fixParam(param));
         result.push(r.affectedRows);
       }
       return result;
@@ -2816,7 +2823,7 @@ export default abstract class BaseService<T> extends Service {
       for (const lambda of lambdas) {
         const {sql, param} = lambda.get();
         if (sql) {
-          const r = await this.app.mysql.query(sql, param);
+          const r = await this.app.mysql.query(sql, this.fixParam(param));
           result.push(r);
         }
       }
@@ -2827,7 +2834,7 @@ export default abstract class BaseService<T> extends Service {
         for (const lambda of lambdas) {
           const {sql, param} = lambda.get();
           if (sql) {
-            const r = await conn.query(sql, param);
+            const r = await conn.query(sql, this.fixParam(param));
             result.push(r);
           }
         }
@@ -3090,5 +3097,37 @@ export default abstract class BaseService<T> extends Service {
       result.push(this.filterEmptyAndTransient<L>(item, skipEmpty, dealEmptyString, columns));
     });
     return result;
+  }
+  /**
+   * 修复参数
+   * @param param
+   * @returns
+   */
+  private fixParam(param?: {[propName: string]: any},) {
+    if (this.app.config.queryDefaultParam && this.ctx.me) {
+      if (!param) {
+        param = {};
+      }
+      for (const [name, key] of Object.entries(this.ctx.app.config.queryDefaultParam!)) {
+        param[name] = lodash.get(this.ctx.me, key);
+      }
+    }
+    if (this.app.config.sqlParam) {
+      if (!param) {
+        param = {};
+      }
+      for (const [name, key] of Object.entries(this.ctx.app.config.sqlParam!)) {
+        if (typeof key === 'function') {
+          param[name] = key(this.ctx);
+        } else {
+          param[name] = key;
+        }
+      }
+    }
+    if (!param) {
+      param = {};
+    }
+    param.development = process.env.NODE_ENV === 'development';
+    return param;
   }
 }

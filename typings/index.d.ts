@@ -136,6 +136,12 @@ export class LambdaQuery<T> {
   andNotPow(key: keyof T, value: number): this;
   andPowWith(key: keyof T, ...values: Array<number | string>): this;
   andNotPowWith(key: keyof T, ...values: Array<number | string>): this;
+  andMatch(value: string, ...keys: (keyof T)[]): this;
+  andNotMatch(value: string, ...keys: (keyof T)[]): this;
+  andMatchBoolean(values: {match: boolean; value: string;}[], ...keys: (keyof T)[]): this;
+  andNotMatchBoolean(values: {match: boolean; value: string;}[], ...keys: (keyof T)[]): this;
+  andMatchQuery(value: string, ...keys: (keyof T)[]): this;
+  andNotMatchQuery(value: string, ...keys: (keyof T)[]): this;
   groupBy(key: keyof T): this;
   asc(...keys: (keyof T)[]): this;
   desc(...keys: (keyof T)[]): this;
@@ -4328,8 +4334,8 @@ declare module 'egg' {
       replica: boolean;
       sessionOptions: SessionOptions;
     };
+    /** 用户类的类型映射，加快用户会话存储 */
     userScheam: {[key: string]: Schema};
-    queryDefaultParam?: {[key: string]: string};
     /** socket相关配置 */
     socket?: {
       /** 每次新连接建立时调用，返回需要加入的房间编号,默认会加入个人id、会话id、所有人房间 */
@@ -4575,6 +4581,27 @@ declare module 'egg' {
     defWxPayAppCode?: string;
     /** 执行某些后台任务时，默认登陆的用户 */
     defUser?: BaseUser;
+    /**
+     * 要将当前用户的哪些属性以哪些key映射到sql查询中，例如：
+     * 用户对象定义：
+     * user: { organ: {organName}, userid }
+     * 可输入
+     * {c_organ: 'organ.organName', c_userid: 'userid'}
+     * 查询可获得两个参数c_organ\c_userid
+     * */
+    queryDefaultParam?: {[key: string]: string};
+    /**
+     * 将在执行sql查询时，加入到查询中的参数;可以是某个方法;方法执行参数为当前上下文，例如
+     * {
+     *      mode: 1,
+     *      dev(ctx: Context){return ctx.userid === '1'}
+     * }
+     * 将获得两个参数mode和dev
+     *
+    */
+    sqlParam?: {
+      [key: string]: any;
+    }
   }
   interface Context {
     /** 当前连接的socket链接 */
@@ -4584,11 +4611,13 @@ declare module 'egg' {
     /**
      * 登录
      * 不需要自己为devid赋值！否则会影响到 session 过期订阅
+     *
      * @param {BaseUser} user
      * @param {boolean} [notify] 是否发出登陆通知？默认true
+     * @param {boolean} [dickOut] 是否根据config配置踢掉其他用户？默认true
      * @memberof Context
      */
-    login(user: BaseUser, notify?: boolean);
+    login(user: BaseUser, notify?: boolean, dickOut?: boolean);
     /** 登出 */
     logout();
     /** 获取会话token */

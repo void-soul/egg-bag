@@ -9,7 +9,7 @@ export default {
   get me(): BaseUser {
     return this[USER];
   },
-  login(this: Context, user: BaseUser, notify = true) {
+  login(this: Context, user: BaseUser, notify = true, dickOut = true) {
     let newUser = false;
     if (!user.devid) {
       if (this.me && this.me.devid) {
@@ -27,7 +27,7 @@ export default {
     }
 
     // 踢掉其他用户
-    if (this.app.config.socket) {
+    if (dickOut && this.app.config.socket) {
       if (this.app.config.socket.onlyOneLogin(user) === true) {
         this.getLoginInfos(user.userid).then(users => {
           if (users) {

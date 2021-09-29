@@ -318,14 +318,56 @@ export default class LambdaQuery<T> {
   @IF()
   andPow(key: keyof T, value: number): this {
     const pkey = `${ key }_${ this.index++ }`;
-    this.condition.push(`AND POW(2, ${ key }) & ${ value }`);
+    this.condition.push(`AND POW(2, ${ key }) & :pkey`);
     this.param[pkey] = value;
     return this;
   }
   @IF()
   andNotPow(key: keyof T, value: number): this {
     const pkey = `${ key }_${ this.index++ }`;
-    this.condition.push(`AND NOT POW(2, ${ key }) & ${ value }`);
+    this.condition.push(`AND NOT POW(2, ${ key }) :pkey`);
+    this.param[pkey] = value;
+    return this;
+  }
+  @IF()
+  andMatch(value: string, ...keys: (keyof T)[]): this {
+    const pkey = `match_${ this.index++ }`;
+    this.condition.push(`AND MATCH(${ keys.join(',') }) AGAINST (:pkey)`);
+    this.param[pkey] = value;
+    return this;
+  }
+  @IF()
+  andNotMatch(value: string, ...keys: (keyof T)[]): this {
+    const pkey = `match_${ this.index++ }`;
+    this.condition.push(`AND NOT MATCH(${ keys.join(',') }) AGAINST (:pkey)`);
+    this.param[pkey] = value;
+    return this;
+  }
+  @IF()
+  andMatchBoolean(values: {match: boolean; value: string}[], ...keys: (keyof T)[]): this {
+    const pkey = `match_${ this.index++ }`;
+    this.condition.push(`AND MATCH(${ keys.join(',') }) AGAINST (:pkey IN BOOLEAN MODE)`);
+    this.param[pkey] = values.map(v => `${ v.match ? '+' : '-' }${ v.value }`).join(' ');
+    return this;
+  }
+  @IF()
+  andNotMatchBoolean(values: {match: boolean; value: string}[], ...keys: (keyof T)[]): this {
+    const pkey = `match_${ this.index++ }`;
+    this.condition.push(`AND NOT MATCH(${ keys.join(',') }) AGAINST (:pkey IN BOOLEAN MODE)`);
+    this.param[pkey] = values.map(v => `${ v.match ? '+' : '-' }${ v.value }`).join(' ');
+    return this;
+  }
+  @IF()
+  andMatchQuery(value: string, ...keys: (keyof T)[]): this {
+    const pkey = `match_${ this.index++ }`;
+    this.condition.push(`AND MATCH(${ keys.join(',') }) AGAINST (:pkey WITH QUERY EXPANSION)`);
+    this.param[pkey] = value;
+    return this;
+  }
+  @IF()
+  andNotMatchQuery(value: string, ...keys: (keyof T)[]): this {
+    const pkey = `match_${ this.index++ }`;
+    this.condition.push(`AND NOT MATCH(${ keys.join(',') }) AGAINST (:pkey WITH QUERY EXPANSION)`);
     this.param[pkey] = value;
     return this;
   }
