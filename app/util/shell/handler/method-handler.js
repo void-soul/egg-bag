@@ -1,6 +1,6 @@
 'use strict';
 
-const { METHOD_METADATA, PATH_METADATA, BEFORE_METADATA, AFTER_METADATA, CONTENT_TYPE_METADATA, NAME_METADATA, VIEW_METADATA, LOCK_METADATA, CONTENT_NAME_METADATA } = require('../constants');
+const { METHOD_METADATA, PATH_METADATA, BEFORE_METADATA, AFTER_METADATA, CONTENT_TYPE_METADATA, NAME_METADATA, VIEW_METADATA, VIEW_ERROR_METADATA, LOCK_METADATA, CONTENT_NAME_METADATA } = require('../constants');
 const RequestMethod = require('../enum/request-method');
 
 const createMappingDecorator = Symbol('createMappingDecorator');
@@ -23,6 +23,7 @@ class MethodHandler {
     const contentType = Reflect.getMetadata(CONTENT_TYPE_METADATA, targetCb);
     const contentName = Reflect.getMetadata(CONTENT_NAME_METADATA, targetCb);
     const view = Reflect.getMetadata(VIEW_METADATA, targetCb);
+    const view_error = Reflect.getMetadata(VIEW_ERROR_METADATA, targetCb);
     const name = Reflect.getMetadata(NAME_METADATA, targetCb);
     const lock = Reflect.getMetadata(LOCK_METADATA, targetCb);
 
@@ -30,6 +31,7 @@ class MethodHandler {
       reqMethod,
       path,
       view,
+      view_error,
       before,
       after,
       contentType,
@@ -85,6 +87,9 @@ class MethodHandler {
 
   contentType () {
     return this[createSingleDecorator](CONTENT_TYPE_METADATA);
+  }
+  viewError () {
+    return this[createSingleDecorator](VIEW_ERROR_METADATA);
   }
   contentName () {
     return this[createSingleDecorator](CONTENT_NAME_METADATA);

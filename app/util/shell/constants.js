@@ -13,5 +13,6 @@ module.exports = {
   CONTROLLER_AFTER_ALL_METADATA: 'controller_after',
   CONTROLLER_BEFORE_ALL_METADATA: 'controller_before_all',
   CONTENT_TYPE_METADATA: 'content_type',
-  CONTENT_NAME_METADATA: 'content_name'
+  CONTENT_NAME_METADATA: 'content_name',
+  VIEW_ERROR_METADATA: 'view_error'
 };

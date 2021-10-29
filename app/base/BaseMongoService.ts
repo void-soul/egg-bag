@@ -523,6 +523,37 @@ export default abstract class BaseMongoService<T> extends Service {
     }, transction);
   }
   /**
+   * 根据主键删除字段
+   * @param {{[P in keyof T]?: T[P]}} data
+   * @param {*} [transction] 独立事务
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  @MethodDebug()
+  async unSetById(
+    id: any,
+    columns: Array<keyof T>,
+    transction?: MongoSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName
+  ): Promise<number> {
+    return await this.transction(async session => {
+      const projection: {[key in keyof T]?: 0 | 1} = {};
+      for (const key of columns) {
+        projection[key] = 1;
+      }
+      const result = await this.getDb().collection(tableName(this.tableName)).updateOne({
+        _id: id
+      }, {$unset: projection}, {
+        session
+      });
+      return result.modifiedCount;
+    }, transction);
+  }
+  /**
    * 根据主键修改非空字段(undefined、null、空字符串)
    *
    * @param {{[P in keyof T]?: T[P]}} data
@@ -681,7 +712,26 @@ export default abstract class BaseMongoService<T> extends Service {
       return result.modifiedCount;
     }, transction);
   }
-
+  @MethodDebug()
+  async unsetBatch(
+    columns: Array<keyof T>,
+    where: {[P in keyof T]?: T[P]},
+    transction?: MongoSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName
+  ): Promise<number> {
+    return await this.transction(async session => {
+      const projection: {[key in keyof T]?: 0 | 1} = {};
+      for (const key of columns) {
+        projection[key] = 1;
+      }
+      const result = await this.getDb().collection(tableName(this.tableName)).updateMany(where, {$unset: projection}, {
+        session
+      });
+      return result.modifiedCount;
+    }, transction);
+  }
   /**
    *
    * 自定义条件删除,如果service开启注解：logicDelete,那么将逻辑删除
@@ -1226,6 +1276,18 @@ export default abstract class BaseMongoService<T> extends Service {
             });
             return result.deletedCount;
           }
+        }, transction);
+      },
+      async (lambda: LambdaQueryMongo<L>, keys: string[]) => {
+        return await this.transction(async session => {
+          const projection: {[k: string]: 1} = {};
+          for (const key of keys) {
+            projection[key] = 1;
+          }
+          const result = await this.getDb().collection(tableName(this.tableName)).updateMany(lambda.query, {$unset: projection}, {
+            session
+          });
+          return result.modifiedCount;
         }, transction);
       }
     );

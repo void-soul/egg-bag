@@ -331,6 +331,8 @@ export class LambdaQueryMongo<T> {
   delete(): Promise<number>;
   array<K extends T[keyof T]>(key: keyof T): Promise<K[]>;
   singel<K extends T[keyof T]>(key: keyof T): Promise<K | undefined>;
+  /** 删除字段 */
+  unset(): Promise<number>;
 }
 export class PageQuery<T> {
   list: T[];
@@ -1555,6 +1557,16 @@ export abstract class BaseMongoService<T> extends Service {
     [P in keyof T]?: T[P];
   }, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
+   * 根据主键删除字段
+   * @param {{[P in keyof T]?: T[P]}} data
+   * @param {*} [transction] 独立事务
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  unSetById(id: any, columns: Array<keyof T>, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
+  /**
    * 根据主键修改非空字段(undefined、null、空字符串)
    *
    * @param {{[P in keyof T]?: T[P]}} data
@@ -1637,11 +1649,15 @@ export abstract class BaseMongoService<T> extends Service {
   }, where: {
     [P in keyof T]?: T[P];
   }, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
+  unsetBatch(columns: Array<keyof T>, where: {
+    [P in keyof T]?: T[P];
+  }, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
    *
    * 自定义条件删除,如果service开启注解：logicDelete,那么将逻辑删除
    * @param {{[P in keyof T]?: T[P]}} where
    * @param {*} [transction] 独立事务
+   * @param {boolean} [fixTransient=true] 是否过滤一遍transient标记的字段?
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
@@ -1662,15 +1678,15 @@ export abstract class BaseMongoService<T> extends Service {
    */
   deleteById(id: any, transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number>;
   /**
- *
- * 一次性删除多个主键
- * @param {any[]} ids
- * @param {*} [transction=true]
- * @param {(serviceTableName: string) => string} [tableName=(
- *       serviceTableName: string
- *     ) => serviceTableName]
- * @returns {Promise<number[]>}
- */
+   *
+   * 一次性删除多个主键
+   * @param {any[]} ids
+   * @param {*} [transction=true]
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName]
+   * @returns {Promise<number[]>}
+   */
   deleteByIds(ids: any[], transction?: MongoSession, tableName?: (serviceTableName: string) => string): Promise<number[]>;
   /**
    * 根据主键查询，若查询不到结果，抛出异常
@@ -2038,7 +2054,7 @@ export abstract class BaseMongoService<T> extends Service {
    */
   countBySql<L>(item: {
     query: {
-      [P in keyof L]?: L[P] | FilterQuery<L>;
+      [P in keyof L]?: L[P] | Filter<L>;
     };
     tableName?: string;
   }, transction?: MongoSession): Promise<number>;
@@ -2051,7 +2067,7 @@ export abstract class BaseMongoService<T> extends Service {
    */
   queryMutiRowMutiColumnBySql<L>(item: {
     query: {
-      [P in keyof L]?: L[P] | FilterQuery<L>;
+      [P in keyof L]?: L[P] | Filter<L>;
     };
     options: {
       limit?: number;
@@ -2096,7 +2112,7 @@ export abstract class BaseMongoService<T> extends Service {
    */
   querySingelRowMutiColumnBySql<L>(item: {
     query: {
-      [P in keyof L]?: L[P] | FilterQuery<L>;
+      [P in keyof L]?: L[P] | Filter<L>;
     };
     options: {
       limit?: number;
@@ -2120,7 +2136,7 @@ export abstract class BaseMongoService<T> extends Service {
    */
   queryMutiRowSingelColumnBySql<M>(item: {
     query: {
-      [P in keyof T]?: T[P] | FilterQuery<T>;
+      [P in keyof T]?: T[P] | Filter<T>;
     };
     options: {
       limit?: number;
@@ -2165,7 +2181,7 @@ export abstract class BaseMongoService<T> extends Service {
    */
   querySingelRowSingelColumnBySql<M>(item: {
     query: {
-      [P in keyof T]?: T[P] | FilterQuery<T>;
+      [P in keyof T]?: T[P] | Filter<T>;
     };
     options: {
       limit?: number;
@@ -4601,9 +4617,17 @@ declare module 'egg' {
     */
     sqlParam?: {
       [key: string]: any;
-    }
+    },
+    /** 用于代码里设置Render时错误页面 */
+    view_error_path?: string;
   }
   interface Context {
+    /** 用于代码里设置Render对应的模板路径，优先级高于注解 */
+    view_path: string | undefined | null;
+    /** 用于代码里设置Render时错误页面，优先级高于注解 */
+    view_error_path: string | undefined | null;
+    /** 用于代码里设置附件下载文件名，优先级高于注解 */
+    file_name: string | undefined | null;
     /** 当前连接的socket链接 */
     socket: Socket;
     /** 当前登录用户 */
@@ -4775,8 +4799,14 @@ export function CTR({path, before, after}: {
 });
 /** controller方法上添加锁，只支持单个会话不能重复请求同一个接口 */
 export const Lock: () => Decorator;
-/** controller方法标记为view渲染 */
-export const Render: (path: string, view?: string) => Decorator;
+/**
+ * controller方法标记为view渲染
+ * path为请求路径,
+ * view为渲染模板路径(位于views目录下)
+ * 模板路径执行有限顺序:
+ * ctx.view_path > view > prefix+path
+ */
+export const Render: (path: string | string[], view?: string) => Decorator;
 /** controller方法标记为excel导出 */
 export const Excel: (path: string, excelTemplateName?: string, excelDownloadName?: string) => Decorator;
 /** controller方法标记为get请求 */
@@ -4801,7 +4831,9 @@ export const Before: (fn: () => (ctx: Context, next: () => Promise<any>) => Prom
 export const After: (fn: () => (ctx: Context, next: () => Promise<any>) => Promise<void>) => Decorator;
 /** controller方法相应的content-type*/
 export const ContentType: (value?: string) => Decorator;
-/** controller方法相应的content-name*/
+/** 定义错误渲染页面 */
+export const ViewError: (value?: string) => Decorator;
+/** controller方法相应的content-name，ctx.file_name优先级更高*/
 export const ContentName: (value?: string) => Decorator;
 /** controller上统一设置每个方法执行前的过滤器 */
 export const BeforeAll: (...fns: Array<() => (ctx: Context, next: () => Promise<any>) => Promise<void>>) => any;

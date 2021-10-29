@@ -38,18 +38,21 @@ export default class LambdaQueryMongo<T> {
   private _findCount: (lambda: LambdaQueryMongo<T>) => Promise<number>;
   private _update: (lambda: LambdaQueryMongo<T>, data: {[P in keyof T]?: T[P]}, keys: string[]) => Promise<number>;
   private _remove: (lambda: LambdaQueryMongo<T>) => Promise<number>;
+  private _unset: (lambda: LambdaQueryMongo<T>, columns: string[]) => Promise<number>;
   protected ifv = true;
   protected ifvFix = true;
   constructor (
     find: (lambda: LambdaQueryMongo<T>, columns: Array<keyof T>) => Promise<T[]>,
     findCount: (lambda: LambdaQueryMongo<T>) => Promise<number>,
     update: (lambda: LambdaQueryMongo<T>, data: {[P in keyof T]?: T[P]}, keys: string[]) => Promise<number>,
-    remove: (lambda: LambdaQueryMongo<T>) => Promise<number>
+    remove: (lambda: LambdaQueryMongo<T>) => Promise<number>,
+    unset: (lambda: LambdaQueryMongo<T>, columns: string[]) => Promise<number>
   ) {
     this._find = find;
     this._findCount = findCount;
     this._update = update;
     this._remove = remove;
+    this._unset = unset;
   }
   /** https://docs.mongodb.com/manual/reference/operator/query/eq/ */
   @IF()
@@ -422,6 +425,16 @@ export default class LambdaQueryMongo<T> {
   async one(...columns: Array<keyof T>): Promise<T | undefined> {
     const result = await this._find(this, columns);
     return result[0];
+  }
+  /**
+ * 中断 删除字段
+ * @param {T} data
+ * @returns {Promise<number>}
+ * @memberof LambdaQueryMongo
+ */
+  @IF2(0)
+  async unset(): Promise<number> {
+    return await this._unset(this, this._keys);
   }
   /**
    *

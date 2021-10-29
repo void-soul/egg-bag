@@ -11,7 +11,7 @@ import {dateTime, dateXSDTime, date, nowTime, nowDate, nowTimeXSD} from './app/u
 import {copyBean, convertBean, convertBeans, emptyBean, createBeanFromArray, coverComplexBean, fixEmptyPrototy, mixArray, mixList} from './app/util/object';
 import SetEx from './app/util/SetEx';
 import {DataSource, Mongo, Transient, BuildData, TransientMeda, LogicDelete, CTR} from './app/util/shell-extend';
-import {Render, Get, Post, Put, Delete, Patch, Options, Head, IO, Before, After, BeforeAll, AfterAll, Prefix, ContentType, ContentName, Lock, Excel} from './app/util/shell';
+import {Render, Get, Post, Put, Delete, Patch, Options, Head, IO, Before, After, BeforeAll, AfterAll, Prefix, ViewError, ContentType, ContentName, Lock, Excel} from './app/util/shell';
 import {uuid, getPicKey, emptyString, notEmptyString, safeString, trimObject, randomNumber, randomString, randomString2, randomString3, eqString, buildWxStr, replaceChineseCode} from './app/util/string';
 import BaseSchedule from './app/base/BaseSchedule';
 import ILogin from './app/middleware/ILogin';
@@ -36,7 +36,7 @@ export = {
   copyBean, convertBean, convertBeans, emptyBean, createBeanFromArray, coverComplexBean, fixEmptyPrototy, mixArray, mixList,
   SetEx,
   DataSource, Mongo, Transient, BuildData, TransientMeda, LogicDelete, CTR,
-  Render, Get, Post, Put, Delete, Patch, Options, Head, IO, ContentType, ContentName, Before, After, BeforeAll, AfterAll, Prefix, Lock, Excel,
+  Render, Get, Post, Put, Delete, Patch, Options, Head, IO, ViewError, ContentType, ContentName, Before, After, BeforeAll, AfterAll, Prefix, Lock, Excel,
   uuid, getPicKey, emptyString, notEmptyString, safeString, trimObject, randomNumber, randomString, randomString2, randomString3, eqString, buildWxStr, replaceChineseCode,
   BaseSchedule,
   ILogin,
