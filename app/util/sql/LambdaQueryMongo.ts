@@ -426,6 +426,12 @@ export default class LambdaQueryMongo<T> {
     const result = await this._find(this, columns);
     return result[0];
   }
+  @IF2({})
+  async oneUnique(...columns: (keyof T)[]): Promise<T> {
+    const result = await this._find(this, columns);
+    if (result.length === 0) {throw new Error('not found');}
+    return result[0];
+  }
   /**
  * 中断 删除字段
  * @param {T} data

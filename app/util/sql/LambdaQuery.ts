@@ -486,6 +486,13 @@ export default class LambdaQuery<T> {
     const list = await this.select(...columns);
     return list[0];
   }
+  @IF2({})
+  async oneUnique(...columns: (keyof T)[]): Promise<T> {
+    this.limit(0, 1);
+    const list = await this.select(...columns);
+    if (list.length === 0) {throw new Error('not found');}
+    return list[0];
+  }
   @IF()
   onePrepare(...columns: (keyof T)[]): this {
     this.limit(0, 1);

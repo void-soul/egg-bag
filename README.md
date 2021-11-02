@@ -2,6 +2,19 @@
 
 这是一个基于`egg.js`自定义框架的类库,主要集成了小型公司、个人开发常用的外部 lib、方法。目前在不断维护中.
 
+# package.json
+
+```
+  "dependencies": {
+    "egg-bag": "1.44.53",
+  },
+  "egg": {
+    "typescript": true,
+    "framework": "egg-bag",
+    "declarations": false
+  }
+```
+
 # 更新记录
 
 ## 1.7.0

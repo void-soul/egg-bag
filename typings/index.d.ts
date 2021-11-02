@@ -166,6 +166,7 @@ export class LambdaQuery<T> {
   select(...columns: (keyof T)[]): Promise<T[]>;
   selectPrepare(...columns: (keyof T)[]): this;
   one(...columns: (keyof T)[]): Promise<T | undefined>;
+  oneUnique(...columns: (keyof T)[]): Promise<T>;
   onePrepare(...columns: (keyof T)[]): this;
   count(): Promise<number>;
   countPrepare(): this;
@@ -306,6 +307,7 @@ export class LambdaQueryMongo<T> {
    * @memberof LambdaQueryMongo
    */
   one(...columns: Array<keyof T>): Promise<T | undefined>;
+  oneUnique(...columns: Array<keyof T>): Promise<T>;
   /**
    *
    * 中断查询方法
@@ -4757,6 +4759,8 @@ export const dateXSDTime: string;
 export const date: string;
 /** 当前时间 YYYY-MM-DD HH:mm:ss */
 export function nowTime(): string;
+/** 格式化时间，默认格式是datetime */
+export function dateFormat(str: any, format?: string | undefined): string | undefined;
 /** 当前时间 YYYY-MM-DD */
 export function nowDate(): string;
 /** 当前xml时间 YYYY-MM-DDTHH:mm:ss */

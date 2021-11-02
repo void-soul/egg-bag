@@ -7,7 +7,7 @@ import BaseMongoService from './app/base/BaseMongoService';
 import {Empty, emptyPromise} from './app/util/empty';
 import {promise, sleep} from './app/util/fn';
 import {num, max, min, div, add, mul, sub, round, merge, money, calc} from './app/util/math';
-import {dateTime, dateXSDTime, date, nowTime, nowDate, nowTimeXSD} from './app/util/now';
+import {dateTime, dateXSDTime, date, nowTime, nowDate, nowTimeXSD, dateFormat} from './app/util/now';
 import {copyBean, convertBean, convertBeans, emptyBean, createBeanFromArray, coverComplexBean, fixEmptyPrototy, mixArray, mixList} from './app/util/object';
 import SetEx from './app/util/SetEx';
 import {DataSource, Mongo, Transient, BuildData, TransientMeda, LogicDelete, CTR} from './app/util/shell-extend';
@@ -32,7 +32,7 @@ export = {
   promise,
   sleep,
   num, max, min, div, add, mul, sub, round, merge, money, calc,
-  dateTime, dateXSDTime, date, nowTime, nowDate, nowTimeXSD,
+  dateTime, dateXSDTime, date, nowTime, nowDate, nowTimeXSD, dateFormat,
   copyBean, convertBean, convertBeans, emptyBean, createBeanFromArray, coverComplexBean, fixEmptyPrototy, mixArray, mixList,
   SetEx,
   DataSource, Mongo, Transient, BuildData, TransientMeda, LogicDelete, CTR,
