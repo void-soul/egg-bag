@@ -6,9 +6,9 @@ import {loadMongo, loadSql, connMongo} from './app/loader/sql-load';
 import {loadUser} from './app/loader/user-load';
 import {loadGlobal} from './app/loader/global-load';
 import {loadView} from './app/loader/view-load';
-import {loadCache, flushRedis, redisPsub} from './app/loader/cache-load';
+import {loadCache, flushRedis, redisPsub, loadRedis} from './app/loader/cache-load';
 import {loadRouter} from './app/loader/route-load';
-import {loadFlow} from './app/loader/flow-loader';
+import {loadFlow} from './app/loader/flow-load';
 const debug = require('debug')('egg-bag');
 export default class {
   app: Application;
@@ -54,6 +54,7 @@ export default class {
   }
 
   async willReady() {
+    await loadRedis.call(this.app);
     // 所有的插件都已启动完毕，但是应用整体还未 ready
     // 可以做一些数据初始化等操作，这些操作成功才会启动应用
     // 清除缓存数据

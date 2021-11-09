@@ -1,10 +1,9 @@
 import Enum from '../enums/Enum';
 import {StatusError} from '../util/shell';
-import {Application} from 'egg';
+import {Application, Context} from 'egg';
 import md5Util = require('md5');
-import {Context} from 'vm';
-import {clearCache} from '../util/method-enhance';
-import {FlowFetchParam, FlowFetchResult, FlowDoParam, FlowDoResult} from '../../typings';
+import {clearCache, excuteLockWithApplication, excuteWithCacheApplication} from '../util/method-enhance';
+import {FlowFetchParam, FlowFetchResult, FlowDoParam, FlowDoResult, SqlSession} from '../../typings';
 const debug = require('debug')('egg-bag:ms');
 export default {
   /**
@@ -211,5 +210,35 @@ export default {
   async doFlow<Q, S, C, M>(this: Application, param: FlowDoParam<Q>, devid?: string): Promise<FlowDoResult<S>> {
     const ctx = this.createAnonymousContext();
     return await ctx.doFlow<Q, S, C, M>(param, devid);
+  },
+  async transctionMysql<T>(this: Application, fn: (conn: SqlSession) => Promise<T>): Promise<T> {
+    return await this.mysql.beginTransactionScope(
+      conn => fn(conn),
+      this.createAnonymousContext()
+    );
+  },
+  async excuteWithLock<T>(this: Application, config: {
+    /** 返回缓存key,参数=方法的参数+当前用户对象，可以用来清空缓存。 */
+    key: (() => string) | string;
+    /** 被锁定线程是否sleep直到解锁为止? */
+    lockWait?: boolean;
+    /** 当设置了lockWait=true时，等待多少ms进行一次锁查询? 默认100ms */
+    lockRetryInterval?: number;
+    /** 当设置了lockWait=true时，等待多少ms即视为超时，放弃本次访问？默认0，即永不放弃 */
+    lockMaxWaitTime?: number;
+    /** 错误信息 */
+    errorMessage?: string;
+  }, fn: () => Promise<T>): Promise<T> {
+    return await excuteLockWithApplication<T>(this, config, fn);
+  },
+  async excuteWithCache<T>(this: Application, config: {
+    /** 返回缓存key,参数=方法的参数+当前用户对象，可以用来清空缓存。 */
+    key: string;
+    /** 返回缓存清除key,参数=方法的参数+当前用户对象，可以用来批量清空缓存 */
+    clearKey?: string[];
+    /** 自动清空缓存的时间，单位分钟 */
+    autoClearTime?: number;
+  }, fn: () => Promise<T>) {
+    return await excuteWithCacheApplication<T>(this, config, fn);
   }
 };

@@ -1,5 +1,4 @@
 import 'reflect-metadata';
-import {Context} from 'vm';
 const transientMeda = Symbol('Transient');
 
 export class DataConfigDefined { }
@@ -66,20 +65,6 @@ function buildData(target: any, emptySkip = false) {
   return data;
 }
 
-
-/**
- * Controller
- * @param param0
- */
-export function CTR({path, before, after}: {path?: string, before?: Array<() => (ctx: Context, next: () => Promise<any>) => Promise<void>>, after?: Array<() => (ctx: Context, next: () => Promise<any>) => Promise<void>>}) {
-  return <T extends {new(...args: any[]): any}>(constructor: T) => {
-    return class extends constructor {
-      __mvcPath = path;
-      __mvcBefore = before;
-      __mvcAfter = after;
-    };
-  };
-}
 
 /* tslint:disable-next-line */
 export const DataSource = dataSource();

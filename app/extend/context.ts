@@ -1,8 +1,9 @@
 import {Context} from 'egg';
 import {uuid} from '../util/string';
 import lodash = require('lodash');
-import {BaseUser, FlowDoParam, FlowDoResult, FlowFetchParam, FlowFetchResult} from '../../typings';
+import {BaseUser, FlowDoParam, FlowDoResult, FlowFetchParam, FlowFetchResult, SqlSession} from '../../typings';
 import SocketConfig from '../enums/SocketConfig';
+import {excuteWithCacheContext} from '../util/method-enhance';
 const debug = require('debug')('egg-bag:ms');
 const USER = 'Context#user';
 export default {
@@ -242,5 +243,23 @@ export default {
       this[USER] = this.app.config.defUser;
     }
     return await this.service.paasService.doFlow<Q, S, C, M>(param);
+  },
+  async transctionMysql<T>(this: Context, fn: (conn: SqlSession) => Promise<T>): Promise<T> {
+    return await this.app.mysql.beginTransactionScope(
+      conn => fn(conn),
+      this
+    );
+  },
+  async excuteWithCache<T>(this: Context, config: {
+    /** 返回缓存key,参数=方法的参数+当前用户对象，可以用来清空缓存。 */
+    key: string;
+    /** 返回缓存清除key,参数=方法的参数+当前用户对象，可以用来批量清空缓存 */
+    clearKey?: string[];
+    /** 自动清空缓存的时间，单位分钟 */
+    autoClearTime?: number;
+    /** 随着当前用户sesion的清空而一起清空 */
+    clearWithSession?: boolean | undefined;
+  }, fn: () => Promise<T>) {
+    return await excuteWithCacheContext<T>(this, config, fn);
   }
 };

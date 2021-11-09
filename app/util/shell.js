@@ -61,153 +61,159 @@ const EggShell = (app, options = {}) => {
         debug(`[egg-bag] found router: ${ prefix + path }.`);
         const befores = [...options.before, ...beforeAll, ...before];
         const afters = [...options.after, ...afterAll, ...after];
-        const install = (sp) => {
-          router[reqMethod](prefix + sp, async (ctx, next) => {
-            const start = +new Date();
-            if (lock === true && ctx.me && ctx.me.devid) {
-              const lockKey = await ctx.getCache(`${ prefix }-${ path }-${ ctx.me.devid }`, 'other');
-              if (lockKey) {
-                return (ctx.response.body = {
-                  status: 'E201000',
-                  message: `${ start }:重复提交,请等待上次请求处理完成`
-                });
-              }
-              await ctx.setCache(`${ prefix }-${ path }-${ (ctx.me && ctx.me.devid) || 'xxx' }`, start, 'other');
-            }
-            const instance = new c.constructor(ctx);
-            try {
-              for (const before of befores) {
-                await before()(ctx, next);
-              }
-              let result;
-              if (render === true) {
-                result = await instance[pName](ctx);
-                await ctx.render(ctx.view_path || view || prefix + path, {
-                  ...result,
+        const handelError = async (error, ctx) => {
+          app.coreLogger.error(error);
+          const errorData = { status: error.status || 500, message: error.message || error };
+          if (render === true) {
+            const renderPath = ctx.view_error_path || view_error || app.config.view_error_path;
+            if (renderPath) {
+              try {
+                await ctx.render(ctx.view_error_path || view_error || prefix + path, {
+                  ...errorData,
                   user: ctx.me || false,
                   globalValues: app._globalValues || false,
                   ...ctx.req.asyncData
                 });
-              } else if (excel === true) {
-                result = await instance[pName](ctx);
-                let templateName = view;
-                if (!templateName) {
-                  templateName = path.replace(/\//g, '');
+              } catch (error) {
+                ctx.response.body = errorData;
+              }
+            } else {
+              ctx.response.body = errorData;
+            }
+          } else if (excel === true) {
+            ctx.response.body = errorData;
+          } else {
+            ctx.response.body = errorData;
+          }
+        };
+        const install = (sp) => {
+          router[reqMethod](prefix + sp, async (ctx, next) => {
+            const start = +new Date();
+            try {
+              const redLock = lock === true && ctx.me && ctx.me.devid ? await app._lock.lock(`${ prefix }-${ path }-${ ctx.me.devid }`, 10 * 60 * 60 * 1000) : undefined;
+              const instance = new c.constructor(ctx);
+              try {
+                for (const before of befores) {
+                  await before()(ctx, next);
                 }
-                app.throwIf(!templateName, '没有指定模板路径！');
-                templateName = templateName.indexOf('.') === -1 ? `${ templateName }.xlsx` : templateName;
-                const exlBuf = await fs.promises.readFile(view ? join(app.baseDir, 'app', 'excel', templateName) : join(app.baseDir, 'excel', 'app', prefix, templateName));
-                const exlBuf2 = await ejsexcel.renderExcel(exlBuf, result, { cachePath: tempDir });
-                ctx.response.type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-                if (name) {
-                  ctx.response.attachment(name);
-                }
-                ctx.response.body = exlBuf2;
-              } else {
-                ctx.body = ctx.request ? ctx.request.body : null;
-                // 异步操作改装
-                const uri = ctx.body._router || ctx.query._router;
-                const message = ctx.body._msg || ctx.query._msg;
-                const title = ctx.body._title || ctx.query._title;
-                const event = ctx.body._event || ctx.query._event;
-                const asRequest = !!event || !!title || !!message;
-                if (uri && asRequest) {
-                  result = 1;
-                  instance[pName](ctx)
-                    .then(_data => {
-                      if (message) {
-                        if (_data === undefined || _data === null) {
-                          ctx.app.emitTo('USER-', ctx.me.userid, event, {
-                            message: `${ title || message }处理完毕`,
-                            uri
-                          });
-                        } else if (typeof _data === 'object') {
-                          ctx.app.emitTo('USER-', ctx.me.userid, event, {
-                            message: `${ title || message }处理完毕,${ message.replace(/\{\{([a-z0-9A-Z]+)\}\}/g, (a, b) => (_data[b] === undefined || _data[b] === null ? '' : _data[b])) }`,
-                            uri
-                          });
-                        } else {
-                          ctx.app.emitTo('USER-', ctx.me.userid, event, {
-                            message: `${ title || message }处理完毕,${ message.replace('{{.}}', _data) }`,
-                            uri
-                          });
-                        }
-                      } else {
-                        ctx.app.emitTo('USER-', ctx.me.userid, event, {
-                          params: {
-                            data: _data,
-                            title
-                          },
-                          uri
-                        });
-                      }
-                    })
-                    .catch(error => {
-                      app.coreLogger.error(error);
-                      ctx.app.emitTo('USER-', ctx.me.userid, event, {
-                        message: `${ title || message }失败了!(${ error && error.message })`,
-                        uri
-                      });
-                    });
-                } else {
+                let result;
+                if (render === true) {
                   result = await instance[pName](ctx);
-                }
-                if (contentType) {
-                  if (name) {
-                    ctx.response.attachment(name);
-                  }
-                  if (contentName) {
-                    ctx.response.attachment(contentName);
-                  }
-                  if (ctx.file_name) {
-                    ctx.response.attachment(ctx.file_name);
-                  }
-                  ctx.response.type = contentType;
-                  ctx.response.body = result;
-                } else {
-                  if (result === null) {
-                    ctx.response.body = {
-                      result: null
-                    };
-                  } else if (typeof result === 'object') {
-                    ctx.response.body = result;
-                  } else {
-                    ctx.response.body = {
-                      result
-                    };
-                  }
-                }
-              }
-              for (const after of afters) {
-                await after()(ctx, next);
-              }
-            } catch (error) {
-              app.coreLogger.error(error);
-              const errorData = { status: error.status, message: error.message };
-              if (render === true) {
-                const renderPath = ctx.view_error_path || view_error || app.config.view_error_path;
-                if (renderPath) {
-                  await ctx.render(ctx.view_error_path || view_error || prefix + path, {
-                    ...errorData,
+                  await ctx.render(ctx.view_path || view || prefix + path, {
+                    ...result,
                     user: ctx.me || false,
                     globalValues: app._globalValues || false,
                     ...ctx.req.asyncData
                   });
+                } else if (excel === true) {
+                  result = await instance[pName](ctx);
+                  let templateName = view;
+                  if (!templateName) {
+                    templateName = path.replace(/\//g, '');
+                  }
+                  app.throwIf(!templateName, '没有指定模板路径！');
+                  templateName = templateName.indexOf('.') === -1 ? `${ templateName }.xlsx` : templateName;
+                  const exlBuf = await fs.promises.readFile(view ? join(app.baseDir, 'app', 'excel', templateName) : join(app.baseDir, 'excel', 'app', prefix, templateName));
+                  const exlBuf2 = await ejsexcel.renderExcel(exlBuf, result, { cachePath: tempDir });
+                  ctx.response.type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                  if (name) {
+                    ctx.response.attachment(name);
+                  }
+                  ctx.response.body = exlBuf2;
                 } else {
-                  ctx.response.body = errorData;
+                  ctx.body = ctx.request ? ctx.request.body : null;
+                  // 异步操作改装
+                  const uri = ctx.body._router || ctx.query._router;
+                  const message = ctx.body._msg || ctx.query._msg;
+                  const title = ctx.body._title || ctx.query._title;
+                  const event = ctx.body._event || ctx.query._event;
+                  const asRequest = !!event || !!title || !!message;
+                  if (uri && asRequest) {
+                    result = 1;
+                    instance[pName](ctx)
+                      .then(_data => {
+                        if (message) {
+                          if (_data === undefined || _data === null) {
+                            ctx.app.emitTo('USER-', ctx.me.userid, event, {
+                              message: `${ title || message }处理完毕`,
+                              uri
+                            });
+                          } else if (typeof _data === 'object') {
+                            ctx.app.emitTo('USER-', ctx.me.userid, event, {
+                              message: `${ title || message }处理完毕,${ message.replace(/\{\{([a-z0-9A-Z]+)\}\}/g, (a, b) => (_data[b] === undefined || _data[b] === null ? '' : _data[b])) }`,
+                              uri
+                            });
+                          } else {
+                            ctx.app.emitTo('USER-', ctx.me.userid, event, {
+                              message: `${ title || message }处理完毕,${ message.replace('{{.}}', _data) }`,
+                              uri
+                            });
+                          }
+                        } else {
+                          ctx.app.emitTo('USER-', ctx.me.userid, event, {
+                            params: {
+                              data: _data,
+                              title
+                            },
+                            uri
+                          });
+                        }
+                      })
+                      .catch(error => {
+                        app.coreLogger.error(error);
+                        ctx.app.emitTo('USER-', ctx.me.userid, event, {
+                          message: `${ title || message }失败了!(${ error && error.message })`,
+                          uri
+                        });
+                      });
+                  } else {
+                    result = await instance[pName](ctx);
+                  }
+                  if (contentType) {
+                    if (name) {
+                      ctx.response.attachment(name);
+                    }
+                    if (contentName) {
+                      ctx.response.attachment(contentName);
+                    }
+                    if (ctx.file_name) {
+                      ctx.response.attachment(ctx.file_name);
+                    }
+                    ctx.response.type = contentType;
+                    ctx.response.body = result;
+                  } else {
+                    if (result === null) {
+                      ctx.response.body = {
+                        result: null
+                      };
+                    } else if (typeof result === 'object') {
+                      ctx.response.body = result;
+                    } else {
+                      ctx.response.body = {
+                        result
+                      };
+                    }
+                  }
                 }
-              } else if (excel === true) {
-                ctx.response.body = errorData;
-              } else {
-                ctx.response.body = errorData;
+                for (const after of afters) {
+                  await after()(ctx, next);
+                }
+              } catch (error) {
+                handelError(error, ctx);
+              } finally {
+                if (routerDebug) {
+                  debug(`${ prefix + path } + ${ +new Date() - start }ms`);
+                }
+                if (redLock && lock === true && ctx.me && ctx.me.devid) {
+                  await redLock.unlock();
+                }
               }
-            } finally {
-              if (routerDebug) {
-                debug(`${ prefix + path } + ${ +new Date() - start }ms`);
-              }
-              if (lock === true && ctx.me && ctx.me.devid) {
-                await ctx.delCache(`${ prefix }-${ path }-${ ctx.me.devid }`, 'other');
-              }
+            } catch (error) {
+              console.error(error);
+              handelError({
+                status: 'E201000',
+                message: `${ start }:重复提交,请等待上次请求处理完成`
+              }, ctx);
             }
           });
         };

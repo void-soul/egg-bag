@@ -62,6 +62,8 @@ export default class LambdaQuery<T> {
   protected ifvFix = true;
   private sql = '';
   private relaces: string[] = [];
+  private nameTemp = '';
+  private paramTemp: {[name: string]: string[]} = {};
   constructor (
     table: string,
     search: (sql: string, param: Empty) => Promise<T[]>,
@@ -92,6 +94,33 @@ export default class LambdaQuery<T> {
     clearWithSession?: boolean;
   }): this {
     this._cache = param;
+    return this;
+  }
+  @IF()
+  remberParam(name: keyof T) {
+    this.nameTemp = name as string;
+    return this;
+  }
+  @IF()
+  setParam(name: keyof T, value: string | number | boolean | null) {
+    const name2 = `${ name }`;
+    if (this.paramTemp[name2]) {
+      for (const pk of this.paramTemp[name2]) {
+        this.param[pk] = value;
+      }
+    }
+    return this;
+  }
+  @IF()
+  setParamPairs(param: {[P in keyof T]: string | number | boolean | null}) {
+    for (const [name, value] of Object.entries(param)) {
+      const name2 = `${ name }`;
+      if (this.paramTemp[name2]) {
+        for (const pk of this.paramTemp[name2]) {
+          this.param[pk] = value as string;
+        }
+      }
+    }
     return this;
   }
   /**
@@ -129,7 +158,6 @@ export default class LambdaQuery<T> {
     key: keyof T,
     value: T[keyof T]
   ): this {
-
     return this.common(key, value, '=');
   }
   @IF()
@@ -215,6 +243,7 @@ export default class LambdaQuery<T> {
     return this.common(key, value, 'LIKE');
   }
   @IF()
+
   andNotLikePrecise(
     key: keyof T,
     value: string
@@ -222,6 +251,7 @@ export default class LambdaQuery<T> {
     return this.common(key, value, 'LIKE', 'NOT');
   }
   @IF()
+
   andNotLike(
     key: keyof T,
     value: T[keyof T],
@@ -317,57 +347,57 @@ export default class LambdaQuery<T> {
   }
   @IF()
   andPow(key: keyof T, value: number): this {
-    const pkey = `${ key }_${ this.index++ }`;
-    this.condition.push(`AND POW(2, ${ key }) & :pkey`);
+    const pkey = this.getPIndex();
+    this.condition.push(`AND POW(2, ${ key }) & :${ pkey }`);
     this.param[pkey] = value;
     return this;
   }
   @IF()
   andNotPow(key: keyof T, value: number): this {
-    const pkey = `${ key }_${ this.index++ }`;
-    this.condition.push(`AND NOT POW(2, ${ key }) :pkey`);
+    const pkey = this.getPIndex();
+    this.condition.push(`AND NOT POW(2, ${ key }) :${ pkey }`);
     this.param[pkey] = value;
     return this;
   }
   @IF()
   andMatch(value: string, ...keys: (keyof T)[]): this {
-    const pkey = `match_${ this.index++ }`;
-    this.condition.push(`AND MATCH(${ keys.join(',') }) AGAINST (:pkey)`);
+    const pkey = this.getPIndex();
+    this.condition.push(`AND MATCH(${ keys.join(',') }) AGAINST (:${ pkey })`);
     this.param[pkey] = value;
     return this;
   }
   @IF()
   andNotMatch(value: string, ...keys: (keyof T)[]): this {
-    const pkey = `match_${ this.index++ }`;
-    this.condition.push(`AND NOT MATCH(${ keys.join(',') }) AGAINST (:pkey)`);
+    const pkey = this.getPIndex();
+    this.condition.push(`AND NOT MATCH(${ keys.join(',') }) AGAINST (:${ pkey })`);
     this.param[pkey] = value;
     return this;
   }
   @IF()
   andMatchBoolean(values: {match: boolean; value: string}[], ...keys: (keyof T)[]): this {
-    const pkey = `match_${ this.index++ }`;
-    this.condition.push(`AND MATCH(${ keys.join(',') }) AGAINST (:pkey IN BOOLEAN MODE)`);
+    const pkey = this.getPIndex();
+    this.condition.push(`AND MATCH(${ keys.join(',') }) AGAINST (:${ pkey } IN BOOLEAN MODE)`);
     this.param[pkey] = values.map(v => `${ v.match ? '+' : '-' }${ v.value }`).join(' ');
     return this;
   }
   @IF()
   andNotMatchBoolean(values: {match: boolean; value: string}[], ...keys: (keyof T)[]): this {
-    const pkey = `match_${ this.index++ }`;
-    this.condition.push(`AND NOT MATCH(${ keys.join(',') }) AGAINST (:pkey IN BOOLEAN MODE)`);
+    const pkey = this.getPIndex();
+    this.condition.push(`AND NOT MATCH(${ keys.join(',') }) AGAINST (:${ pkey } IN BOOLEAN MODE)`);
     this.param[pkey] = values.map(v => `${ v.match ? '+' : '-' }${ v.value }`).join(' ');
     return this;
   }
   @IF()
   andMatchQuery(value: string, ...keys: (keyof T)[]): this {
-    const pkey = `match_${ this.index++ }`;
-    this.condition.push(`AND MATCH(${ keys.join(',') }) AGAINST (:pkey WITH QUERY EXPANSION)`);
+    const pkey = this.getPIndex();
+    this.condition.push(`AND MATCH(${ keys.join(',') }) AGAINST (:${ pkey } WITH QUERY EXPANSION)`);
     this.param[pkey] = value;
     return this;
   }
   @IF()
   andNotMatchQuery(value: string, ...keys: (keyof T)[]): this {
-    const pkey = `match_${ this.index++ }`;
-    this.condition.push(`AND NOT MATCH(${ keys.join(',') }) AGAINST (:pkey WITH QUERY EXPANSION)`);
+    const pkey = this.getPIndex();
+    this.condition.push(`AND NOT MATCH(${ keys.join(',') }) AGAINST (:${ pkey } WITH QUERY EXPANSION)`);
     this.param[pkey] = value;
     return this;
   }
@@ -437,8 +467,7 @@ export default class LambdaQuery<T> {
    */
   @IF()
   replaceColumn(key: keyof T, valueToFind: T[keyof T], valueToReplace: T[keyof T], key2?: string) {
-    const pkey1 = `${ key }_${ this.index++ }`;
-    const pkey2 = `${ key }_${ this.index++ }`;
+    const [pkey1, pkey2] = this.getPIndex2();
     this.relaces.push(`REPLACE(${ key }, :${ pkey1 }, :${ pkey2 }) AS ${ key2 || key as any as string }`);
     this.param[pkey1] = valueToFind as any as string;
     this.param[pkey2] = valueToReplace as any as string;
@@ -456,7 +485,7 @@ export default class LambdaQuery<T> {
       }
 
       const result = await this.search(this.sql, this.param);
-      await setCache.call(this.context, {
+      await setCache.call(this.app, {
         key,
         result,
         ...this._cache
@@ -510,7 +539,7 @@ export default class LambdaQuery<T> {
       }
 
       const result = await this.findCount(this.sql, this.param);
-      await setCache.call(this.context, {
+      await setCache.call(this.app, {
         key,
         result,
         ...this._cache
@@ -599,7 +628,7 @@ export default class LambdaQuery<T> {
       } else {
         return 0;
       }
-      await setCache.call(this.context, {
+      await setCache.call(this.app, {
         key,
         result,
         ...this._cache
@@ -637,7 +666,7 @@ export default class LambdaQuery<T> {
       } else {
         return 0;
       }
-      await setCache.call(this.context, {
+      await setCache.call(this.app, {
         key,
         result,
         ...this._cache
@@ -675,7 +704,7 @@ export default class LambdaQuery<T> {
       } else {
         return 0;
       }
-      await setCache.call(this.context, {
+      await setCache.call(this.app, {
         key,
         result,
         ...this._cache
@@ -713,7 +742,7 @@ export default class LambdaQuery<T> {
       } else {
         return 0;
       }
-      await setCache.call(this.context, {
+      await setCache.call(this.app, {
         key,
         result,
         ...this._cache
@@ -751,7 +780,7 @@ export default class LambdaQuery<T> {
       } else {
         return '';
       }
-      await setCache.call(this.context, {
+      await setCache.call(this.app, {
         key,
         result,
         ...this._cache
@@ -787,7 +816,7 @@ export default class LambdaQuery<T> {
     right = '%'
   ): this {
     if (value !== null && value !== undefined && value !== '') {
-      const pkey = `${ key }_${ this.index++ }`;
+      const pkey = this.getPIndex();
       this.condition.push(
         `AND ${ key } ${ not } like concat('${ left }', :${ pkey }, '${ right }') `
       );
@@ -801,8 +830,7 @@ export default class LambdaQuery<T> {
     value2: any,
     not = ''
   ): this {
-    const pkey1 = `${ key }_${ this.index++ }`;
-    const pkey2 = `${ key }_${ this.index++ }`;
+    const [pkey1, pkey2] = this.getPIndex2();
     this.condition.push(`AND ${ key } ${ not } BETWEEN :${ pkey1 } AND :${ pkey2 }`);
     this.param[pkey1] = value1;
     this.param[pkey2] = value2;
@@ -814,7 +842,7 @@ export default class LambdaQuery<T> {
     op: string,
     not = ''
   ) {
-    const pkey = `${ key }_${ this.index++ }`;
+    const pkey = this.getPIndex();
     this.condition.push(`AND ${ key } ${ not } ${ op } :${ pkey } `);
     this.param[pkey] = value;
     return this;
@@ -825,7 +853,7 @@ export default class LambdaQuery<T> {
     not = ''
   ) {
     if (value && value.length > 0) {
-      const pkey = `${ key }_${ this.index++ }`;
+      const pkey = this.getPIndex();
       this.condition.push(`AND ${ key } ${ not } IN (:${ pkey }) `);
       this.param[pkey] = value;
     }
@@ -838,7 +866,7 @@ export default class LambdaQuery<T> {
     op: string,
     not = ''
   ) {
-    const pkey = `${ key1 }_${ key2 }_${ this.index++ }`;
+    const pkey = this.getPIndex();
     this.condition.push(`AND (${ key1 } << 8) + ${ key2 } ${ not } ${ op } :${ pkey } `);
     this.param[pkey] = value;
     return this;
@@ -878,6 +906,30 @@ export default class LambdaQuery<T> {
     } else {
       return wheres.join(' ');
     }
+  }
+  private getPIndex() {
+    const pkey = `p${ this.index++ }`;
+    if (this.nameTemp) {
+      if (!this.paramTemp[this.nameTemp]) {
+        this.paramTemp[this.nameTemp] = [];
+      }
+      this.paramTemp[this.nameTemp].push(pkey);
+    }
+    this.nameTemp = '';
+    return pkey;
+  }
+  private getPIndex2() {
+    const pkey1 = `p${ this.index++ }`;
+    const pkey2 = `p${ this.index++ }`;
+    if (this.nameTemp) {
+      if (!this.paramTemp[this.nameTemp]) {
+        this.paramTemp[this.nameTemp] = [];
+      }
+      this.paramTemp[this.nameTemp].push(pkey1);
+      this.paramTemp[this.nameTemp].push(pkey2);
+    }
+    this.nameTemp = '';
+    return [pkey1, pkey2];
   }
   private where(index: number): {sql: string; param: Empty; index: number} {
     const param: Empty = this.param;

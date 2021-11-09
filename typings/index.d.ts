@@ -7,6 +7,9 @@ export * from 'egg';
 import {IncomingMessage, ServerResponse} from 'http';
 // tslint:disable-next-line:no-implicit-dependencies
 import {Socket, Server as SocketServer, Namespace as SocketNameSpace} from 'socket.io';
+import {RedisOptions} from 'ioredis';
+import Redlock = require('redlock');
+import {type} from 'os';
 /** 链式计算 */
 export class Bus {
   constructor (result);
@@ -81,10 +84,10 @@ export class Bus {
 /** 仿java lambda 查询 */
 export class LambdaQuery<T> {
   /**
-    * 缓存查询结果
-    * @param param
-    * @returns
-    */
+     * 缓存查询结果
+     * @param param
+     * @returns
+     */
   cache(param: {
     /** 返回缓存清除key,参数=方法的参数+当前用户对象，可以用来批量清空缓存 */
     clearKey?: string[];
@@ -92,6 +95,11 @@ export class LambdaQuery<T> {
     autoClearTime?: number;
     /** 随着当前用户sesion的清空而一起清空 */
     clearWithSession?: boolean;
+  }): this;
+  remberParam(name: keyof T): this;
+  setParam(name: keyof T, value: string | number | boolean | null): this;
+  setParamPairs(param: {
+    [P in keyof T]: string | number | boolean | null;
   }): this;
   /**
    * 设置为不缓存查询结果
@@ -134,14 +142,20 @@ export class LambdaQuery<T> {
   andNotBetween(key: keyof T, value1: T[keyof T], value2: T[keyof T]): this;
   andPow(key: keyof T, value: number): this;
   andNotPow(key: keyof T, value: number): this;
-  andPowWith(key: keyof T, ...values: Array<number | string>): this;
-  andNotPowWith(key: keyof T, ...values: Array<number | string>): this;
   andMatch(value: string, ...keys: (keyof T)[]): this;
   andNotMatch(value: string, ...keys: (keyof T)[]): this;
-  andMatchBoolean(values: {match: boolean; value: string;}[], ...keys: (keyof T)[]): this;
-  andNotMatchBoolean(values: {match: boolean; value: string;}[], ...keys: (keyof T)[]): this;
+  andMatchBoolean(values: {
+    match: boolean;
+    value: string;
+  }[], ...keys: (keyof T)[]): this;
+  andNotMatchBoolean(values: {
+    match: boolean;
+    value: string;
+  }[], ...keys: (keyof T)[]): this;
   andMatchQuery(value: string, ...keys: (keyof T)[]): this;
   andNotMatchQuery(value: string, ...keys: (keyof T)[]): this;
+  andPowWith(key: keyof T, ...values: Array<number | string>): this;
+  andNotPowWith(key: keyof T, ...values: Array<number | string>): this;
   groupBy(key: keyof T): this;
   asc(...keys: (keyof T)[]): this;
   desc(...keys: (keyof T)[]): this;
@@ -162,7 +176,7 @@ export class LambdaQuery<T> {
    * @param key2 别名，默认是列名
    * @returns
    */
-  replaceColumn(key: keyof T, valueToFind: T[keyof T], valueToReplace: T[keyof T], key2?: string | undefined): this;
+  replaceColumn(key: keyof T, valueToFind: T[keyof T], valueToReplace: T[keyof T], key2?: string): this;
   select(...columns: (keyof T)[]): Promise<T[]>;
   selectPrepare(...columns: (keyof T)[]): this;
   one(...columns: (keyof T)[]): Promise<T | undefined>;
@@ -598,7 +612,63 @@ export interface WxLiveInfo {
     name: string;
   }>;
 }
-
+export class HttpConfig {
+  uri?: string[] | string;
+  before?: (() => (ctx: Context, next: () => Promise<any>) => Promise<void>)[] | (() => (ctx: Context, next: () => Promise<any>) => Promise<void>);
+  after?: (() => (ctx: Context, next: () => Promise<any>) => Promise<void>)[] | (() => (ctx: Context, next: () => Promise<any>) => Promise<void>);
+  method: Array<'Get' | 'Post' | 'Put' | 'Delete' | 'Patch' | 'Options' | 'Head' | 'IO'>;
+  content?: {
+    fileType?: string;
+    fileName?: string;
+  };
+  headerCheck?: {
+    name: string;
+    value?: ((...args: any[]) => string) | string;
+  }[];
+  cookieCheck?: {
+    name: string;
+    value?: ((...args: any[]) => string) | string;
+  }[];
+  render?: {
+    /** 页面渲染路径,查找目标是app目录下 */
+    viewPath?: string;
+    /** 错误页面渲染路径,默认error.html,查找目标是app目录下 */
+    errorViewPath?: string;
+    /** 返回的页面渲染路径参数名,默认就是renderViewPath,查找目标是app目录下 */
+    viewPathParamName?: string;
+    /** 返回的页面渲染路径参数名,默认就是renderViewPath,查找目标是app目录下 */
+    errorViewPathParamName?: string;
+  };
+  /** 锁设置 */
+  lock?: {
+    /** 返回缓存key,参数=方法的参数+当前用户对象，可以用来清空缓存。 */
+    key?: ((...args: any[]) => string) | string;
+    /** 被锁定线程是否sleep直到解锁为止? */
+    lockWait?: boolean;
+    /** 当设置了lockWait=true时，等待多少ms进行一次锁查询? 默认100ms */
+    lockRetryInterval?: number;
+    /** 当设置了lockWait=true时，等待多少ms即视为超时，放弃本次访问？默认0，即永不放弃 */
+    lockMaxWaitTime?: number;
+    /** 错误信息 */
+    errorMessage?: string;
+  };
+  /** 缓存设置 */
+  cache?: {
+    /** 返回缓存key,参数=方法的参数+当前用户对象，可以用来清空缓存。 */
+    key: ((...args: any[]) => string) | string;
+    /** 返回缓存清除key,参数=方法的参数+当前用户对象，可以用来批量清空缓存 */
+    clearKey?: ((...args: any[]) => string[]) | string[];
+    /** 自动清空缓存的时间，单位分钟 */
+    autoClearTime?: number;
+    /** 随着当前用户sesion的清空而一起清空 */
+    clearWithSession?: boolean;
+  };
+}
+export class ControllerConfig {
+  uri?: string[] | string;
+  before?: (() => (ctx: Context, next: () => Promise<any>) => Promise<void>)[] | (() => (ctx: Context, next: () => Promise<any>) => Promise<void>);
+  after?: (() => (ctx: Context, next: () => Promise<any>) => Promise<void>)[] | (() => (ctx: Context, next: () => Promise<any>) => Promise<void>);
+}
 export interface WxLiveReplay {
   expire_time: string;
   create_time: string;
@@ -1131,9 +1201,10 @@ interface EggSocketIO {
 /**
  * 注解声明
  */
-interface Decorator {
-  (target: any, key: string, descriptor: PropertyDescriptor): void;
-}
+type MethodDecorator = <T>(target: any, propertyKey: string | symbol, escriptor: TypedPropertyDescriptor<T>) => TypedPropertyDescriptor<T> | void;
+type ClassDecorator = <T extends {new(...args: any[]): any}>(constructor: T) => T | void;
+type PropertyDecorator = (target: any, propertyKey: string | symbol) => void;
+type ParameterDecorator = (target: any, propertyKey: string | symbol, parameterIndex: number) => void;
 /**
  * 企业微信员工
  */
@@ -3721,7 +3792,20 @@ export class FlowDoParam<Q> {
   req: Q;
   conn?: SqlSession;
 }
-
+export class MethodLock {
+  /** 是否加锁true */
+  lock: boolean;
+  /** 被锁定线程是否sleep直到解锁为止? */
+  lockWaitForever: boolean;
+  /** 一个队列执行完后多少ms自动释放锁;每次新的执行，都会导致锁最少延长么这么久;0 表示永久缓存;默认10分钟 */
+  lockAutoFreetime: number;
+  /** 当设置了lockWaitForever=true时，等待多少ms进行一次锁查询? 默认100ms */
+  lockRetryInterval: number;
+  /** 当设置了lockWaitForever=true时，等待多少ms即视为超时，放弃本次访问？默认0，即永不放弃 */
+  lockMaxWaitTime: number;
+  /** 此方法的最大并发数，默认1 */
+  lockMaxActive: number;
+}
 export class FlowDoResult<S> {
   res: S;
   flowCode: string;
@@ -3762,12 +3846,6 @@ declare class PaasService extends BaseService<Empty> {
   }): SimplyFlowLine[] | undefined;
 }
 declare type RedisChannel = 'user' | 'other' | 'static' | 'sub';
-declare interface RedisConfig {
-  host: string;
-  port: number;
-  password: string;
-  db: number;
-}
 export interface SqlSession {
   query: (sql: string, param?: {[key: string]: any}) => Promise<any>;
   count: <T>(tableName: string, where?: {[P in keyof T]?: T[P]}) => Promise<number>;
@@ -4125,6 +4203,7 @@ declare module 'egg' {
     mongo: MongoClient;
     _asyncSubClient: {[code: string]: (...args: any[]) => Promise<any>};
     _flowMap: {[flowCode: string]: any};
+    _lock: Redlock;
     /** 加载sql模板，位于 app/sql、app/sql-script */
     _getSql<T>(ctx: Context, count: boolean, sum: boolean, id: string, param?: {[key: string]: any}): string | MongoFilter<T>;
     stringifyUser: (user: BaseUser) => string;
@@ -4280,6 +4359,30 @@ declare module 'egg' {
     fetchFlow<Q, S, C, M>(param: FlowFetchParam<Q>, devid?: string): Promise<FlowFetchResult<S>>;
     /** 流程处理 */
     doFlow<Q, S, C, M>(param: FlowDoParam<Q>, devid?: string): Promise<FlowDoResult<S>>;
+    /** 发起mysql事务 */
+    transctionMysql<T>(fn: (conn: SqlSession) => Promise<T>): Promise<T>;
+    /** 带锁执行 */
+    excuteWithLock<T>(this: Application, config: {
+      /** 返回缓存key,参数=方法的参数+当前用户对象，可以用来清空缓存。 */
+      key: (() => string) | string;
+      /** 被锁定线程是否sleep直到解锁为止? */
+      lockWait?: boolean;
+      /** 当设置了lockWait=true时，等待多少ms进行一次锁查询? 默认100ms */
+      lockRetryInterval?: number;
+      /** 当设置了lockWait=true时，等待多少ms即视为超时，放弃本次访问？默认0，即永不放弃 */
+      lockMaxWaitTime?: number;
+      /** 错误信息 */
+      errorMessage?: string;
+    }, fn: () => Promise<T>): Promise<T>;
+    /** 带缓存执行 */
+    excuteWithCache<T>(this: Application, config: {
+      /** 返回缓存key,参数=方法的参数+当前用户对象，可以用来清空缓存。 */
+      key: string;
+      /** 返回缓存清除key,参数=方法的参数+当前用户对象，可以用来批量清空缓存 */
+      clearKey?: string[];
+      /** 自动清空缓存的时间，单位分钟 */
+      autoClearTime?: number;
+    }, fn: () => Promise<T>): Promise<T>;
   }
   interface EggAppConfig {
     /** 禁止打开router列表/打印响应日志，prod默认关。dev默认开，其他环境手动配置 */
@@ -4416,13 +4519,13 @@ declare module 'egg' {
        */
       clients?: {
         /* 用于缓存用户信息，如devid、userid */
-        user?: RedisConfig;
+        user?: RedisOptions;
         /* 其他缓存，如数据缓存、消息缓存.每次项目启动会清空*/
-        other?: RedisConfig;
+        other?: RedisOptions;
         /* 用于订阅user、other的定时key过期事件 */
-        sub?: RedisConfig;
+        sub?: RedisOptions;
         /* 重要缓存，如支付缓存、退款缓存 */
-        static?: RedisConfig;
+        static?: RedisOptions;
       };
     };
     /**
@@ -4702,6 +4805,19 @@ declare module 'egg' {
     fetchFlow<Q, S, C, M>(param: FlowFetchParam<Q>, devid?: string): Promise<FlowFetchResult<S>>;
     /** 流程处理 */
     doFlow<Q, S, C, M>(param: FlowDoParam<Q>, devid?: string): Promise<FlowDoResult<S>>;
+    /** 发起mysql事务 */
+    transctionMysql<T>(fn: (conn: SqlSession) => Promise<T>): Promise<T>;
+    /** 带缓存执行 */
+    excuteWithCache<T>(this: Application, config: {
+      /** 返回缓存key,参数=方法的参数+当前用户对象，可以用来清空缓存。 */
+      key: string;
+      /** 返回缓存清除key,参数=方法的参数+当前用户对象，可以用来批量清空缓存 */
+      clearKey?: string[];
+      /** 自动清空缓存的时间，单位分钟 */
+      autoClearTime?: number;
+      /** 随着当前用户sesion的清空而一起清空 */
+      clearWithSession?: boolean | undefined;
+    }, fn: () => Promise<T>): Promise<T>;
   }
   interface IService {
     /** 内置的一个mongoservice */
@@ -4795,14 +4911,8 @@ export function BuildData(target: any, emptySkip?: boolean): any;
 export const TransientMeda: symbol;
 /** service的逻辑删除设置 */
 export function LogicDelete(stateFileName: string, deleteState?: string);
-/** 定义一个controller */
-export function CTR({path, before, after}: {
-  path?: string | undefined;
-  before?: (() => (ctx: Context, next: () => Promise<any>) => Promise<void>)[] | undefined;
-  after?: (() => (ctx: Context, next: () => Promise<any>) => Promise<void>)[] | undefined;
-});
 /** controller方法上添加锁，只支持单个会话不能重复请求同一个接口 */
-export const Lock: () => Decorator;
+export const Lock: () => MethodDecorator;
 /**
  * controller方法标记为view渲染
  * path为请求路径,
@@ -4810,35 +4920,35 @@ export const Lock: () => Decorator;
  * 模板路径执行有限顺序:
  * ctx.view_path > view > prefix+path
  */
-export const Render: (path: string | string[], view?: string) => Decorator;
+export const Render: (path: string | string[], view?: string) => MethodDecorator;
 /** controller方法标记为excel导出 */
-export const Excel: (path: string, excelTemplateName?: string, excelDownloadName?: string) => Decorator;
+export const Excel: (path: string, excelTemplateName?: string, excelDownloadName?: string) => MethodDecorator;
 /** controller方法标记为get请求 */
-export const Get: (value?: string) => Decorator;
+export const Get: (value?: string) => MethodDecorator;
 /** controller方法标记为post请求 */
-export const Post: (value?: string) => Decorator;
+export const Post: (value?: string) => MethodDecorator;
 /** controller方法标记为put请求 */
-export const Put: (value?: string) => Decorator;
+export const Put: (value?: string) => MethodDecorator;
 /** controller方法标记为delete请求 */
-export const Delete: (value?: string) => Decorator;
+export const Delete: (value?: string) => MethodDecorator;
 /** controller方法标记为patch请求 */
-export const Patch: (value?: string) => Decorator;
+export const Patch: (value?: string) => MethodDecorator;
 /** controller方法标记为options请求 */
-export const Options: (value?: string) => Decorator;
+export const Options: (value?: string) => MethodDecorator;
 /** controller方法标记为head请求 */
-export const Head: (value?: string) => Decorator;
+export const Head: (value?: string) => MethodDecorator;
 /** controller方法标记为socket io请求 */
-export const IO: (value?: string) => Decorator;
+export const IO: (value?: string) => MethodDecorator;
 /** controller方法执行前调用哪些过滤器 */
-export const Before: (fn: () => (ctx: Context, next: () => Promise<any>) => Promise<void>) => Decorator;
+export const Before: (fn: () => (ctx: Context, next: () => Promise<any>) => Promise<void>) => MethodDecorator;
 /** controller方法执行后调用哪些过滤器 */
-export const After: (fn: () => (ctx: Context, next: () => Promise<any>) => Promise<void>) => Decorator;
+export const After: (fn: () => (ctx: Context, next: () => Promise<any>) => Promise<void>) => MethodDecorator;
 /** controller方法相应的content-type*/
-export const ContentType: (value?: string) => Decorator;
+export const ContentType: (value?: string) => MethodDecorator;
 /** 定义错误渲染页面 */
-export const ViewError: (value?: string) => Decorator;
+export const ViewError: (value?: string) => MethodDecorator;
 /** controller方法相应的content-name，ctx.file_name优先级更高*/
-export const ContentName: (value?: string) => Decorator;
+export const ContentName: (value?: string) => MethodDecorator;
 /** controller上统一设置每个方法执行前的过滤器 */
 export const BeforeAll: (...fns: Array<() => (ctx: Context, next: () => Promise<any>) => Promise<void>>) => any;
 /** controller上统一设置每个方法执行后的过滤器 */
@@ -4855,15 +4965,40 @@ export const ContextMethodCache: (config: {
   autoClearTime?: number;
   /** 随着当前用户sesion的清空而一起清空 */
   clearWithSession?: boolean;
-}) => Decorator;
-/** service、controller的方法缓存设置 */
-export const CTM: (config: {
-  path?: string;
-  before?: Array<() => (ctx: Context, next: () => Promise<any>) => Promise<void>>;
-  after?: Array<() => (ctx: Context, next: () => Promise<any>) => Promise<void>>;
-  methods: Array<'Render' | 'Get' | 'Post' | 'Put' | 'Delete' | 'Patch' | 'Options' | 'Head' | 'IO'>;
-  renderView?: string;
-}) => Decorator;
+}) => MethodDecorator;
+/** 方法锁 */
+export const ContextMethodLock: (config: {
+  /** 返回缓存key,参数=方法的参数+当前用户对象，可以用来清空缓存。 */
+  key: ((...args: any[]) => string) | string;
+  /** 被锁定线程是否sleep直到解锁为止? */
+  lockWait?: boolean;
+  /** 当设置了lockWait=true时，等待多少ms进行一次锁查询? 默认100ms */
+  lockRetryInterval?: number;
+  /** 当设置了lockWait=true时，等待多少ms即视为超时，放弃本次访问？默认0，即永不放弃 */
+  lockMaxWaitTime?: number;
+  /** 错误信息 */
+  errorMessage?: string;
+}) => MethodDecorator;
+
+/**
+ * HTTP设置
+ */
+export const http: (config?: HttpConfig | undefined) => MethodDecorator;
+/**
+ * controller声明
+ */
+export const controller: (config?: ControllerConfig | undefined) => ClassDecorator;
+/**
+ * http方法参数声明
+ */
+export const param: (config?: {
+  name: string;
+  query?: boolean;
+  body?: boolean;
+  header?: boolean;
+  cookie?: boolean;
+} | undefined) => ParameterDecorator;
+
 /** 生成uuid */
 export function uuid(): string;
 /** 从http://127.0.0.1?key=3333得到key的值  */

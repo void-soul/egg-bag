@@ -361,3 +361,9 @@ import initDataFlow from "app/flow-help/init-data-flow";
 1. mongodb 增加了删除属性的方法
 2. 增加了服务端渲染时，可以通过代码配置渲染模板、错误页面的功能
 3. mysql 的 Lamdba 增加了全文搜索、缓存、正则支持
+
+# 1.45.0
+
+1. `app`增加 transctionMysql、excuteWithLock、excuteWithCache
+2. `ctx`增加 excuteWithCache
+3. 增加 ContextMethodLock 注释

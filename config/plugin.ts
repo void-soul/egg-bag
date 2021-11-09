@@ -6,10 +6,6 @@ const plugin: EggPlugin = {
     enable: true,
     package: 'egg-mysql-ex'
   },
-  redis: {
-    enable: true,
-    package: 'egg-redis'
-  },
   security: {
     enable: false
   },
