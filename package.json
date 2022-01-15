@@ -88,7 +88,7 @@
     "reflect-metadata": "0.1.13",
     "request": "2.88.2",
     "request-promise": "4.2.6",
-    "shelljs": "0.8.4",
+    "shelljs": "0.8.5",
     "svg-captcha": "1.4.0",
     "tsconfig-paths": "3.11.0",
     "tslib": "2.3.1",
