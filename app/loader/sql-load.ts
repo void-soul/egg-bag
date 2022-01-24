@@ -75,7 +75,12 @@ export function loadSql(this: Application) {
     debug('not found any sql-fn');
   }
 
-  this._getSql = function <T>(ctx: Context, count: boolean, sum: boolean, id: string, param?: {[key: string]: any}): string | MongoFilter<T> {
+  this._getSql = function <T>(ctx: Context, count: boolean, sum: boolean, id: string, param?: {
+    limitStart?: number;
+    limitEnd?: number;
+    orderBy?: string;
+    [k: string]: any;
+  }): string | MongoFilter<T> {
     const source: SQLSource = sqlSourceMap[id];
     if (source === undefined) {
       throw new Error(`sql-file ${ id } not found!`);

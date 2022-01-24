@@ -177,18 +177,20 @@ export async function excuteLockWithApplication<T>(app: Application, config: {
   lockMaxWaitTime?: number;
   /** 错误信息 */
   errorMessage?: string;
+  /** 单个锁多少时间后自动释放?即时任务没有执行完毕或者没有主动释放锁? 默认10分钟 */
+  lockMaxTime?: number;
 }, fn: () => Promise<T>) {
   const key = typeof config.key === 'function' ? config.key() : config.key;
   let wait_time = 0;
   const fn_ = async () => {
     try {
-      const lock = await app._lock.lock(key, 10 * 60 * 60 * 1000);
+      const lock = await app._lock.acquire([key], config.lockMaxTime || 10 * 60 * 60 * 1000);
       debugCache(`get lock ${ key } ok!`);
       try {
         return await fn();
       } finally {
         debugCache(`unlock ${ key } ok!`);
-        await lock.unlock();
+        await lock.release();
       }
     } catch (error) {
       if (config.lockWait !== false && wait_time <= (config.lockMaxWaitTime || 0)) {

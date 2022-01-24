@@ -8,7 +8,7 @@ import {IncomingMessage, ServerResponse} from 'http';
 // tslint:disable-next-line:no-implicit-dependencies
 import {Socket, Server as SocketServer, Namespace as SocketNameSpace} from 'socket.io';
 import {RedisOptions} from 'ioredis';
-import Redlock = require('redlock');
+import {Redlock} from 'redlock';
 import {type} from 'os';
 /** 链式计算 */
 export class Bus {
@@ -156,6 +156,8 @@ export class LambdaQuery<T> {
   andNotMatchQuery(value: string, ...keys: (keyof T)[]): this;
   andPowWith(key: keyof T, ...values: Array<number | string>): this;
   andNotPowWith(key: keyof T, ...values: Array<number | string>): this;
+  andIncludes(key: keyof T, value: string): this;
+  andNotIncludes(key: keyof T, value: string): this;
   groupBy(key: keyof T): this;
   asc(...keys: (keyof T)[]): this;
   desc(...keys: (keyof T)[]): this;
@@ -182,22 +184,27 @@ export class LambdaQuery<T> {
   one(...columns: (keyof T)[]): Promise<T | undefined>;
   oneUnique(...columns: (keyof T)[]): Promise<T>;
   onePrepare(...columns: (keyof T)[]): this;
-  count(): Promise<number>;
-  countPrepare(): this;
   update(data?: T): Promise<number>;
   updatePrepare(data?: T): this;
   delete(): Promise<number>;
   deletePrepare(): this;
   array<K extends T[keyof T]>(key: keyof T): Promise<K[]>;
   singel<K extends T[keyof T]>(key: keyof T): Promise<K | undefined>;
+  count(): Promise<number>;
+  countPrepare(): this;
+  countAs(key: keyof T, name?: string): this;
   sum(key: keyof T): Promise<number>;
   sumPrepare(key: keyof T): this;
+  sumAs(key: keyof T, name?: string): this;
   avg(key: keyof T): Promise<number>;
   avgPrepare(key: keyof T): this;
-  max(key: keyof T): Promise<number>;
+  avgAs(key: keyof T, name?: string): this;
+  max<L = number>(key: keyof T, def?: L): Promise<L | undefined>;
   maxPrepare(key: keyof T): this;
-  min(key: keyof T): Promise<number>;
+  maxAs(key: keyof T, name?: string): this;
+  min<L = number>(key: keyof T, def?: L): Promise<L | undefined>;
   minPrepare(key: keyof T): this;
+  minAs(key: keyof T, name?: string): this;
   groupConcat(key: keyof T, _param?: {
     distinct?: boolean;
     separator?: string;
@@ -205,6 +212,15 @@ export class LambdaQuery<T> {
   groupConcatPrepare(key: keyof T, param?: {
     distinct?: boolean;
     separator?: string;
+    asc?: (keyof T)[];
+    desc?: (keyof T)[];
+  }): this;
+  groupConcatAs(key: keyof T, param?: {
+    distinct?: boolean;
+    separator?: string;
+    asc?: (keyof T)[];
+    desc?: (keyof T)[];
+    name?: string;
   }): this;
   /** 获得sql和参数 */
   get(): {
@@ -1327,6 +1343,7 @@ export class SetEx<T> extends Set {
    */
   has(value: T[keyof T]): boolean;
   toArray(): T[];
+  toJSON<L = any>(key: keyof T, value: keyof T): {[k: string]: L};
   /**
    *
    * 删除key对应的对象
@@ -3900,7 +3917,12 @@ export interface MongoFilter<T> {
   tableName: string;
 }
 
-export type SqlScript = (this: Context, param?: {[k: string]: any}) => string | MongoFilter<any>;
+export type SqlScript = (this: Context, param?: {
+  limitStart?: number;
+  limitEnd?: number;
+  orderBy?: string;
+  [k: string]: any;
+}) => string | MongoFilter<any>;
 
 export interface FlowLine {
   /** 文字 */
@@ -4033,7 +4055,7 @@ export abstract class FlowContext<Q, S, C, M> {
   /** 最终呈现时，过滤哪些操作可以展示。如果这里返回true，那么hide类型的line也会展示 */
   readonly filterLineShow: {
     [lineCodeOrId: string]: boolean;
-  }
+  };
   /** 当前流程编码 */
   readonly flowCode: string;
   /** 本次操作起始节点编码 */
@@ -4205,7 +4227,12 @@ declare module 'egg' {
     _flowMap: {[flowCode: string]: any};
     _lock: Redlock;
     /** 加载sql模板，位于 app/sql、app/sql-script */
-    _getSql<T>(ctx: Context, count: boolean, sum: boolean, id: string, param?: {[key: string]: any}): string | MongoFilter<T>;
+    _getSql<T>(ctx: Context, count: boolean, sum: boolean, id: string, param?: {
+      limitStart?: number;
+      limitEnd?: number;
+      orderBy?: string;
+      [k: string]: any;
+    }): string | MongoFilter<T>;
     stringifyUser: (user: BaseUser) => string;
     throwNow(message: string, status?: number): never;
     throwIf(test: boolean, message: string, status?: number): void;
@@ -4890,8 +4917,8 @@ export function convertBean<T>(source: any, classType: any): T;
 export function convertBeans<T>(source: any[], classType: any, cb?: (target: T, source: any) => void): T[];
 /** 返回一个类的空对象 */
 export function emptyBean<T>(classType: any): T;
-/** 将一个json数组提取为一个json对象 */
-export function createBeanFromArray<T>(source: any[], key: string, value: string): {[name: string]: T};
+/** 将一个json数组提取为一个json对象,value不传则将自身为value */
+export function createBeanFromArray<F, T = F>(source: F[], key: keyof F, value?: keyof F | undefined): {[name: string]: T};
 /** 转换复合对象为指定bean */
 export function coverComplexBean<T>(source: any, classType: any): {data: T; array: {[key: string]: any[]}};
 /** 将目标对象中为空的字段替换为source中对应key的值或者函数返回值 */

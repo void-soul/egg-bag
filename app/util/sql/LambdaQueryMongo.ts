@@ -492,7 +492,7 @@ export default class LambdaQueryMongo<T> {
   async singel<K extends T[keyof T]>(key: keyof T): Promise<K | undefined> {
     const one = await this.one(key);
     if (one) {
-      return one[key] as K;
+      return (one as any)[key] as K;
     }
   }
   private common(

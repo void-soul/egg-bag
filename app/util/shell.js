@@ -90,7 +90,7 @@ const EggShell = (app, options = {}) => {
           router[reqMethod](prefix + sp, async (ctx, next) => {
             const start = +new Date();
             try {
-              const redLock = lock === true && ctx.me && ctx.me.devid ? await app._lock.lock(`${ prefix }-${ path }-${ ctx.me.devid }`, 10 * 60 * 60 * 1000) : undefined;
+              const redLock = lock === true && ctx.me && ctx.me.devid ? await app._lock.acquire([`${ prefix }-${ path }-${ ctx.me.devid }`], 10 * 60 * 60 * 1000) : undefined;
               const instance = new c.constructor(ctx);
               try {
                 for (const before of befores) {
@@ -205,7 +205,7 @@ const EggShell = (app, options = {}) => {
                   debug(`${ prefix + path } + ${ +new Date() - start }ms`);
                 }
                 if (redLock && lock === true && ctx.me && ctx.me.devid) {
-                  await redLock.unlock();
+                  await redLock.release();
                 }
               }
             } catch (error) {

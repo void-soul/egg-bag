@@ -2685,13 +2685,11 @@ export default abstract class BaseService<T> extends Service {
         orderBy?: string
       ) => {
         let sql: string | MongoFilter<unknown>;
-        if (limitSelf === true) {
-          Object.assign(param, {
-            limitStart: calc(pageNumber).sub(1).mul(pageSize).over(),
-            limitEnd: calc(pageSize).over(),
-            orderBy
-          });
-        }
+        Object.assign(param, {
+          limitStart: calc(pageNumber).sub(1).mul(pageSize).over(),
+          limitEnd: calc(pageSize).over(),
+          orderBy
+        });
         param = this.fixParam(param);
         sql = this.app._getSql(this.ctx, false, false, sqlid, param);
         if (sumSelf === true) {
@@ -2704,7 +2702,7 @@ export default abstract class BaseService<T> extends Service {
         }
         if (limitSelf !== true) {
           if (countSelf !== true) {
-            sql = `SELECT _a.* FROM (${ sql }) _a `;
+            // sql = `SELECT _a.* FROM (${ sql }) _a `;
           }
           if (orderBy) {
             sql = `${ sql } ORDER BY ${ orderBy }`;

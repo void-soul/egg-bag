@@ -10,7 +10,7 @@ export default class Build {
   private static page = 'COUNT(1) zccw1986 ';
   private count: boolean;
   private sum: boolean;
-
+  private brage = {haveOrderBy: false, haveLimit: false};
   /**
    *
    * Creates an instance of Build.
@@ -130,10 +130,24 @@ export default class Build {
       if (this.count === true || this.sum === true) {
         return '';
       } else {
+        this.brage.haveOrderBy = true;
         const orderBy = new Array<string>();
-        // if (/\S/.test(this.order)) {
-        //   orderBy.push(this.order);
-        // }
+        const renderOrder = render(text);
+        if (/\S/.test(renderOrder)) {
+          orderBy.push(renderOrder);
+        }
+        return orderBy.length > 0 ? ` ORDER BY ${ orderBy.join(',') }` : '';
+      }
+    };
+  }
+
+  limitTag() {
+    return (text: string, render: (text: string) => string) => {
+      if (this.count === true || this.sum === true) {
+        return '';
+      } else {
+        this.brage.haveOrderBy = true;
+        const orderBy = new Array<string>();
         const renderOrder = render(text);
         if (/\S/.test(renderOrder)) {
           orderBy.push(renderOrder);

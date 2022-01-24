@@ -61,23 +61,31 @@ export const emptyBean = <T>(classType: any): T => {
  * 将一个json数组提取为一个json对象
  * @param source 源数组
  * @param key 作为新对象的key的字段
- * @param value 作为新对象value的字段
+ * @param value 作为新对象value的字段,不传则将自身为value
  */
-export const createBeanFromArray = <T>(
-  source: any[],
-  key: string,
-  value: string
+export const createBeanFromArray = <F, T = F>(
+  source: F[],
+  key: keyof F,
+  value?: keyof F
 ): {
   [name: string]: T;
 } => {
   const result: {
     [name: string]: T;
   } = {};
-  source.forEach((item) => {
-    if (item[key]) {
-      result[item[key]] = item[value];
-    }
-  });
+  if (value) {
+    source.forEach((item) => {
+      if (item[key]) {
+        result[`${ item[key] }`] = item[value] as unknown as T;
+      }
+    });
+  } else {
+    source.forEach((item) => {
+      if (item[key]) {
+        result[`${ item[key] }`] = item as unknown as T;
+      }
+    });
+  }
   return result;
 };
 

@@ -1,7 +1,7 @@
 import {Application} from 'egg';
 const debug = require('debug')('egg-bag:loader');
 import Redis = require('ioredis');
-import Redlock = require('redlock');
+import Redlock from 'redlock';
 
 export async function loadRedis(this: Application) {
   return new Promise((resolve, reject) => {
@@ -12,7 +12,7 @@ export async function loadRedis(this: Application) {
       for (const [name, config] of Object.entries(this.config.redis.clients)) {
         redisLib[name] = new Redis(config);
         if (name === 'other') {
-          this._lock = new Redlock([redisLib[name]]);
+          this._lock = new Redlock([redisLib[name]], {});
         }
         redisLib[name].on('connect', () => {
           this.coreLogger.info(`[egg-bag] redis client ${ name } connect success`);

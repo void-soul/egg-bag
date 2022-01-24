@@ -32,7 +32,7 @@ export abstract class FlowContext<Q, S, C, M> {
   /** 最终呈现时，过滤哪些操作可以展示。如果这里返回true，那么hide类型的line也会展示 */
   readonly filterLineShow: {
     [lineCodeOrId: string]: boolean;
-  }
+  };
   /** 当前流程编码 */
   readonly flowCode: string;
   /** 本次操作起始节点编码 */

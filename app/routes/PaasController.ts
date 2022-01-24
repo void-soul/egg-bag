@@ -79,6 +79,29 @@ const query2 = {
     return await page.select();
   }
 };
+const query3 = {
+  path: '/query3.json',
+  method: 'post',
+  before: [ILogin],
+  async handel(this: Controller, {
+    body: {sqlCode},
+    body
+  }) {
+    this.app.throwIf(!sqlCode, '没有指定sql语句编码!');
+    const params: {
+      [key: string]: any;
+    } = {...body};
+    if (this.app.config.queryDefaultParam) {
+      for (const [name, key] of Object.entries(this.app.config.queryDefaultParam)) {
+        params[name] = lodash.get(
+          this.ctx.me,
+          key
+        );
+      }
+    }
+    return await this.service.paasService.queryBySqlId(sqlCode, params);
+  }
+};
 const excel = {
   path: '/excel.xlsx',
   method: 'get',
@@ -450,7 +473,8 @@ export const routes = [
 ];
 export const querys = [
   query, queryMongo, excel, excelMongo,
-  query2, queryMongo2, excel2, excelMongo2
+  query2, queryMongo2, excel2, excelMongo2,
+  query3
 ];
 export const sockets = [
   socketRoomOut, socketRoomIn

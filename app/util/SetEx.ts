@@ -196,6 +196,9 @@ export default class <T> extends Set {
   toArray(): T[] {
     return Array.from(this);
   }
+  toJSON<L = T>(key: keyof T, value?: keyof T): {[k: string]: L} {
+    return Object.fromEntries(this.toArray().map(i => [i[key], value ? i[value] : i]));
+  }
   /**
    *
    * 删除key对应的对象

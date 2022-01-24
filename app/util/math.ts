@@ -5,7 +5,9 @@ function isNum(a: any): boolean {
   return a !== '' && a !== null && !isNaN(a);
 }
 export const num = (val: any, def = 0): number => {
-  if (!isNum(val)) {
+  if (val instanceof Bus) {
+    return val.over();
+  } else if (!isNum(val)) {
     return def;
   }
   return +val;
@@ -13,7 +15,9 @@ export const num = (val: any, def = 0): number => {
 function filterNumber(array: any[]): number[] {
   const res: number[] = [];
   array.forEach((element) => {
-    if (isNum(element)) {
+    if (element instanceof Bus) {
+      res.push(element.over());
+    } else if (isNum(element)) {
       res.push(+element);
     }
   });
@@ -22,7 +26,9 @@ function filterNumber(array: any[]): number[] {
 function filterNumber2(array: any[], def?: number): Decimal[] {
   const res: Decimal[] = [];
   array.forEach((element) => {
-    if (isNum(element)) {
+    if (element instanceof Bus) {
+      res.push(new Decimal(element.over()));
+    } else if (isNum(element)) {
       res.push(new Decimal(element));
     } else if (def !== undefined) {
       res.push(new Decimal(def));
