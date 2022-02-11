@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import 'reflect-metadata';
 const transientMeda = Symbol('Transient');
 

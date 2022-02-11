@@ -112,7 +112,7 @@ export async function excuteWithCacheContext<T>(ctx: Context, config: {
   const cache = await ctx.redis.get('other').get(`[cache]${ config.key }`);
   if (cache) {
     debugCache(`cache ${ config.key } hit!`);
-    return JSON.parse(cache);
+    return JSON.parse(cache as string);
   } else {
     debugCache(`cache ${ config.key } miss!`);
     const result = await fn();
@@ -142,6 +142,7 @@ export function ContextMethodCache(config: {
       descriptor.value = async function (this: BaseContextClass) {
         // eslint-disable-next-line prefer-rest-params
         const args = Array.from(arguments);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         const key = typeof config.key === 'function' ? config.key(...args, this.ctx.me) : config.key;
         const cache = await this.app.redis.get('other').get(`[cache]${ key }`);
         if (cache) {
@@ -150,6 +151,7 @@ export function ContextMethodCache(config: {
         } else {
           debugCache(`cache ${ key } miss!`);
           const result = await fn.call(this, ...args);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           const clearKey = config.clearKey ? typeof config.clearKey === 'function' ? config.clearKey(...args, this.ctx.me) : config.clearKey : undefined;
           await setCache.call(this.app, {
             key,
@@ -168,88 +170,98 @@ export function ContextMethodCache(config: {
 
 export async function excuteLockWithApplication<T>(app: Application, config: {
   /** 返回缓存key,参数=方法的参数+当前用户对象，可以用来清空缓存。 */
-  key: (() => string) | string;
-  /** 被锁定线程是否sleep直到解锁为止? */
+  key: ((...args: any[]) => string) | string;
+  /** 被锁定线程是否sleep直到解锁为止? 默认true */
   lockWait?: boolean;
-  /** 当设置了lockWait=true时，等待多少ms进行一次锁查询? 默认100ms */
+  /** 当设置了lockWait=true时，等待多少【毫秒】进行一次锁查询? 默认：100MS */
   lockRetryInterval?: number;
-  /** 当设置了lockWait=true时，等待多少ms即视为超时，放弃本次访问？默认0，即永不放弃 */
+  /** 当设置了lockWait=true时，等待多少【毫秒】即视为超时，放弃本次访问？默认：永不放弃 */
   lockMaxWaitTime?: number;
   /** 错误信息 */
   errorMessage?: string;
-  /** 单个锁多少时间后自动释放?即时任务没有执行完毕或者没有主动释放锁? 默认10分钟 */
+  /** 允许的并发数，默认：1 */
+  lockMaxActive?: number;
+  /** 单个锁多少【毫秒】后自动释放?默认：60*1000MS  */
   lockMaxTime?: number;
-}, fn: () => Promise<T>) {
-  const key = typeof config.key === 'function' ? config.key() : config.key;
+}, fn__: () => Promise<T>) {
+  const key = `[lock]${ typeof config.key === 'function' ? config.key() : config.key }`;
   let wait_time = 0;
-  const fn_ = async () => {
+
+  const getLock = async () => {
+    let initLock: any;
     try {
-      const lock = await app._lock.acquire([key], config.lockMaxTime || 10 * 60 * 60 * 1000);
-      debugCache(`get lock ${ key } ok!`);
-      try {
-        return await fn();
-      } finally {
-        debugCache(`unlock ${ key } ok!`);
-        await lock.release();
+      initLock = await app._lock.acquire([`[lockex]${ key }`], 5000);
+      const count = await app.redis.get('other').get(key);
+      if (count === null || parseInt(count) < (config.lockMaxActive ?? 1)) {
+        await app.redis.get('other').incr(key);
+        return true;
+      } else {
+        return false;
       }
-    } catch (error) {
-      if (config.lockWait !== false && wait_time <= (config.lockMaxWaitTime || 0)) {
-        debugCache(`get lock ${ key } fail, wait for ${ config.lockRetryInterval || 100 }`);
-        await sleep(config.lockRetryInterval || 100);
-        wait_time += (config.lockRetryInterval || 100);
-        return await fn_();
+    } catch (er: any) {
+      return await getLock();
+    } finally {
+      if (initLock) {
+        try {
+          await initLock.release();
+          // eslint-disable-next-line no-empty
+        } catch (error: any) {
+        }
+      }
+    }
+  };
+  const fn = async () => {
+    const lock = await getLock();
+    if (lock === false) {
+      if (config.lockWait !== false && ((config.lockMaxWaitTime ?? 0) === 0 || (wait_time + (config.lockRetryInterval ?? 100)) <= (config.lockMaxWaitTime ?? 0))) {
+        debugCache(`get lock ${ key } fail, retry after ${ config.lockRetryInterval ?? 100 }ms...`);
+        await sleep(config.lockRetryInterval ?? 100);
+        wait_time += (config.lockRetryInterval ?? 100);
+        return await fn();
       } else {
         debugCache(`get lock ${ key } fail`);
         throw new Error(config.errorMessage || `get lock fail: ${ key }`);
       }
+    } else {
+      debugCache(`get lock ${ key } ok!`);
+      await app.redis.get('other').pexpire(key, config.lockMaxTime ?? 60000);
+      try {
+        return await fn__();
+      } finally {
+        debugCache(`unlock ${ key } ok!`);
+        await app.redis.get('other').decr(key);
+      }
     }
   };
-  return await fn_();
+  return await fn();
 }
 
-/** 与缓存共用时，需要在缓存之前 */
+/** 与缓存共用时，需要在缓存之前:有缓存则返回缓存,否则加锁执行并缓存,后续队列全部返回缓存,跳过执行 */
 export function ContextMethodLock(config: {
   /** 返回缓存key,参数=方法的参数+当前用户对象，可以用来清空缓存。 */
   key: ((...args: any[]) => string) | string;
-  /** 被锁定线程是否sleep直到解锁为止? */
+  /** 被锁定线程是否sleep直到解锁为止? 默认true */
   lockWait?: boolean;
-  /** 当设置了lockWait=true时，等待多少ms进行一次锁查询? 默认100ms */
+  /** 当设置了lockWait=true时，等待多少【毫秒】进行一次锁查询? 默认100ms */
   lockRetryInterval?: number;
-  /** 当设置了lockWait=true时，等待多少ms即视为超时，放弃本次访问？默认0，即永不放弃 */
+  /** 当设置了lockWait=true时，等待多少【毫秒】即视为超时，放弃本次访问？默认永不放弃 */
   lockMaxWaitTime?: number;
   /** 错误信息 */
   errorMessage?: string;
+  /** 允许的并发数，默认=1 */
+  lockMaxActive?: number;
+  /** 单个锁多少【毫秒】后自动释放?即时任务没有执行完毕或者没有主动释放锁?  */
+  lockMaxTime?: number;
 }) {
   return function (target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
     if (target instanceof BaseContextClass) {
+      const fn__ = descriptor.value;
       descriptor.value = async function (this: BaseContextClass) {
         // eslint-disable-next-line prefer-rest-params
         const args = Array.from(arguments);
-        const key = typeof config.key === 'function' ? config.key(...args, this.ctx.me) : config.key;
-        let wait_time = 0;
-        const fn = async () => {
-          try {
-            const lock = await this.app._lock.lock(key, 10 * 60 * 60 * 1000);
-            debugCache(`get lock ${ key } ok!`);
-            try {
-              return await descriptor.value.call(this, ...args);
-            } finally {
-              debugCache(`unlock ${ key } ok!`);
-              await lock.unlock();
-            }
-          } catch (error) {
-            if (config.lockWait !== false && wait_time <= (config.lockMaxWaitTime || 0)) {
-              debugCache(`get lock ${ key } fail, wait for ${ config.lockRetryInterval || 100 }`);
-              await sleep(config.lockRetryInterval || 100);
-              wait_time += (config.lockRetryInterval || 100);
-              return await fn();
-            } else {
-              debugCache(`get lock ${ key } fail`);
-              throw new Error(config.errorMessage || `get lock fail: ${ key }`);
-            }
-          }
-        };
-        return await fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        config.key = typeof config.key === 'function' ? config.key(...args, this.ctx.me) : config.key;
+        return await excuteLockWithApplication(this.app, config, async () => await fn__.call(this, ...args));
       };
     } else {
       throw new Error('cache must use on Service,Controller');
@@ -258,11 +270,13 @@ export function ContextMethodLock(config: {
 }
 export function http(config?: HttpConfig) {
   return function <T>(target: any, propertyKey: string, _descriptor: TypedPropertyDescriptor<T>) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     let methods: {[key: string]: HttpConfig | undefined} = Reflect.getOwnMetadata('methods', target) || [];
     if (!methods) {
       methods = {};
     }
     methods[propertyKey] = config;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     Reflect.defineMetadata('methods', methods, target.constructor);
   };
 }
@@ -274,6 +288,7 @@ export function param(config?: {
   cookie?: boolean;
 }) {
   return function (target: any, propertyKey: string | symbol, parameterIndex: number) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     Reflect.defineMetadata(parameterIndex, config, target.constructor, propertyKey);
   };
 }

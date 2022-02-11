@@ -10,6 +10,7 @@ export function loadSync(this: Application) {
     for (const subFile of subFiles) {
       const sub = require(path.join(syncSubPath, subFile)).default;
       const subName = subFile.replace(/.js|.ts/, '');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       this.subSync(subName, sub);
     }
   } else {
@@ -27,6 +28,7 @@ export function loadAsync(this: Application) {
     for (const subFile of subFiles) {
       const subName = subFile.replace(/.js|.ts/, '');
       const sub = require(path.join(asyncSubPath, subFile)).default;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       this.subASync(subName, sub);
     }
   } else {

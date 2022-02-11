@@ -8,6 +8,7 @@ import lodash = require('lodash');
  */
 export const copyBean = <T>(source: any, classType: any): T => {
   const result = {};
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   Object.keys(classType).forEach((key) => {
     result[key] =
       source[key] !== undefined ? source[key] : (result[key] = null);
@@ -51,6 +52,7 @@ export const convertBeans = <T>(
  */
 export const emptyBean = <T>(classType: any): T => {
   const target = {} as T;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   Object.keys(classType).forEach((key) => {
     target[key] = null;
   });
@@ -100,6 +102,7 @@ export const coverComplexBean = <T>(
 ): {data: T; array: {[key: string]: any[]}} => {
   const result = {};
   const arrayData = {};
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   for (const [key, value] of Object.entries(source)) {
     if (lodash.isArray(value)) {
       arrayData[key] = value;

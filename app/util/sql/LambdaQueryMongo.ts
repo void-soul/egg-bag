@@ -66,7 +66,7 @@ export default class LambdaQueryMongo<T> {
   @IF()
   $eqT(t: {[P in keyof T]?: T[P]}): this {
     for (const [key, value] of Object.entries(t)) {
-      this.common(value, '$eq', key as any);
+      this.common(value, '$eq', key as keyof T);
     }
     return this;
   }

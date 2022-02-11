@@ -621,7 +621,7 @@ export class FlowExcute<Q, S, C, M> {
           }
         } catch (error: any) {
           if (error.eggBag !== 1 && lines.error) {
-            core.context.error.push(error.message);
+            core.context.error.push(error.message as string);
             nextAction = lines.error;
           } else {
             throw error;
@@ -642,7 +642,7 @@ export class FlowExcute<Q, S, C, M> {
           this.throwIf(!nextAction, `${ to }结果为${ nextSwitch },但无匹配的操作`);
         } catch (error: any) {
           if (error.eggBag !== 1 && lines.error) {
-            core.context.error.push(error.message);
+            core.context.error.push(error.message as string);
             nextAction = lines.error;
           } else {
             throw error;
@@ -668,7 +668,7 @@ export class FlowExcute<Q, S, C, M> {
           }
         } catch (error: any) {
           if (error.eggBag !== 1 && lines.error) {
-            core.context.error.push(error.message);
+            core.context.error.push(error.message as string);
             nextAction = lines.error;
           } else {
             throw error;
@@ -697,7 +697,7 @@ export class FlowExcute<Q, S, C, M> {
           await node.excute.call(core.context);
         } catch (error: any) {
           if (error.eggBag !== 1 && lines.error) {
-            core.context.error.push(error.message);
+            core.context.error.push(error.message as string);
             nextAction = lines.error;
           } else {
             throw error;

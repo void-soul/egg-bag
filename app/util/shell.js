@@ -181,7 +181,7 @@ const EggShell = (app, options = {}) => {
                     }
                     ctx.response.type = contentType;
                     ctx.response.body = result;
-                  } else {
+                  } else if (ctx.response.type !== 'text/html') {
                     if (result === null) {
                       ctx.response.body = {
                         result: null
@@ -193,6 +193,8 @@ const EggShell = (app, options = {}) => {
                         result
                       };
                     }
+                  } else {
+                    ctx.response.body = result;
                   }
                 }
                 for (const after of afters) {
@@ -328,7 +330,7 @@ const EggInstall = (target, app, options = {}) => {
         } else if (target.type) {
           ctx.response.type = target.type;
           ctx.response.body = result;
-        } else {
+        } else if (ctx.response.type !== 'text/html') {
           if (result === null) {
             ctx.response.body = {
               result: null
@@ -340,6 +342,8 @@ const EggInstall = (target, app, options = {}) => {
               result
             };
           }
+        } else {
+          ctx.response.body = result;
         }
         for (const after of afters) {
           await after()(ctx, next);

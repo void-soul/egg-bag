@@ -30,10 +30,12 @@ const flow = async (port: number) => {
       console.log(`http://127.0.0.1:${ port }/flow?code=${ code }`);
     }
   }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   await server.register(require("fastify-static"), {
     root: join(__dirname, 'public'),
     prefix: '/public/'
   });
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   await server.register(require('fastify-formbody'));
   server.get<{
     Querystring: {code: string}

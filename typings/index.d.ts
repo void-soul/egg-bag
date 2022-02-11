@@ -1,5 +1,5 @@
 import {Application, Service, Subscription, Context, BaseContextClass, IService} from 'egg';
-import {MongoClient, MongoClientOptions, FilterQuery, ClientSession, SessionOptions} from 'mongodb';
+import {MongoClient, MongoClientOptions, FilterQuery, ClientSession, ClientSessionOptions} from 'mongodb';
 // tslint:disable-next-line:no-implicit-dependencies
 import {Redis} from 'ioredis';
 import {Schema} from 'fast-json-stringify';
@@ -8,7 +8,7 @@ import {IncomingMessage, ServerResponse} from 'http';
 // tslint:disable-next-line:no-implicit-dependencies
 import {Socket, Server as SocketServer, Namespace as SocketNameSpace} from 'socket.io';
 import {RedisOptions} from 'ioredis';
-import {Redlock} from 'redlock';
+import Redlock from 'redlock';
 import {type} from 'os';
 /** 链式计算 */
 export class Bus {
@@ -3896,11 +3896,10 @@ export interface SqlSession {
     where?: {[P in keyof T]?: T[P]};
     columns: (keyof T)[];
   }) => Promise<{affectedRows: number}>;
-  updateRows: <T>(tableName: string, options: {
-    rows: Array<{[P in keyof T]?: T[P]}>;
+  updateRows: <T>(tableName: string, options: Array<{
+    row: {[P in keyof T]?: T[P]};
     where: {[P in keyof T]?: T[P]};
-    columns: (keyof T)[];
-  }) => Promise<{affectedRows: number}>;
+  }>) => Promise<{affectedRows: number}>;
   delete: <T>(tableName: string, where?: {[P in keyof T]?: T[P]}) => Promise<{affectedRows: number}>;
   beginTransactionScope: (fn: (conn: SqlSession) => Promise<any>, ctx: Context) => Promise<any>;
 }
@@ -4391,15 +4390,19 @@ declare module 'egg' {
     /** 带锁执行 */
     excuteWithLock<T>(this: Application, config: {
       /** 返回缓存key,参数=方法的参数+当前用户对象，可以用来清空缓存。 */
-      key: (() => string) | string;
-      /** 被锁定线程是否sleep直到解锁为止? */
+      key: ((...args: any[]) => string) | string;
+      /** 被锁定线程是否sleep直到解锁为止? 默认true */
       lockWait?: boolean;
-      /** 当设置了lockWait=true时，等待多少ms进行一次锁查询? 默认100ms */
+      /** 当设置了lockWait=true时，等待多少【毫秒】进行一次锁查询? 默认100ms */
       lockRetryInterval?: number;
-      /** 当设置了lockWait=true时，等待多少ms即视为超时，放弃本次访问？默认0，即永不放弃 */
+      /** 当设置了lockWait=true时，等待多少【毫秒】即视为超时，放弃本次访问？默认永不放弃 */
       lockMaxWaitTime?: number;
       /** 错误信息 */
       errorMessage?: string;
+      /** 允许的并发数，默认=1 */
+      lockMaxActive?: number;
+      /** 单个锁多少【毫秒】后自动释放?即时任务没有执行完毕或者没有主动释放锁?  */
+      lockMaxTime?: number;
     }, fn: () => Promise<T>): Promise<T>;
     /** 带缓存执行 */
     excuteWithCache<T>(this: Application, config: {
@@ -4480,7 +4483,7 @@ declare module 'egg' {
       uri: string;
       options: MongoClientOptions;
       replica: boolean;
-      sessionOptions: SessionOptions;
+      sessionOptions: ClientSessionOptions;
     };
     /** 用户类的类型映射，加快用户会话存储 */
     userScheam: {[key: string]: Schema};
@@ -4993,18 +4996,22 @@ export const ContextMethodCache: (config: {
   /** 随着当前用户sesion的清空而一起清空 */
   clearWithSession?: boolean;
 }) => MethodDecorator;
-/** 方法锁 */
+/** 方法锁,与缓存共用时，需要在缓存之前 */
 export const ContextMethodLock: (config: {
   /** 返回缓存key,参数=方法的参数+当前用户对象，可以用来清空缓存。 */
   key: ((...args: any[]) => string) | string;
-  /** 被锁定线程是否sleep直到解锁为止? */
+  /** 被锁定线程是否sleep直到解锁为止? 默认true */
   lockWait?: boolean;
-  /** 当设置了lockWait=true时，等待多少ms进行一次锁查询? 默认100ms */
+  /** 当设置了lockWait=true时，等待多少【毫秒】进行一次锁查询? 默认100ms */
   lockRetryInterval?: number;
-  /** 当设置了lockWait=true时，等待多少ms即视为超时，放弃本次访问？默认0，即永不放弃 */
+  /** 当设置了lockWait=true时，等待多少【毫秒】即视为超时，放弃本次访问？默认永不放弃 */
   lockMaxWaitTime?: number;
   /** 错误信息 */
   errorMessage?: string;
+  /** 允许的并发数，默认=1 */
+  lockMaxActive?: number;
+  /** 单个锁多少【毫秒】后自动释放?即时任务没有执行完毕或者没有主动释放锁?  */
+  lockMaxTime?: number;
 }) => MethodDecorator;
 
 /**

@@ -30,6 +30,7 @@ export default {
     // 踢掉其他用户
     if (dickOut && this.app.config.socket) {
       if (this.app.config.socket.onlyOneLogin(user) === true) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         this.getLoginInfos(user.userid).then(users => {
           if (users) {
             for (const oneUser of users) {
@@ -211,6 +212,7 @@ export default {
   async emitASync(this: Context, name: string, ...args: any[]) {
     if (this.app._asyncSubClient[name]) {
       debug(` async-sub named ${ name } has been called`);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       return await this.app._asyncSubClient[name].call(this, ...args);
     }
   },
@@ -221,6 +223,7 @@ export default {
         await this.loginByDevid(devid);
       }
       this.app.throwIf(!this.me, '缓存的登录信息已失效!');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       return await this.app._asyncSubClient[name].call(this, ...args);
     }
   },

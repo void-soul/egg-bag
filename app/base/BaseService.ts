@@ -303,7 +303,7 @@ export default abstract class BaseService<T> extends Service {
       const result = await conn.insertIF<T>(
         tableName(this.tableName),
         [{row, where}],
-        Object.keys(row) as any
+        Object.keys(row) as (keyof T)[]
       );
 
       return result.insertId;
@@ -480,7 +480,10 @@ export default abstract class BaseService<T> extends Service {
       return [];
     }
     return await this.transction(async (conn) => {
-      const options = new Array<any>();
+      const options = new Array<{
+        row: {[P in keyof T]?: T[P]};
+        where: {[P in keyof T]?: T[P]};
+      }>();
       datas.forEach((item) => {
         const where: {[P in keyof T]?: T[P]} = {};
         columns.forEach((column) => {
@@ -700,7 +703,10 @@ export default abstract class BaseService<T> extends Service {
       return [];
     }
     return await this.transction(async (conn) => {
-      const options = new Array<any>();
+      const options = new Array<{
+        row: {[P in keyof T]?: T[P]};
+        where: {[P in keyof T]?: T[P]};
+      }>();
       const columnInsert = new Set<keyof T>();
       datas.forEach((item) => {
         const where: {[P in keyof T]?: T[P]} = {};
@@ -983,8 +989,9 @@ export default abstract class BaseService<T> extends Service {
       return 0;
     }
     const options: {
-      [name: string]: any;
-    } = [];
+      row: {[P in keyof T]?: T[P]};
+      where: {[P in keyof T]?: T[P]};
+    }[] = [];
     return await this.transction(async (conn) => {
       for (const data of datas) {
         const where: {[P in keyof T]?: T[P]} = {};
@@ -994,8 +1001,7 @@ export default abstract class BaseService<T> extends Service {
         }
         options.push({
           row: this.filterEmptyAndTransient<T>(data, false),
-          where,
-          columns: this.keys
+          where
         });
       }
       let result = 0;
@@ -1034,8 +1040,9 @@ export default abstract class BaseService<T> extends Service {
       return 0;
     }
     const options: {
-      [name: string]: any;
-    } = [];
+      row: {[P in keyof T]?: T[P]};
+      where: {[P in keyof T]?: T[P]};
+    }[] = [];
     return await this.transction(async (conn) => {
       for (const data of datas) {
         const where: {[P in keyof T]?: T[P]} = {};
@@ -1049,8 +1056,7 @@ export default abstract class BaseService<T> extends Service {
         const realdata = this.filterEmptyAndTransient<T>(data, true, dealEmptyString);
         options.push({
           row: realdata,
-          where,
-          columns: Object.keys(realdata)
+          where
         });
       }
       let result = 0;
@@ -1192,11 +1198,16 @@ export default abstract class BaseService<T> extends Service {
       serviceTableName: string
     ) => serviceTableName
   ): Promise<T> {
-    return await this.incrsMutiBy({
-      [this.idNames[0]]: id
-    } as any, {
-      [columnName]: 1
-    } as any, transction, tableName);
+    return await this.incrsMutiBy(
+      {
+        [this.idNames[0]]: id
+      } as {
+        [P in keyof T]?: T[P]
+      },
+      {[columnName]: 1} as {
+        [P in keyof T]?: number
+      },
+      transction, tableName);
   }
   /**
    * 根据id主键，为某个值-1
@@ -1216,11 +1227,16 @@ export default abstract class BaseService<T> extends Service {
       serviceTableName: string
     ) => serviceTableName
   ): Promise<T> {
-    return await this.incrsMutiBy({
-      [this.idNames[0]]: id
-    } as any, {
-      [columnName]: -1
-    } as any, transction, tableName);
+    return await this.incrsMutiBy(
+      {
+        [this.idNames[0]]: id
+      } as {
+        [P in keyof T]?: T[P]
+      },
+      {[columnName]: 1} as {
+        [P in keyof T]?: number
+      },
+      transction, tableName);
   }
   /**
    * 根据id主键，为某个值-value
@@ -1241,11 +1257,16 @@ export default abstract class BaseService<T> extends Service {
       serviceTableName: string
     ) => serviceTableName
   ): Promise<T> {
-    return await this.incrsMutiBy({
-      [this.idNames[0]]: id
-    } as any, {
-      [columnName]: 0 - value
-    } as any, transction, tableName);
+    return await this.incrsMutiBy(
+      {
+        [this.idNames[0]]: id
+      } as {
+        [P in keyof T]?: T[P]
+      },
+      {[columnName]: 0 - value} as {
+        [P in keyof T]?: number
+      },
+      transction, tableName);
   }
   /**
     * 根据id主键，为某个值-value
@@ -1265,9 +1286,14 @@ export default abstract class BaseService<T> extends Service {
       serviceTableName: string
     ) => serviceTableName
   ): Promise<T> {
-    return await this.incrsMutiBy({
-      [this.idNames[0]]: id
-    } as any, data, transction, tableName);
+    return await this.incrsMutiBy(
+      {
+        [this.idNames[0]]: id
+      } as {
+        [P in keyof T]?: T[P]
+      },
+      data,
+      transction, tableName);
   }
   /**
     * 根据id主键，为某个值+value
@@ -1288,11 +1314,16 @@ export default abstract class BaseService<T> extends Service {
       serviceTableName: string
     ) => serviceTableName
   ): Promise<T> {
-    return await this.incrsMutiBy({
-      [this.idNames[0]]: id
-    } as any, {
-      [columnName]: value
-    } as any, transction, tableName);
+    return await this.incrsMutiBy(
+      {
+        [this.idNames[0]]: id
+      } as {
+        [P in keyof T]?: T[P]
+      },
+      {[columnName]: value} as {
+        [P in keyof T]?: number
+      },
+      transction, tableName);
   }
 
   /**
@@ -1313,9 +1344,14 @@ export default abstract class BaseService<T> extends Service {
       serviceTableName: string
     ) => serviceTableName
   ): Promise<T> {
-    return await this.incrsMutiBy({
-      [this.idNames[0]]: id
-    } as any, data, transction, tableName);
+    return await this.incrsMutiBy(
+      {
+        [this.idNames[0]]: id
+      } as {
+        [P in keyof T]?: T[P]
+      },
+      data,
+      transction, tableName);
   }
 
   /**
@@ -1336,9 +1372,12 @@ export default abstract class BaseService<T> extends Service {
       serviceTableName: string
     ) => serviceTableName
   ): Promise<T> {
-    return await this.incrsMutiBy(ids, {
-      [columnName]: 1
-    } as any, transction, tableName);
+    return await this.incrsMutiBy(
+      ids,
+      {[columnName]: 1} as {
+        [P in keyof T]?: number
+      },
+      transction, tableName);
   }
   /**
    * 根据复合id主键，为某个值-1
@@ -1358,9 +1397,12 @@ export default abstract class BaseService<T> extends Service {
       serviceTableName: string
     ) => serviceTableName
   ): Promise<T> {
-    return await this.incrsMutiBy(ids, {
-      [columnName]: -1
-    } as any, transction, tableName);
+    return await this.incrsMutiBy(
+      ids,
+      {[columnName]: -1} as {
+        [P in keyof T]?: number
+      },
+      transction, tableName);
   }
   /**
    * 根据复合id主键，为某个值-value
@@ -1381,9 +1423,12 @@ export default abstract class BaseService<T> extends Service {
       serviceTableName: string
     ) => serviceTableName
   ): Promise<T> {
-    return await this.incrsMutiBy(ids, {
-      [columnName]: 0 - value
-    } as any, transction, tableName);
+    return await this.incrsMutiBy(
+      ids,
+      {[columnName]: 0 - value} as {
+        [P in keyof T]?: number
+      },
+      transction, tableName);
   }
   /**
     * 根据复合id主键，为某个值+value
@@ -1404,9 +1449,12 @@ export default abstract class BaseService<T> extends Service {
       serviceTableName: string
     ) => serviceTableName
   ): Promise<T> {
-    return await this.incrsMutiBy(ids, {
-      [columnName]: value
-    } as any, transction, tableName);
+    return await this.incrsMutiBy(
+      ids,
+      {[columnName]: value} as {
+        [P in keyof T]?: number
+      },
+      transction, tableName);
   }
   /**
      * 根据复合id主键，为某个值+value
@@ -1434,7 +1482,7 @@ export default abstract class BaseService<T> extends Service {
       for (const idName of this.idNames) {
         this.app.throwIf(!ids[idName], `id must be set!${ this.tableName }`);
         where.push(`${ idName } = :${ idName }`);
-        keys.push(idName as any);
+        keys.push(idName as string);
         param[idName] = ids[idName];
       }
       for (const [key, value] of Object.entries(data)) {
@@ -1469,9 +1517,9 @@ export default abstract class BaseService<T> extends Service {
     return await this.transction(async (conn) => {
       if (this.stateFileName) {
         const data = {
-          [this.stateFileName]: this.deleteState
+          [this.stateFileName as keyof T]: this.deleteState as unknown as any
         };
-        const result = await conn.updateUnSafe<T>(tableName(this.tableName), data as any, {
+        const result = await conn.updateUnSafe<T>(tableName(this.tableName), data as {[P in keyof T]: T[P] | any}, {
           columns: [this.stateFileName as any]
         });
         return result.affectedRows;
@@ -1504,7 +1552,7 @@ export default abstract class BaseService<T> extends Service {
         const data = {
           [this.stateFileName]: this.deleteState
         };
-        const result = await conn.update<T>(tableName(this.tableName), data as any, {
+        const result = await conn.update<T>(tableName(this.tableName), data as {[P in keyof T]: T[P] | any}, {
           where: this.filterEmptyAndTransient<T>(where),
           columns: [this.stateFileName as any]
         });
@@ -1583,7 +1631,7 @@ export default abstract class BaseService<T> extends Service {
         const realdata = {
           [this.stateFileName]: this.deleteState
         };
-        const result = await conn.update<T>(tableName(this.tableName), realdata as any, {
+        const result = await conn.update<T>(tableName(this.tableName), realdata as {[P in keyof T]: T[P] | any}, {
           where,
           columns: [this.stateFileName as any]
         });
@@ -2641,7 +2689,7 @@ export default abstract class BaseService<T> extends Service {
   ): Promise<M | null> {
     const data: {
       [name: string]: any;
-    } = await this.queryMutiRowMutiColumnBySqlId(sqlid, param, transction);
+    }[] = await this.queryMutiRowMutiColumnBySqlId(sqlid, param, transction);
     return data.length === 0
       ? null
       : (Object.values(data[data.length - 1])[0] as M);
@@ -2660,9 +2708,7 @@ export default abstract class BaseService<T> extends Service {
     param?: {[propName: string]: any},
     transction?: SqlSession
   ): Promise<M | null> {
-    const data: {
-      [name: string]: any;
-    } = await this.queryMutiRowMutiColumnBySql(sql, param, transction);
+    const data = await this.queryMutiRowMutiColumnBySql<T>(sql, param, transction);
     return data.length === 0 ? null : (Object.values(data[0])[0] as M);
   }
   /**
@@ -2803,7 +2849,7 @@ export default abstract class BaseService<T> extends Service {
       for (const lambda of lambdas) {
         const {sql, param} = lambda.get();
         const r = await conn.query(sql, this.fixParam(param));
-        result.push(r.affectedRows);
+        result.push(r.affectedRows as number);
       }
       return result;
     }, transction);
@@ -2822,7 +2868,7 @@ export default abstract class BaseService<T> extends Service {
         const {sql, param} = lambda.get();
         if (sql) {
           const r = await this.app.mysql.query(sql, this.fixParam(param));
-          result.push(r);
+          result.push(r as any[]);
         }
       }
       return result;
@@ -2833,7 +2879,7 @@ export default abstract class BaseService<T> extends Service {
           const {sql, param} = lambda.get();
           if (sql) {
             const r = await conn.query(sql, this.fixParam(param));
-            result.push(r);
+            result.push(r as any[]);
           }
         }
         return result;

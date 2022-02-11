@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import Decimal from 'decimal.js';
 import {Point, MoneyOption} from '../../typings';
 

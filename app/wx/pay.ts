@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import * as fs from 'fs';
 import * as md5 from 'md5';
 import * as path from 'path';

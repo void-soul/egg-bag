@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import {Controller} from 'egg';
 import ILogin from '../middleware/ILogin';
 import * as dayjs from 'dayjs';

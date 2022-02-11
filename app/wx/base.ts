@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import {Application} from 'egg';
 import rp = require('request-promise');
 export abstract class BaseWx {
@@ -50,10 +51,10 @@ export abstract class BaseWx {
         qs: data,
         encoding: buffer ? null : undefined
       } : {
-          json: data,
-          method,
-          encoding: buffer ? null : undefined
-        };
+        json: data,
+        method,
+        encoding: buffer ? null : undefined
+      };
       let response = await rp({
         uri: url,
         ...param

@@ -181,7 +181,7 @@ export default class LambdaQuery<T> {
   @IF()
   andEqT(t: {[P in keyof T]?: T[P]}): this {
     for (const [key, value] of Object.entries(t)) {
-      this.common(key as any, value, '=');
+      this.common(key as keyof T, value, '=');
     }
     return this;
   }

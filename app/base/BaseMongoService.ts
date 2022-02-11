@@ -1727,7 +1727,7 @@ export default abstract class BaseMongoService<T> extends Service {
   ): Promise<M | null> {
     const data: {
       [name: string]: any;
-    } = await this.queryMutiRowMutiColumnBySql(item, transction);
+    }[] = await this.queryMutiRowMutiColumnBySql(item, transction);
     return data.length === 0
       ? null
       : (Object.values(data[data.length - 1])[0] as M);
@@ -1758,7 +1758,7 @@ export default abstract class BaseMongoService<T> extends Service {
   ): Promise<M | null> {
     const data: {
       [name: string]: any;
-    } = await this.queryMutiRowMutiColumnBySqlId(sqlid, param, transction);
+    }[] = await this.queryMutiRowMutiColumnBySqlId(sqlid, param, transction);
     return data.length === 0
       ? null
       : (Object.values(data[data.length - 1])[0] as M);
@@ -1885,6 +1885,7 @@ export default abstract class BaseMongoService<T> extends Service {
     transction?: MongoSession
   ): Promise<any> {
     if (transction === undefined && this.app.config.mongo && this.app.config.mongo.replica === true) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const session = this.app.mongo.startSession(this.app.config.mongo.sessionOptions);
       try {
         session.startTransaction();

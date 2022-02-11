@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 export default class <T> extends Set {
   private uniqueKey: keyof T;
   private whenOnExist?: (oldData: T, newData: T) => void | null;

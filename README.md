@@ -367,3 +367,9 @@ import initDataFlow from "app/flow-help/init-data-flow";
 1. `app`增加 transctionMysql、excuteWithLock、excuteWithCache
 2. `ctx`增加 excuteWithCache
 3. 增加 ContextMethodLock 注释
+
+# 1.46.0
+
+1. 修复 ContextMethodLock 存在的 bug
+2. 支持 ContextMethodLock 和 ContextMethodCache 同时使用
+3. 升级依赖

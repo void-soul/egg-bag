@@ -7,6 +7,7 @@ export const nowDate = () => day().format(date);
 export const nowTimeXSD = () => day().format(dateXSDTime);
 export const dateFormat = (str: any, format?: string) => {
   if (str) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return day(str).format(format || dateTime);
   } else {
     return str;

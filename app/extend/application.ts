@@ -160,10 +160,12 @@ export default {
   },
   async emitASync(this: Application, name: string, ...args: any[]) {
     debug(`async-sub named ${ name } has been called`);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return await this.createAnonymousContext().emitASync(name, ...args);
   },
   async emitASyncWithDevid(this: Application, name: string, devid: string, ...args: any[]) {
     debug(`async-sub named ${ name } has been called`);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return await this.createAnonymousContext().emitASyncWithDevid(name, devid, ...args);
   },
   emitSyncRandom(this: Application, name: string, ...args: any[]) {
@@ -219,15 +221,19 @@ export default {
   },
   async excuteWithLock<T>(this: Application, config: {
     /** 返回缓存key,参数=方法的参数+当前用户对象，可以用来清空缓存。 */
-    key: (() => string) | string;
-    /** 被锁定线程是否sleep直到解锁为止? */
+    key: ((...args: any[]) => string) | string;
+    /** 被锁定线程是否sleep直到解锁为止? 默认true */
     lockWait?: boolean;
-    /** 当设置了lockWait=true时，等待多少ms进行一次锁查询? 默认100ms */
+    /** 当设置了lockWait=true时，等待多少【毫秒】进行一次锁查询? 默认100ms */
     lockRetryInterval?: number;
-    /** 当设置了lockWait=true时，等待多少ms即视为超时，放弃本次访问？默认0，即永不放弃 */
+    /** 当设置了lockWait=true时，等待多少【毫秒】即视为超时，放弃本次访问？默认永不放弃 */
     lockMaxWaitTime?: number;
     /** 错误信息 */
     errorMessage?: string;
+    /** 允许的并发数，默认=1 */
+    lockMaxActive?: number;
+    /** 单个锁多少【毫秒】后自动释放?即时任务没有执行完毕或者没有主动释放锁?  */
+    lockMaxTime?: number;
   }, fn: () => Promise<T>): Promise<T> {
     return await excuteLockWithApplication<T>(this, config, fn);
   },

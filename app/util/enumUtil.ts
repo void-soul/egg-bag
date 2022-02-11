@@ -9,6 +9,7 @@ export const enumToJson = (GlobalValues: any): EnmuJson => {
     GlobalArray: {},
     GlobalMap: {}
   };
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   Object.keys(GlobalValues).forEach((item) => {
     const guess = /([\w\W]+)_([^_]+)$/.exec(item);
     if (
