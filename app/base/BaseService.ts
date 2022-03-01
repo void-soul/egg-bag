@@ -129,8 +129,8 @@ export default abstract class BaseService<T> extends Service {
   }
   /**
    * 插入或修改所有列
-   * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
-   * 此方法是数据库级别的函数，先删除再插入
+   * 返回自增主键或者修改行数
+   * 此方法需要保证：数据库有主键或者唯一约束，且插入的数据中有主键或者唯一约束；执行时优先插入，当主键冲突时执行更新
    * @param {T} data
    * @param {*} [transction=true] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
@@ -332,8 +332,8 @@ export default abstract class BaseService<T> extends Service {
   }
   /**
    * 只插入或修改非空字段(排除undefined、null、空字符串)
-   * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
-   * 此方法是数据库级别的函数，先删除再插入
+   * 返回自增主键或者修改行数
+   * 此方法需要保证：数据库有主键或者唯一约束，且插入的数据中有主键或者唯一约束；执行时优先插入，当主键冲突时执行更新
    * @param {T} data
    * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
@@ -363,8 +363,8 @@ export default abstract class BaseService<T> extends Service {
   }
   /**
    * 只插入或修改非空字段(排除undefined、null)
-   * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
-   * 此方法是数据库级别的函数，先删除再插入
+   * 返回自增主键或者修改行数
+   * 此方法需要保证：数据库有主键或者唯一约束，且插入的数据中有主键或者唯一约束；执行时优先插入，当主键冲突时执行更新
    * @param {T} data
    * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
@@ -512,8 +512,8 @@ export default abstract class BaseService<T> extends Service {
   }
   /**
    * 批量插入或修改所有列
-   * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
-   * 此方法是数据库级别的函数，先删除再插入
+   * 返回自增主键或者修改行数
+   * 此方法需要保证：数据库有主键或者唯一约束，且插入的数据中有主键或者唯一约束；执行时优先插入，当主键冲突时执行更新
    * @param {T[]} datas
    * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
@@ -760,10 +760,10 @@ export default abstract class BaseService<T> extends Service {
   }
   /**
    * 快速批量插入或修改非空字段(排除undefined、null、空字符串)
-   * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
+   * 返回自增主键或者修改行数
    * 注意：此方法认为所有记录的字段都和第一条一致,比第一条多的字段不会保存，比第一条少的字段将变为null
    * 若想安全的修改，请使用replaceBatchTemplateSafe(较慢，但每条都会完整保存)
-   * 此方法是数据库级别的函数，先删除再插入
+   * 此方法需要保证：数据库有主键或者唯一约束，且插入的数据中有主键或者唯一约束；执行时优先插入，当主键冲突时执行更新
    * @param {T[]} datas
    * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
@@ -803,10 +803,10 @@ export default abstract class BaseService<T> extends Service {
   }
   /**
    * 快速批量插入或修改非空字段(排除undefined、null)
-   * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
+   * 返回自增主键或者修改行数
    * 注意：此方法认为所有记录的字段都和第一条一致,比第一条多的字段不会保存，比第一条少的字段将变为null
    * 若想安全的修改，请使用replaceBatchTemplateSafe(较慢，但每条都会完整保存)
-   * 此方法是数据库级别的函数，先删除再插入
+   * 此方法需要保证：数据库有主键或者唯一约束，且插入的数据中有主键或者唯一约束；执行时优先插入，当主键冲突时执行更新
    * @param {T[]} datas
    * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
@@ -826,8 +826,8 @@ export default abstract class BaseService<T> extends Service {
   }
   /**
    * 安全的批量插入或修改非空字段(排除undefined、null、空字符串)
-   * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
-   * 此方法是数据库级别的函数，先删除再插入
+   * 返回自增主键或者修改行数
+   * 此方法需要保证：数据库有主键或者唯一约束，且插入的数据中有主键或者唯一约束；执行时优先插入，当主键冲突时执行更新
    * @param {T[]} datas
    * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(
@@ -862,8 +862,8 @@ export default abstract class BaseService<T> extends Service {
   }
   /**
    * 安全的批量插入或修改非空字段(排除undefined、null)
-   * 返回自增主键或者修改行数(当修改时，会删除旧记录并重新插入)
-   * 此方法是数据库级别的函数，先删除再插入
+   * 返回自增主键或者修改行数
+   * 此方法需要保证：数据库有主键或者唯一约束，且插入的数据中有主键或者唯一约束；执行时优先插入，当主键冲突时执行更新
    * @param {T[]} datas
    * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @param {(serviceTableName: string) => string} [tableName=(

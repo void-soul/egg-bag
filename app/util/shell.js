@@ -232,6 +232,7 @@ const EggShell = (app, options = {}) => {
         const afters = [...options.after, ...afterAll, ...after];
         const install = (sp) => {
           io.of('/').route(prefix + sp, async function () {
+            const start = +new Date();
             try {
               const instance = new c.constructor(this);
               for (const before of befores) {

@@ -1,6 +1,6 @@
 {
   "name": "egg-bag",
-  "version": "1.46.0",
+  "version": "1.46.1",
   "description": "egg-bag framework beta",
   "keywords": [
     "egg",
@@ -45,6 +45,7 @@
     "@types/request": "2.48.8",
     "@types/request-promise": "4.1.48",
     "@types/shelljs": "0.8.11",
+    "@types/socket.io": "2.1.13",
     "@typescript-eslint/eslint-plugin": "5.11.0",
     "@typescript-eslint/parser": "5.11.0",
     "autod": "3.1.2",
@@ -95,7 +96,6 @@
     "xml2js": "0.4.23"
   },
   "devDependencies": {
-    "@types/socket.io": "2.1.13",
     "@types/xml2js": "0.4.9"
   },
   "engines": {},
