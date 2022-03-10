@@ -230,7 +230,7 @@ export default class LambdaQuery<T> {
     value: T[keyof T],
     force?: boolean
   ): this {
-    if (force === true && (value === undefined || value === null || (value as any) === '')) {
+    if (force !== false && (value === undefined || value === null || (value as any) === '')) {
       this.ifvFix = false;
     }
     return this.like(key, value);
@@ -255,7 +255,7 @@ export default class LambdaQuery<T> {
     value: T[keyof T],
     force?: boolean
   ): this {
-    if (force === true && (value === undefined || value === null || (value as any) === '')) {
+    if (force !== false && (value === undefined || value === null || (value as any) === '')) {
       this.ifvFix = false;
     }
     return this.like(key, value, 'NOT');
@@ -266,7 +266,7 @@ export default class LambdaQuery<T> {
     value: T[keyof T],
     force?: boolean
   ): this {
-    if (force === true && (value === undefined || value === null || (value as any) === '')) {
+    if (force !== false && (value === undefined || value === null || (value as any) === '')) {
       this.ifvFix = false;
     }
     return this.like(key, value, '', '%', '');
@@ -277,7 +277,7 @@ export default class LambdaQuery<T> {
     value: T[keyof T],
     force?: boolean
   ): this {
-    if (force === true && (value === undefined || value === null || (value as any) === '')) {
+    if (force !== false && (value === undefined || value === null || (value as any) === '')) {
       this.ifvFix = false;
     }
     return this.like(key, value, 'NOT', '%', '');
@@ -288,7 +288,7 @@ export default class LambdaQuery<T> {
     value: T[keyof T],
     force?: boolean
   ): this {
-    if (force === true && (value === undefined || value === null || (value as any) === '')) {
+    if (force !== false && (value === undefined || value === null || (value as any) === '')) {
       this.ifvFix = false;
     }
     return this.like(key, value, '', '', '%');
@@ -299,7 +299,7 @@ export default class LambdaQuery<T> {
     value: T[keyof T],
     force?: boolean
   ): this {
-    if (force === true && (value === undefined || value === null || (value as any) === '')) {
+    if (force !== false && (value === undefined || value === null || (value as any) === '')) {
       this.ifvFix = false;
     }
     return this.like(key, value, 'NOT', '', '%');
@@ -314,14 +314,14 @@ export default class LambdaQuery<T> {
   }
   @IF()
   andIn(key: keyof T, value: T[keyof T][], force?: boolean): this {
-    if (force === true && value.length === 0) {
+    if (force !== false && value.length === 0) {
       this.ifvFix = false;
     }
     return this.commonIn(key, value);
   }
   @IF()
   andNotIn(key: keyof T, value: T[keyof T][], force?: boolean): this {
-    if (force === true && value.length === 0) {
+    if (force !== false && value.length === 0) {
       this.ifvFix = false;
     }
     return this.commonIn(key, value, 'NOT');
