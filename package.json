@@ -74,7 +74,7 @@
     "eslint-plugin-promise": "6.0.0",
     "eslint-plugin-standard": "5.0.0",
     "fast-json-stringify": "3.0.2",
-    "fastify": "3.27.1",
+    "fastify": "3.29.4",
     "fastify-formbody": "5.2.0",
     "fastify-static": "4.5.0",
     "ioredis": "4.28.5",
