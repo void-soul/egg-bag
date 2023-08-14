@@ -2,6 +2,8 @@
 import Decimal from 'decimal.js';
 import {Point, MoneyOption} from '../../typings';
 
+// const ONE = new Decimal(1);
+const ZERO = new Decimal(0);
 function isNum(a: any): boolean {
   return a !== '' && a !== null && !isNaN(a);
 }
@@ -51,6 +53,20 @@ export const min = (...args: any[]): number => {
 export const div = (...args: any[]): number => {
   const arr: Decimal[] = filterNumber2(args);
   if (arr.length > 1) {
+    return arr.reduce((a, b) => a.div(b)).toNumber();
+  } else if (arr.length > 0) {
+    return arr[0].toNumber();
+  } else {
+    return 0;
+  }
+};
+export const divDef = (def: any, ...args: any[]): number => {
+  const arr: Decimal[] = filterNumber2(args);
+  if (arr.length > 1) {
+    const zeros = arr.slice(1).findIndex(i => i.equals(ZERO));
+    if (zeros > -1) {
+      return new Decimal(def).toNumber();
+    }
     return arr.reduce((a, b) => a.div(b)).toNumber();
   } else if (arr.length > 0) {
     return arr[0].toNumber();
@@ -169,6 +185,12 @@ export class Bus {
     this.result = div(this.result, ...args);
     return this;
   }
+  @IF()
+  divDef(def: any, ...args: any[]): this {
+    this.result = divDef(def, this.result, ...args);
+    return this;
+  }
+
   @IF()
   mul(...args: any[]): this {
     this.result = mul(this.result, ...args);

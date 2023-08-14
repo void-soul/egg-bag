@@ -1665,7 +1665,7 @@ export default abstract class BaseMongoService<T> extends Service {
   ): Promise<M[]> {
     const data = await this.queryMutiRowMutiColumnBySql(item, transction);
     const result: M[] = [];
-    data.forEach((oo: {[name: string]: any}) => {
+    (data as any).forEach((oo: {[name: string]: any}) => {
       const key: string = Object.keys(oo)[0];
       result.push(oo[key] as M);
     });
@@ -1727,7 +1727,7 @@ export default abstract class BaseMongoService<T> extends Service {
   ): Promise<M | null> {
     const data: {
       [name: string]: any;
-    }[] = await this.queryMutiRowMutiColumnBySql(item, transction);
+    }[] = (await this.queryMutiRowMutiColumnBySql(item, transction)) as any;
     return data.length === 0
       ? null
       : (Object.values(data[data.length - 1])[0] as M);

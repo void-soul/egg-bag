@@ -1,3 +1,4 @@
+import {Context} from 'egg';
 import lodash = require('lodash');
 
 /**
@@ -11,6 +12,7 @@ export default class Build {
   private count: boolean;
   private sum: boolean;
   private brage = {haveOrderBy: false, haveLimit: false};
+  private ctx: Context;
   /**
    *
    * Creates an instance of Build.
@@ -21,10 +23,12 @@ export default class Build {
   constructor (
     count: boolean,
     sum: boolean,
+    ctx: Context,
     param: {[propName: string]: any} = {}
   ) {
     this.count = count;
     this.sum = sum;
+    this.ctx = ctx;
     lodash.assign(this, param);
   }
   /**
@@ -108,7 +112,7 @@ export default class Build {
       let data = render(text);
       data = lodash.trim(data);
       if (data) {
-        data = data.replace(/(^and)|(^or)|(,$)|(;$)/i, '');
+        data = data.replace(/(^and\s)|(^or\s)|(,$)|(;$)/i, '');
         return data;
       } else {
         return '';
@@ -140,7 +144,23 @@ export default class Build {
       }
     };
   }
-
+  enumTag() {
+    return (text: string) => {
+      const matchs = text.match(/([a-zA-Z_]+)\(([^()]+)\)/);
+      if (matchs) {
+        const [_a, MapName, Column] = matchs;
+        if (MapName && Column) {
+          const map = this.ctx.app._globalValues.GlobalMap[MapName.trim()];
+          if (map) {
+            return `CASE
+${ Object.entries(map).map(([k, v]) => `WHEN ${ Column } = '${ k }' THEN '${ v }'`).join(' ') }
+END`;
+          }
+        }
+      }
+      return "''";
+    };
+  }
   limitTag() {
     return (text: string, render: (text: string) => string) => {
       if (this.count === true || this.sum === true) {

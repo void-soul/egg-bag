@@ -126,24 +126,25 @@ export async function excuteWithCacheContext<T>(ctx: Context, config: {
   }
 }
 
-export function ContextMethodCache(config: {
-  /** 返回缓存key,参数=方法的参数+当前用户对象，可以用来清空缓存。 */
-  key: ((...args: any[]) => string) | string;
-  /** 返回缓存清除key,参数=方法的参数+当前用户对象，可以用来批量清空缓存 */
-  clearKey?: ((...args: any[]) => string[]) | string[];
+export function ContextMethodCache<T = any>(config: {
+  /** 返回缓存key,参数=方法的参数[注意：必须和主方法的参数数量、完全一致，同时会追加一个当前用户对象]+当前用户对象，可以用来清空缓存。 */
+  key: ((this: T, ...args: any[]) => string) | string;
+  /** 返回缓存清除key,参数=方法的参数[注意：必须和主方法的参数数量、完全一致，同时会追加一个当前用户对象]+当前用户对象，可以用来批量清空缓存 */
+  clearKey?: ((this: T, ...args: any[]) => string[]) | string[];
   /** 自动清空缓存的时间，单位分钟 */
   autoClearTime?: number;
   /** 随着当前用户sesion的清空而一起清空 */
   clearWithSession?: boolean;
 }) {
-  return function (target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (target: T, _propertyKey: string, descriptor: PropertyDescriptor) {
     if (target instanceof BaseContextClass) {
       const fn = descriptor.value;
       descriptor.value = async function (this: BaseContextClass) {
         // eslint-disable-next-line prefer-rest-params
         const args = Array.from(arguments);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        const key = typeof config.key === 'function' ? config.key(...args, this.ctx.me) : config.key;
+
+        const key = typeof config.key === 'function' ? config.key.call(target, ...args, this.ctx.me) : config.key;
         const cache = await this.app.redis.get('other').get(`[cache]${ key }`);
         if (cache) {
           debugCache(`cache ${ key } hit!`);
@@ -152,7 +153,7 @@ export function ContextMethodCache(config: {
           debugCache(`cache ${ key } miss!`);
           const result = await fn.call(this, ...args);
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          const clearKey = config.clearKey ? typeof config.clearKey === 'function' ? config.clearKey(...args, this.ctx.me) : config.clearKey : undefined;
+          const clearKey = config.clearKey ? typeof config.clearKey === 'function' ? config.clearKey.call(target, ...args, this.ctx.me) : config.clearKey : undefined;
           await setCache.call(this.app, {
             key,
             clearKey,
@@ -237,9 +238,9 @@ export async function excuteLockWithApplication<T>(app: Application, config: {
 }
 
 /** 与缓存共用时，需要在缓存之前:有缓存则返回缓存,否则加锁执行并缓存,后续队列全部返回缓存,跳过执行 */
-export function ContextMethodLock(config: {
-  /** 返回缓存key,参数=方法的参数+当前用户对象，可以用来清空缓存。 */
-  key: ((...args: any[]) => string) | string;
+export function ContextMethodLock<T = any>(config: {
+  /** 返回缓存key,参数=方法的参数[注意：必须和主方法的参数数量、完全一致，同时会追加一个当前用户对象]+当前用户对象，可以用来清空缓存。 */
+  key: ((this: T, ...args: any[]) => string) | string;
   /** 被锁定线程是否sleep直到解锁为止? 默认true */
   lockWait?: boolean;
   /** 当设置了lockWait=true时，等待多少【毫秒】进行一次锁查询? 默认100ms */
@@ -253,14 +254,14 @@ export function ContextMethodLock(config: {
   /** 单个锁多少【毫秒】后自动释放?即时任务没有执行完毕或者没有主动释放锁?  */
   lockMaxTime?: number;
 }) {
-  return function (target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (target: T, _propertyKey: string, descriptor: PropertyDescriptor) {
     if (target instanceof BaseContextClass) {
       const fn__ = descriptor.value;
       descriptor.value = async function (this: BaseContextClass) {
         // eslint-disable-next-line prefer-rest-params
         const args = Array.from(arguments);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        config.key = typeof config.key === 'function' ? config.key(...args, this.ctx.me) : config.key;
+        config.key = typeof config.key === 'function' ? config.key.call(target, ...args, this.ctx.me) : config.key;
         return await excuteLockWithApplication(this.app, config, async () => await fn__.call(this, ...args));
       };
     } else {

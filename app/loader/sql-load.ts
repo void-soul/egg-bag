@@ -86,7 +86,7 @@ export function loadSql(this: Application) {
       throw new Error(`sql-file ${ id } not found!`);
     }
     if (typeof source.template === 'string') {
-      const buildParam = new Build(count, sum, param);
+      const buildParam = new Build(count, sum, ctx, param);
       try {
         const sql = Mustache.render(source.template, buildParam, fnMap);
         debug(id, sql);

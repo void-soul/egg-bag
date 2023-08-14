@@ -159,8 +159,8 @@ export const mixArray = <T>(array: T[], key: keyof T, defKey?: string): {[key: s
   return result;
 };
 
-export const mixList = <T>(array: T[], key: keyof T, defKey?: string): {[key: string]: T[]} => {
-  const result: {[k: string]: T[]} = {};
+export const mixList = <T, V = T>(array: T[], key: keyof T, value?: keyof T, defKey?: string): {[key: string]: V[]} => {
+  const result: {[k: string]: V[]} = {};
   for (const i of array) {
     let ki = '';
     if (i[key] !== undefined && i[key] !== null) {
@@ -171,7 +171,37 @@ export const mixList = <T>(array: T[], key: keyof T, defKey?: string): {[key: st
     if (!result[ki]) {
       result[ki] = [];
     }
-    result[ki].push(i);
+    if (value) {
+      result[ki].push(i[value] as any);
+    } else {
+      result[ki].push(i as any);
+    }
   }
   return result;
+};
+
+/**
+ * 数组分割
+ * @param datas
+ * @param config(二选一) everyLength=每组个数(最后一组可能不足次数), groupCount=拆分几组
+ * @returns T[][]
+ */
+export const arraySplit = <T = any>(datas: T[], {everyLength = 0, groupCount = 0} = {}) => {
+  if (groupCount > 0) {
+    everyLength = Math.floor(datas.length / groupCount + 0.9);
+    const result: T[][] = [];
+    for (let i = 0; i < groupCount; i++) {
+      result.push(datas.slice(i * everyLength, (i + 1) * everyLength));
+    }
+    return result;
+  } else if (everyLength > 0) {
+    groupCount = Math.ceil(datas.length / everyLength);
+    const result: T[][] = [];
+    for (let i = 0; i < groupCount; i++) {
+      result.push(datas.slice(i * everyLength, (i + 1) * everyLength));
+    }
+    return result;
+  } else {
+    throw new Error('参数错误!');
+  }
 };

@@ -4,8 +4,13 @@ import LambdaQuery from '../util/sql/LambdaQuery';
 import PageQuery from '../util/sql/PageQuery';
 import {Empty} from '../util/empty';
 import {notEmptyString} from '../util/string';
+import {createBeanFromArray} from '../util/object';
 import {SqlSession, MongoFilter} from '../../typings';
 import lodash = require('lodash');
+import {ContextMethodCache} from '../util/method-enhance';
+import fs = require('fs');
+import path = require('path');
+import BetterSqlite3 = require('better-sqlite3');
 const debug = require('debug')('egg-bag:sql');
 
 const MethodDebug = function <T>() {
@@ -19,12 +24,24 @@ const MethodDebug = function <T>() {
         debug(`${ propertyKey }:${ this['tableName'] }`);
         return result;
       } catch (error) {
-        this.app.logger.error(`service ${ propertyKey } have an error, it's argumens: ${ JSON.stringify(args.filter(i => typeof i !== 'object' || (typeof i === 'object' && !i.insert))) }`);
+        this.app.logger.error(`service ${ propertyKey } have an error:${ error }, it's argumens: ${ JSON.stringify(args.filter(i => typeof i !== 'object' || (typeof i === 'object' && !i.insert))) }`);
         throw error;
       }
     };
   };
 };
+
+class Column {
+  Field: string;
+  Type: String;
+  Collation: String;
+  Null: String;
+  Key: String;
+  Default: String;
+  Extra: String;
+  Privileges: String;
+  Comment: String
+}
 
 export default abstract class BaseService<T> extends Service {
   private max = 500;
@@ -33,7 +50,6 @@ export default abstract class BaseService<T> extends Service {
   private keys: (keyof T)[];
   private stateFileName: string;
   private deleteState: string;
-
   /**
    * 插入所有列
    * 返回自增主键或者0
@@ -194,7 +210,6 @@ export default abstract class BaseService<T> extends Service {
       return result.insertId;
     }, transction);
   }
-
   /**
    * 插入或者更新非空字段(排除undefined、null、空字符串)
    * 返回自增主键或者0，新增或者插入的依据是：是否有主键.仅用于单主键
@@ -227,7 +242,6 @@ export default abstract class BaseService<T> extends Service {
       return id as unknown as I;
     }
   }
-
   /**
    *
    * 只插入非空字段(排除undefined、null)
@@ -249,7 +263,27 @@ export default abstract class BaseService<T> extends Service {
   ): Promise<number> {
     return await this.insertTemplate(data, transction, tableName, false);
   }
-
+  /**
+   *
+   * 只插入非空字段(排除undefined、null)
+   * 返回自增主键或者0
+   * @param {T} data
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  @MethodDebug()
+  async insertTemplateLooseWithDefault(
+    data: {[P in keyof T]?: T[P]},
+    transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName
+  ): Promise<number> {
+    return await this.insertTemplate(data, transction, tableName, false);
+  }
 
   /**
    * 插入或者更新非空字段(排除undefined、null)
@@ -415,7 +449,6 @@ export default abstract class BaseService<T> extends Service {
       return result;
     }, transction);
   }
-
   /**
    * 批量插入或者更新所有列
    * 返回自增主键或者0，新增或者插入的依据是：是否有主键.仅用于单主键
@@ -456,7 +489,6 @@ export default abstract class BaseService<T> extends Service {
       return result;
     }, transction);
   }
-
   /**
    * 如果指定列名不存在数据库中，则批量插入所有列
    * 返回自增主键或者0
@@ -559,6 +591,7 @@ export default abstract class BaseService<T> extends Service {
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
    *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   *
    * @returns
    */
   @MethodDebug()
@@ -568,7 +601,8 @@ export default abstract class BaseService<T> extends Service {
     tableName: (serviceTableName: string) => string = (
       serviceTableName: string
     ) => serviceTableName,
-    dealEmptyString = true
+    dealEmptyString = true,
+    defTable = false
   ): Promise<number[]> {
     if (datas.length === 0) {
       return [];
@@ -578,8 +612,9 @@ export default abstract class BaseService<T> extends Service {
       const table = tableName(this.tableName);
       const length = Math.ceil(datas.length / this.max);
       const columns = new Set<keyof T>();
+      const def = defTable === true ? await this.tableDefault<T>(table, transction) : null;
       for (let i = 0; i < length; i++) {
-        const prependDatas = this.filterEmptyAndTransients<T>(datas.slice(i * this.max, (i + 1) * this.max), true, dealEmptyString, columns);
+        const prependDatas = this.filterEmptyAndTransients<T>(datas.slice(i * this.max, (i + 1) * this.max), true, dealEmptyString, columns, def);
         const ret = await conn.insert<T>(
           table,
           prependDatas,
@@ -592,11 +627,10 @@ export default abstract class BaseService<T> extends Service {
       return result;
     }, transction);
   }
-
   /**
    * 批量插入或者更新(排除undefined、null、空字符串)
    * 返回自增主键或者0，新增或者插入的依据是：是否有主键.仅用于单主键
-   * @param {T} data
+   * @param {T} datas
    * @param {*} [transction=true] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
@@ -634,7 +668,6 @@ export default abstract class BaseService<T> extends Service {
       return result;
     }, transction);
   }
-
   /**
    *
    * 批量插入非空字段(排除undefined、null)
@@ -656,12 +689,52 @@ export default abstract class BaseService<T> extends Service {
   ): Promise<number[]> {
     return await this.insertBatchTemplate(datas, transction, tableName, false);
   }
-
-
+  /**
+   *
+   * 批量插入非空字段(排除undefined、null,并查询数据库默认值)
+   * 返回自增主键或者0
+   * @param {T[]} datas
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  @MethodDebug()
+  async insertBatchTemplateLooseWithDefault(
+    datas: {[P in keyof T]?: T[P]}[],
+    transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName
+  ): Promise<number[]> {
+    return await this.insertBatchTemplate(datas, transction, tableName, false, true);
+  }
+  /**
+   *
+   * 批量插入非空字段(排除undefined、null、空字符串,并查询数据库默认值)
+   * 返回自增主键或者0
+   * @param {T[]} datas
+   * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
+   * @param {(serviceTableName: string) => string} [tableName=(
+   *       serviceTableName: string
+   *     ) => serviceTableName] 表名构造方法，该方法可以修改默认的表名,适用于一个实体类根据业务分表后的场景
+   * @returns
+   */
+  @MethodDebug()
+  async insertBatchTemplateWithDefault(
+    datas: {[P in keyof T]?: T[P]}[],
+    transction?: SqlSession,
+    tableName: (serviceTableName: string) => string = (
+      serviceTableName: string
+    ) => serviceTableName
+  ): Promise<number[]> {
+    return await this.insertBatchTemplate(datas, transction, tableName, true, true);
+  }
   /**
    * 批量插入或者更新(排除undefined、null)
    * 返回自增主键或者0，新增或者插入的依据是：是否有主键.仅用于单主键
-   * @param {T} data
+   * @param {T} datas
    * @param {*} [transction=true] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
@@ -678,11 +751,10 @@ export default abstract class BaseService<T> extends Service {
   ): Promise<I[]> {
     return await this.insertOrUpdateBatchTemplate<I>(datas, transction, tableName, false);
   }
-
   /**
    * 如果指定列名不存在数据库中，则批量插入所有非空列(排除undefined、null、空字符串)
    * 返回自增主键或者0
-   * @param {T} data
+   * @param {T} datas
    * @param {*} [transction=true] 独立事务
    * @param {(serviceTableName: string) => string} [tableName=(
    *       serviceTableName: string
@@ -940,6 +1012,9 @@ export default abstract class BaseService<T> extends Service {
         where[idName] = data[idName];
       }
       const realdata = this.filterEmptyAndTransient<T>(data, true, dealEmptyString);
+      if (Object.keys(realdata).length === 0) {
+        return 0;
+      }
       const result = await conn.update<T>(tableName(this.tableName), realdata, {
         where,
         columns: Object.keys(realdata) as any
@@ -1049,11 +1124,14 @@ export default abstract class BaseService<T> extends Service {
         for (const idName of this.idNames) {
           this.app.throwIf(
             !data[idName],
-            `${ idName } must be set!(${ JSON.stringify(data) })`
+            `${ String(idName) } must be set!(${ JSON.stringify(data) })`
           );
           where[idName] = data[idName];
         }
         const realdata = this.filterEmptyAndTransient<T>(data, true, dealEmptyString);
+        if (Object.keys(realdata).length === 0) {
+          continue;
+        }
         options.push({
           row: realdata,
           where
@@ -1150,7 +1228,6 @@ export default abstract class BaseService<T> extends Service {
   ): Promise<number> {
     return await this.updateBatchTemplateByIdSafe(datas, transction, tableName, false);
   }
-
   /**
    *
    * 根据自定义条件修改
@@ -1325,7 +1402,6 @@ export default abstract class BaseService<T> extends Service {
       },
       transction, tableName);
   }
-
   /**
     * 根据id主键，为多个值+value
     * @param {T[]} datas
@@ -1353,7 +1429,6 @@ export default abstract class BaseService<T> extends Service {
       data,
       transction, tableName);
   }
-
   /**
    * 根据复合id主键，为某个值+1
    * @param {T[]} datas
@@ -1481,7 +1556,7 @@ export default abstract class BaseService<T> extends Service {
       const keys = new Array<string>();
       for (const idName of this.idNames) {
         this.app.throwIf(!ids[idName], `id must be set!${ this.tableName }`);
-        where.push(`${ idName } = :${ idName }`);
+        where.push(`${ String(idName) } = :${ String(idName) }`);
         keys.push(idName as string);
         param[idName] = ids[idName];
       }
@@ -2376,7 +2451,7 @@ export default abstract class BaseService<T> extends Service {
    * @returns 指定类型数组
    */
   @MethodDebug()
-  async queryMulitBySqlId2<A, B>(
+  async queryMulitBySqlId2<A, B = A>(
     sqlid: string,
     param?: {[propName: string]: any},
     transction?: SqlSession
@@ -2393,7 +2468,7 @@ export default abstract class BaseService<T> extends Service {
    * @returns 指定类型数组
    */
   @MethodDebug()
-  async queryMulitBySqlId3<A, B, C>(
+  async queryMulitBySqlId3<A, B = A, C = A>(
     sqlid: string,
     param?: {[propName: string]: any},
     transction?: SqlSession
@@ -2410,7 +2485,7 @@ export default abstract class BaseService<T> extends Service {
    * @returns 指定类型数组
    */
   @MethodDebug()
-  async queryMulitBySqlId4<A, B, C, D>(
+  async queryMulitBySqlId4<A, B = A, C = A, D = A>(
     sqlid: string,
     param?: {[propName: string]: any},
     transction?: SqlSession
@@ -2427,7 +2502,7 @@ export default abstract class BaseService<T> extends Service {
    * @returns 指定类型数组
    */
   @MethodDebug()
-  async queryMulitBySqlId5<A, B, C, D, E>(
+  async queryMulitBySqlId5<A, B = A, C = A, D = A, E = A>(
     sqlid: string,
     param?: {[propName: string]: any},
     transction?: SqlSession
@@ -2444,7 +2519,7 @@ export default abstract class BaseService<T> extends Service {
    * @returns 指定类型数组
    */
   @MethodDebug()
-  async queryMulitBySqlId6<A, B, C, D, E, F>(
+  async queryMulitBySqlId6<A, B = A, C = A, D = A, E = A, F = A>(
     sqlid: string,
     param?: {[propName: string]: any},
     transction?: SqlSession
@@ -2461,7 +2536,7 @@ export default abstract class BaseService<T> extends Service {
  * @returns 指定类型数组
  */
   @MethodDebug()
-  async queryMulitBySqlId7<A, B, C, D, E, F, G>(
+  async queryMulitBySqlId7<A, B = A, C = A, D = A, E = A, F = A, G = A>(
     sqlid: string,
     param?: {[propName: string]: any},
     transction?: SqlSession
@@ -2478,7 +2553,7 @@ export default abstract class BaseService<T> extends Service {
  * @returns 指定类型数组
  */
   @MethodDebug()
-  async queryMulitBySqlId8<A, B, C, D, E, F, G, H>(
+  async queryMulitBySqlId8<A, B = A, C = A, D = A, E = A, F = A, G = A, H = A>(
     sqlid: string,
     param?: {[propName: string]: any},
     transction?: SqlSession
@@ -2495,7 +2570,7 @@ export default abstract class BaseService<T> extends Service {
  * @returns 指定类型数组
  */
   @MethodDebug()
-  async queryMulitBySqlId9<A, B, C, D, E, F, G, H, I>(
+  async queryMulitBySqlId9<A, B = A, C = A, D = A, E = A, F = A, G = A, H = A, I = A>(
     sqlid: string,
     param?: {[propName: string]: any},
     transction?: SqlSession
@@ -2512,7 +2587,7 @@ export default abstract class BaseService<T> extends Service {
  * @returns 指定类型数组
  */
   @MethodDebug()
-  async queryMulitBySqlId10<A, B, C, D, E, F, G, H, I, J>(
+  async queryMulitBySqlId10<A, B = A, C = A, D = A, E = A, F = A, G = A, H = A, I = A, J = A>(
     sqlid: string,
     param?: {[propName: string]: any},
     transction?: SqlSession
@@ -2529,7 +2604,7 @@ export default abstract class BaseService<T> extends Service {
 * @returns 指定类型数组
 */
   @MethodDebug()
-  async queryMulitBySqlId11<A, B, C, D, E, F, G, H, I, J, K>(
+  async queryMulitBySqlId11<A, B = A, C = A, D = A, E = A, F = A, G = A, H = A, I = A, J = A, K = A>(
     sqlid: string,
     param?: {[propName: string]: any},
     transction?: SqlSession
@@ -2709,7 +2784,7 @@ export default abstract class BaseService<T> extends Service {
     transction?: SqlSession
   ): Promise<M | null> {
     const data = await this.queryMutiRowMutiColumnBySql<T>(sql, param, transction);
-    return data.length === 0 ? null : (Object.values(data[0])[0] as M);
+    return data.length === 0 ? null : (Object.values(data[0] as any)[0] as M);
   }
   /**
    *
@@ -2810,9 +2885,9 @@ export default abstract class BaseService<T> extends Service {
   ): LambdaQuery<L> {
     return new LambdaQuery(
       tableName(this.tableName),
-      async (sql: string, params: Empty) => await this.queryMutiRowMutiColumnBySql<L>(sql, params, transction),
-      async (sql: string, params: Empty) => (await this.querySingelRowSingelColumnBySql<number>(sql, params, transction)) || 0,
-      async (sql: string, params: Empty) => await this.executeBySql(sql, params, transction),
+      async (sql: string, params: {[k: string]: L[keyof L];}) => await this.queryMutiRowMutiColumnBySql<L>(sql, params, transction),
+      async (sql: string, params: {[k: string]: L[keyof L];}) => (await this.querySingelRowSingelColumnBySql<number>(sql, params, transction)) || 0,
+      async (sql: string, params: {[k: string]: L[keyof L];}) => await this.executeBySql(sql, params, transction),
       this,
       this.app
     );
@@ -3079,7 +3154,19 @@ export default abstract class BaseService<T> extends Service {
   ): Promise<T[]> {
     return await this.customQuery<T>(x, transction, tableName);
   }
+  async clearCache(dbName: string) {
+    this.app.throwIf(!this.app.config.sqlite?.pathname, '没有设置sqlite路径!');
+    const dbPath = path.join(this.app.config.sqlite!.pathname, dbName);
+    if (fs.existsSync(dbPath)) {
+      const db: BetterSqlite3.Database | undefined = new BetterSqlite3(dbName);
+      db.
+    }
+  }
+  async cacheDb(
 
+  ) {
+
+  }
   /**
    *
    * 事务执行方法
@@ -3087,10 +3174,10 @@ export default abstract class BaseService<T> extends Service {
    * @param {*} [transction=true] 是否开启独立事务，默认true;否则传入事务连接
    * @returns
    */
-  protected async transction(
-    fn: (conn: SqlSession) => Promise<any>,
+  protected async transction<A = any>(
+    fn: (conn: SqlSession) => Promise<A>,
     transction?: SqlSession
-  ): Promise<any> {
+  ): Promise<A> {
     if (transction === undefined) {
       return await this.app.mysql.beginTransactionScope(
         conn => fn(conn),
@@ -3100,7 +3187,20 @@ export default abstract class BaseService<T> extends Service {
       return await fn(transction);
     }
   }
-
+  @MethodDebug()
+  @ContextMethodCache<BaseService<T>>({
+    key: (tableName: string) => tableName,
+    autoClearTime: 180
+  })
+  private async tableDefault<L>(
+    tableName: string,
+    transction?: SqlSession
+  ): Promise<L> {
+    return await this.transction(async (conn) => {
+      const list = (await conn.query(`SHOW FULL COLUMNS FROM ${ tableName }`)) as Column[];
+      return createBeanFromArray<Column, string>(list.filter(i => !!i.Default), 'Field', 'Default') as unknown as L;
+    }, transction);
+  }
   /**
    *
    * 过滤掉空属性
@@ -3108,7 +3208,7 @@ export default abstract class BaseService<T> extends Service {
    * @param {*} source
    * @returns {T}
    */
-  private filterEmptyAndTransient<L>(source: any, skipEmpty = true, dealEmptyString = true, columns?: Set<keyof T>): {[P in keyof L]?: L[P]} {
+  private filterEmptyAndTransient<L>(source: any, skipEmpty = true, dealEmptyString = true, columns?: Set<keyof T>, def: T | null = null): {[P in keyof L]?: L[P]} {
     const result: {[P in keyof L]?: L[P]} = {};
     this.keys.forEach((key) => {
       if (skipEmpty === true) {
@@ -3125,9 +3225,13 @@ export default abstract class BaseService<T> extends Service {
         }
       }
     });
-    return result;
-  }
+    if (def) {
+      return Object.assign({}, def, result);
+    } else {
+      return result;
+    }
 
+  }
   /**
    *
    * 过滤掉空属性
@@ -3135,10 +3239,10 @@ export default abstract class BaseService<T> extends Service {
    * @param {*} source
    * @returns {T}
    */
-  private filterEmptyAndTransients<L>(source: any[], skipEmpty = true, dealEmptyString = true, columns?: Set<keyof T>): {[P in keyof L]?: L[P]}[] {
+  private filterEmptyAndTransients<L>(source: any[], skipEmpty = true, dealEmptyString = true, columns?: Set<keyof T>, def: T | null = null): {[P in keyof L]?: L[P]}[] {
     const result = new Array<{[P in keyof L]?: L[P]}>();
     source.forEach((item) => {
-      result.push(this.filterEmptyAndTransient<L>(item, skipEmpty, dealEmptyString, columns));
+      result.push(this.filterEmptyAndTransient<L>(item, skipEmpty, dealEmptyString, columns, def));
     });
     return result;
   }

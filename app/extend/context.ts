@@ -10,6 +10,9 @@ export default {
   get me(): BaseUser {
     return this[USER];
   },
+  set me(user: BaseUser) {
+    this[USER] = user;
+  },
   login(this: Context, user: BaseUser, notify = true, dickOut = true) {
     let newUser = false;
     if (!user.devid) {

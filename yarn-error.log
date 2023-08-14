@@ -1,11 +1,11 @@
 Arguments: 
-  C:\Program Files\nodejs\node.exe D:\Program Files\Yarn\bin\yarn.js publish
+  C:\Program Files\nodejs\node.exe C:\Program Files\nodejs\node_modules\yarn\bin\yarn.js
 
 PATH: 
-  C:\Program Files\PowerShell\7;D:\Program Files\ImageMagick-7.0.1-Q16;C:\Program Files\Microsoft\jdk-11.0.13.8-hotspot\bin;D:\Program Files\VMware\VMware Workstation\bin\;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;D:\tool\node;D:\Program Files\Microsoft VS Code\bin;D:\Program Files\Git\cmd;C:\Users\Administrator\.windows-build-tools\python27;C:\Program Files\Microsoft DNX\Dnvm\;C:\Program Files (x86)\dotnet\;C:\Windows\System32\OpenSSH\;D:\Program Files\Yarn\bin\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;D:\tool\node;C:\Program Files\nodejs;C:\Program Files\PowerShell\7\;D:\tool\Python310;C:\Program Files\TortoiseGit\bin;C:\Users\Administrator\.cargo\bin;C:\Users\Administrator\AppData\Roaming\ActiveState\bin;C:\Users\Administrator\AppData\Local\activestate\bin;C:\Users\Administrator\AppData\Local\Microsoft\WindowsApps;C:\Users\Administrator\.dotnet\tools;D:\tool\node;D:\Program Files\Bandizip\;C:\Program Files\LibreOffice\program;C:\Users\Administrator\AppData\Local\Microsoft\WindowsApps;C:\Program Files\MySQL\MySQL Server 8.0\bin;D:\Program Files\JetBrains\PhpStorm 2021.2\bin;D:\tool\apache-maven-3.8.2\bin;D:\Program Files\flutter_windows_2.5.3-stable\bin;C:\Users\Administrator\.dotnet\tools;D:\Program Files\LibreOffice\program;C:\Users\Administrator\AppData\Local\Yarn\bin;C:\Users\Administrator\AppData\Local\Programs\Fiddler;D:\tool\node;
+  C:\Program Files\PowerShell\7;;D:\Program Files\ImageMagick-7.0.1-Q16;D:\Program Files\VMware\VMware Workstation\bin\;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;D:\Program Files\Git\cmd;C:\Program Files\Microsoft DNX\Dnvm\;C:\Program Files (x86)\dotnet\;C:\Windows\System32\OpenSSH\;D:\tool\node;C:\Program Files\nodejs;C:\Program Files\TortoiseGit\bin;D:\Program Files\Microsoft VS Code\bin;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;D:\Program Files\Yarn\bin\;D:\Program Files\Embarcadero\Studio\22.0\bin;C:\Users\Public\Documents\Embarcadero\Studio\22.0\Bpl;C:\Program Files\PowerShell\7\;C:\Program Files\Microsoft\jdk-11.0.13.8-hotspot\\bin;D:\tool\python-3.10.9\;D:\tool\python-3.10.9\Scripts\;d:\program files\shadowbot;C:\Users\Administrator\.cargo\bin;C:\Users\Administrator\AppData\Roaming\ActiveState\bin;C:\Users\Administrator\AppData\Local\activestate\bin;C:\Users\Administrator\AppData\Local\Microsoft\WindowsApps;D:\tool\node;C:\Program Files\LibreOffice\program;C:\Users\Administrator\AppData\Local\Microsoft\WindowsApps;C:\Program Files\MySQL\MySQL Server 8.0\bin;D:\tool\apache-maven-3.8.2\bin;D:\Program Files\flutter_windows_2.5.3-stable\bin;C:\Users\Administrator\.dotnet\tools;D:\Program Files\LibreOffice\program;D:\tool\node;C:\Users\Administrator\AppData\Local\Yarn\bin;C:\Users\Administrator\.dotnet\tools;C:\Users\Administrator\AppData\Local\JetBrains\Toolbox\scripts;D:\Program Files\JetBrains\JetBrains Rider 2022.3\bin;;C:\Users\Administrator\.dotnet\tools;D:\Program Files\Microsoft VS Code\bin;
 
 Yarn version: 
-  1.22.15
+  1.22.17
 
 Node version: 
   12.22.9
@@ -14,22 +14,20 @@ Platform:
   win32 x64
 
 Trace: 
-  Error: canceled
-      at Interface.<anonymous> (D:\Program Files\Yarn\lib\cli.js:137145:13)
-      at Interface.emit (events.js:314:20)
-      at Interface._ttyWrite (readline.js:868:16)
-      at ReadStream.onkeypress (readline.js:205:10)
-      at ReadStream.emit (events.js:314:20)
-      at emitKeys (internal/readline/utils.js:335:14)
-      at emitKeys.next (<anonymous>)
-      at ReadStream.onData (readline.js:1137:36)
-      at ReadStream.emit (events.js:314:20)
-      at addChunk (_stream_readable.js:297:12)
+  Error: https://registry.yarnpkg.com/@types%2fbetter-sqlite3: tunneling socket could not be established, cause=connect ECONNREFUSED 127.0.0.1:12345
+      at ClientRequest.onError (D:\tool\node\v12.22.9\node_modules\yarn\lib\cli.js:152369:17)
+      at Object.onceWrapper (events.js:421:26)
+      at ClientRequest.emit (events.js:314:20)
+      at Socket.socketErrorListener (_http_client.js:427:9)
+      at Socket.emit (events.js:314:20)
+      at emitErrorNT (internal/streams/destroy.js:92:8)
+      at emitErrorAndCloseNT (internal/streams/destroy.js:60:3)
+      at processTicksAndRejections (internal/process/task_queues.js:84:21)
 
 npm manifest: 
   {
     "name": "egg-bag",
-    "version": "1.46.1",
+    "version": "1.47.4",
     "description": "egg-bag framework beta",
     "keywords": [
       "egg",
@@ -77,8 +75,10 @@ npm manifest:
       "@types/socket.io": "2.1.13",
       "@typescript-eslint/eslint-plugin": "5.11.0",
       "@typescript-eslint/parser": "5.11.0",
+      "@types/better-sqlite3": "8.5.0",
       "autod": "3.1.2",
       "autod-egg": "1.1.0",
+      "better-sqlite3": "8.5.0",
       "body-parser": "1.19.1",
       "core-js": "3.21.0",
       "cross-env": "7.0.3",
@@ -96,7 +96,6 @@ npm manifest:
       "egg-ts-helper": "1.29.1",
       "egg-view-nunjucks": "2.3.0",
       "ejsexcel": "3.6.2",
-      "es6-error": "4.1.1",
       "eslint": "8.8.0",
       "eslint-plugin-import": "2.25.4",
       "eslint-plugin-node": "11.1.0",

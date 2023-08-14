@@ -27,6 +27,7 @@ export default abstract class BaseSchedule extends Subscription {
   key: string;
   abstract excute(): Promise<string>;
   async subscribe() {
+
     if (!this.config.redis) {
       this.redis = false;
     }
@@ -62,6 +63,7 @@ export default abstract class BaseSchedule extends Subscription {
         }
       }
       this.app.coreLogger.info(`${ start }:${ lockKey }:started`);
+      this.ctx.me = {userid: 'auto-task', devid: 'auto-task'};
       const data = await this.excute();
       ms = data;
       this.app.coreLogger.info(`${ lockKey } +${ +new Date() - start }ms,data: ${ data || 'empty!' }`);

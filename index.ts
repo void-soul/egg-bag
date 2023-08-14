@@ -5,10 +5,10 @@ import Enum from './app/enums/Enum';
 import BaseService from './app/base/BaseService';
 import BaseMongoService from './app/base/BaseMongoService';
 import {Empty, emptyPromise} from './app/util/empty';
-import {promise, sleep} from './app/util/fn';
+import {promise, sleep, dieTrying, execSplit} from './app/util/fn';
 import {num, max, min, div, add, mul, sub, round, merge, money, calc} from './app/util/math';
 import {dateTime, dateXSDTime, date, nowTime, nowDate, nowTimeXSD, dateFormat} from './app/util/now';
-import {copyBean, convertBean, convertBeans, emptyBean, createBeanFromArray, coverComplexBean, fixEmptyPrototy, mixArray, mixList} from './app/util/object';
+import {copyBean, convertBean, convertBeans, emptyBean, createBeanFromArray, coverComplexBean, fixEmptyPrototy, mixArray, mixList, arraySplit} from './app/util/object';
 import SetEx from './app/util/SetEx';
 import {DataSource, Mongo, Transient, BuildData, TransientMeda, LogicDelete} from './app/util/shell-extend';
 import {Render, Get, Post, Put, Delete, Patch, Options, Head, IO, Before, After, BeforeAll, AfterAll, Prefix, ViewError, ContentType, ContentName, Lock, Excel} from './app/util/shell';
@@ -27,13 +27,11 @@ export = {
   Enum,
   BaseService,
   BaseMongoService,
-  Empty,
-  emptyPromise,
-  promise,
-  sleep,
+  Empty, emptyPromise,
+  promise, sleep, dieTrying, execSplit,
   num, max, min, div, add, mul, sub, round, merge, money, calc,
   dateTime, dateXSDTime, date, nowTime, nowDate, nowTimeXSD, dateFormat,
-  copyBean, convertBean, convertBeans, emptyBean, createBeanFromArray, coverComplexBean, fixEmptyPrototy, mixArray, mixList,
+  copyBean, convertBean, convertBeans, emptyBean, createBeanFromArray, coverComplexBean, fixEmptyPrototy, mixArray, mixList, arraySplit,
   SetEx,
   DataSource, Mongo, Transient, BuildData, TransientMeda, LogicDelete,
   Render, Get, Post, Put, Delete, Patch, Options, Head, IO, ViewError, ContentType, ContentName, Before, After, BeforeAll, AfterAll, Prefix, Lock, Excel,

@@ -150,7 +150,7 @@ const excel = {
   }
 };
 const excel2 = {
-  path: '/excel.xlsx',
+  path: '/excel2.xlsx',
   method: 'post',
   excel: true,
   before: [ILogin],

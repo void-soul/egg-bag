@@ -46,9 +46,9 @@ export default class <T> extends Set {
 
   /**
    *
-   * 添加返回 当前对象
+   * 添加返回
    * @param {T} value
-   * @returns {this}
+   * @returns {this} 当前对象
    */
   add(value: T): this {
     let flag = false;
@@ -73,6 +73,11 @@ export default class <T> extends Set {
     }
     return this;
   }
+  /**
+   * 批量添加
+   * @param values
+   * @returns 当前对象
+   */
   addAll(...values: T[]): this {
     for (const value of values) {
       this.add(value);
@@ -81,9 +86,9 @@ export default class <T> extends Set {
   }
   /**
    *
-   * 添加并返回添加成功的对象:可能是新加入集合的，也可能是原本存在的
+   * 添加
    * @param {T} value
-   * @returns {T}
+   * @returns {T} 添加成功的对象:可能是新加入集合的，也可能是原本存在的
    */
   add2(value: T): T {
     let flag = false;
@@ -114,7 +119,7 @@ export default class <T> extends Set {
   /**
    *
    * 添加并返回添加成功的对象:可能是新加入集合的，也可能是原本存在的
-   * @param {T} value
+   * @param {T} values
    * @returns {T}
    */
   addAll2(values: T[]): T[] {
@@ -194,11 +199,38 @@ export default class <T> extends Set {
     }
     return false;
   }
-  toArray(): T[] {
-    return Array.from(this);
+  /**
+   * 转为数组
+   * @param param0
+   * @returns
+   */
+  toArray({sort, each, filter, map}: {
+    sort?: (a: T, b: T) => number;
+    each?: (a: T) => void;
+    filter?: (a: T) => boolean;
+    map?: (a: T) => T;
+  } = {}): T[] {
+    let list = Array.from(this);
+    if (filter) {list = list.filter(filter);}
+    if (sort) {list.sort(sort);}
+    if (each) {list.forEach(each);}
+    if (map) {list = list.map(map);}
+    return list;
   }
-  toJSON<L = T>(key: keyof T, value?: keyof T): {[k: string]: L} {
-    return Object.fromEntries(this.toArray().map(i => [i[key], value ? i[value] : i]));
+  /**
+   * 转为JSON对象
+   * @param key
+   * @param value
+   * @param param2
+   * @returns
+   */
+  toJSON<L = T>(key: keyof T, value?: keyof T, {sort, each, filter, map}: {
+    sort?: (a: T, b: T) => number;
+    each?: (a: T) => void;
+    filter?: (a: T) => boolean;
+    map?: (a: T) => T;
+  } = {}): {[k: string]: L} {
+    return Object.fromEntries(this.toArray({sort, each, filter, map}).map(i => [i[key], value ? i[value] : i]));
   }
   /**
    *
@@ -243,6 +275,82 @@ export default class <T> extends Set {
     this.clear();
     return this;
   }
+  /**
+   *
+   * @param param0 转为JSON对象，value可能是数组
+   * @returns
+   */
+  toJSONArray({sort, each, filter, map}: {
+    sort?: (a: T, b: T) => number;
+    each?: (a: T) => void;
+    filter?: (a: T) => boolean;
+    map?: (a: T) => T;
+  } = {}) {
+    const result: {[k: string]: T[keyof T][]} = {};
+    const list = this.toArray({sort, each, filter, map});
+    for (const item of list) {
+      for (const key in item) {
+        if (!result[key]) {
+          result[key] = [];
+        }
+        result[key].push(item[key]);
+      }
+    }
+    return result;
+  }
+  /**
+   * 转为hot-table支持的数组
+   * @param param0
+   * @param keys
+   * @returns
+   */
+  toDataGrid({sort, each, filter, map}: {
+    sort?: (a: T, b: T) => number;
+    each?: (a: T) => void;
+    filter?: (a: T) => boolean;
+    map?: (a: T) => T;
+  } = {}, ...keys: (keyof T)[]) {
+    if (this.size === 0) {return [];}
+    if (keys.length === 0) {keys = Object.keys(this.values().next().value) as any;}
+    const result: (T[keyof T] | keyof T)[][] = [keys];
+    const list = this.toArray({sort, each, filter, map});
+    for (const item of list) {
+      const one: T[keyof T][] = [];
+      for (const key of keys) {
+        one.push(item[key]);
+      }
+      result.push(one);
+    }
+    return result;
+  }
+  /**
+   * 转为饼图支持的数组
+   * @param param0
+   * @param keys
+   * @returns
+   */
+  toPieGrid({sort, each, filter, map}: {
+    sort?: (a: T, b: T) => number;
+    each?: (a: T) => void;
+    filter?: (a: T) => boolean;
+    map?: (a: T) => T;
+  } = {}, ...keys: (keyof T)[]): {[k: string]: {value: T[keyof T], name: T[keyof T]}[]} {
+    if (this.size === 0) {return {};}
+    if (keys.length === 0) {keys = Object.keys(this.values().next().value) as any;}
+    const result: {[k: string]: {value: T[keyof T], name: T[keyof T]}[]} = {};
+    const list = this.toArray({sort, each, filter, map});
+    for (const item of list) {
+      const name = item[this.uniqueKey];
+      for (const key in item) {
+        if (!result[key]) {
+          result[key] = [];
+        }
+        result[key].push({name, value: item[key]});
+      }
+    }
+    return result;
+  }
+
   set onExist(onExist: ((oldData: T, newData: T) => void) | undefined) {
     this.whenOnExist = onExist;
   }

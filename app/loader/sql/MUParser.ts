@@ -116,8 +116,7 @@ export default class MUParser {
         continue;
       }
       sb.push(str);
-      sb.push(' ');
     }
-    return sb.join('');
+    return sb.join(' ');
   }
 }

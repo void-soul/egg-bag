@@ -315,7 +315,7 @@ const EggInstall = (target, app, options = {}) => {
         };
         const result = await target.handel.call(that, ctx);
         if (target.excel === true) {
-          let templateName = ctx.query.templateName;
+          let templateName = ctx.query.templateName || ctx.body.templateName;
           if (!templateName) {
             templateName = target.path.replace(/\//g, '');
           }
@@ -324,8 +324,9 @@ const EggInstall = (target, app, options = {}) => {
           const exlBuf = await fs.promises.readFile(join(app.baseDir, 'app', 'excel', templateName));
           const exlBuf2 = await ejsexcel.renderExcel(exlBuf, result, { cachePath: tempDir });
           ctx.response.type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-          if (ctx.query.downLoadName) {
-            ctx.response.attachment(ctx.query.downLoadName);
+          const downLoadName = ctx.query.downLoadName || ctx.body.downLoadName;
+          if (downLoadName) {
+            ctx.response.attachment(downLoadName);
           }
           ctx.response.body = exlBuf2;
         } else if (target.type) {
