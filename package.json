@@ -1,6 +1,6 @@
 {
   "name": "egg-bag",
-  "version": "1.47.4",
+  "version": "1.47.5",
   "description": "egg-bag framework beta",
   "keywords": [
     "egg",
@@ -68,7 +68,7 @@
     "egg-socket.io": "4.1.6",
     "egg-ts-helper": "1.29.1",
     "egg-view-nunjucks": "2.3.0",
-    "ejsexcel": "3.6.2",
+    "ejsexcel": "4.2.2",
     "eslint": "8.8.0",
     "eslint-plugin-import": "2.25.4",
     "eslint-plugin-node": "11.1.0",

@@ -3159,7 +3159,7 @@ export default abstract class BaseService<T> extends Service {
     const dbPath = path.join(this.app.config.sqlite!.pathname, dbName);
     if (fs.existsSync(dbPath)) {
       const db: BetterSqlite3.Database | undefined = new BetterSqlite3(dbName);
-      db.
+
     }
   }
   async cacheDb(
